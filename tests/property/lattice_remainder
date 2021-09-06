@@ -1,0 +1,43 @@
+# This file is part of the Property Checker.
+# Copyright (c) 2021 -- present. Property Checker developers.
+#
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License version 2 only, as
+# published by the Free Software Foundation.
+#
+# This code is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+# version 2 for more details.
+#
+# You should have received a copy of the GNU General Public License version
+# 2 along with this work; if not, write to the Free Software Foundation,
+# Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ident remainder;
+
+annotation RemainderTop() any :<==> "true" for "true";
+annotation RemainderBottom() any :<==> "false" for "true";
+    
+annotation Remainder(int remainder, int modulus) int
+    :<==> "java.lang.Math.floorMod(subject, modulus) == remainder"
+    for "0 <= remainder && remainder < modulus";
+    
+relation Remainder(a,b) <: RemainderTop() :<==> "true";
+relation RemainderBottom() <: Remainder(a,b) :<==> "true";
+
+relation Remainder(subRemainder, subModulus) <: Remainder(superRemainder, superModulus)
+    :<==> "subModulus % superModulus == 0 && java.lang.Math.floorMod(subRemainder, superModulus) == java.lang.Math.floorMod(superRemainder, superModulus)";
+
+join Remainder(a, m), Remainder(b, n)
+    := Remainder("java.lang.Math.floorMod(a, edu.kit.iti.checker.property.util.Math.gcd(m, n))", "edu.kit.iti.checker.property.util.Math.gcd(m, n)")
+    for "java.lang.Math.floorMod(a, edu.kit.iti.checker.property.util.Math.gcd(m, n)) == java.lang.Math.floorMod(b, edu.kit.iti.checker.property.util.Math.gcd(m, n))";
+
+meet Remainder(a, m), Remainder(b, n)
+    := Remainder("(a * edu.kit.iti.checker.property.util.Math.eea1(m,n) * n + b * edu.kit.iti.checker.property.util.Math.eea0(m,n) * m) / edu.kit.iti.checker.property.util.Math.gcd(m,n)", "edu.kit.iti.checker.property.util.Math.lcm(m,n)")
+    for "java.lang.Math.floorMod(a, edu.kit.iti.checker.property.util.Math.gcd(m, n)) == java.lang.Math.floorMod(b, edu.kit.iti.checker.property.util.Math.gcd(m, n))";
+    
+join Remainder(a, m), Remainder(b, n)
+    := Remainder("java.lang.Math.floorMod(a, edu.kit.iti.checker.property.util.Math.mcd(m,n,a,b))", "edu.kit.iti.checker.property.util.Math.mcd(m,n,a,b)");
+    
+meet Remainder(a, m), Remainder(b, n)
+    := RemainderBottom();

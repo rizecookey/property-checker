@@ -1,0 +1,109 @@
+plugins {
+    id 'java'
+    id 'maven-publish'
+    id 'eclipse'
+}
+
+eclipse {
+    classpath {
+        downloadJavadoc = true
+        downloadSources = true
+    }
+}
+
+
+repositories {
+    // Use jcenter for resolving your dependencies.
+    // You can declare any Maven/Ivy/file repository here.
+    jcenter()
+}
+
+configurations {
+    // for putting Error Prone javac in bootclasspath for running tests
+    errorproneJavac
+}
+
+ext.versions = [
+        checkerFramework: "3.8.0",
+]
+
+
+sourceCompatibility = 1.8
+def checkerframework_local = true  // Set this variable to [true] while using local version of checker framework.
+
+dependencies {
+    // This dependency is found on compile classpath of this component and consumers.
+    if (checkerframework_local) {
+        implementation files('checker-framework/dist/checker.jar')
+        implementation files('checker-framework/dist/checker-qual.jar')
+        
+    }
+    else {
+        implementation "org.checkerframework:checker:${versions.checkerFramework}"
+    }
+
+  	implementation "com.google.guava:guava:30.1-jre" 
+  	implementation "org.apache.commons:commons-lang3:3.11"
+  	implementation "org.apache.commons:commons-io:1.3.2"
+    compileOnly "com.google.errorprone:javac:9+181-r4173-1"
+
+    // Testing
+    testImplementation 'junit:junit:4.13'
+    if (checkerframework_local) {
+        testCompile files('checker-framework/dist/checker-qual.jar')
+    	testCompile files('checker-framework/dist/checker.jar')
+    }
+    testCompile "org.checkerframework:framework-test:${versions.checkerFramework}"
+
+    errorproneJavac "com.google.errorprone:javac:9+181-r4173-1"
+}
+
+tasks.withType(JavaCompile).all {
+    options.compilerArgs.add("-Xlint:all")
+}
+
+// Add `mavenLocal()` in `repositories`, then run `./gradlew publishToMavenLocal`
+// to publish your checker to your local Maven repository.
+publishing {
+    publications {
+        maven(MavenPublication) {
+            groupId = 'edu.kit.iti'
+            artifactId = 'property-checker'
+            version = '0.1-SNAPSHOT'
+
+            from components.java
+        }
+    }
+}
+
+jar {
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+ }
+
+test {
+    inputs.files("tests/property")
+    
+    systemProperty 'jmlDialect', System.getProperty('jmlDialect')
+    systemProperty 'translationOnly', System.getProperty('translationOnly')
+    
+    if (!JavaVersion.current().java9Compatible) {
+        jvmArgs "-Xbootclasspath/p:${configurations.errorproneJavac.asPath}"
+    }
+    testLogging.showStandardStreams = true
+}
+
+clean.doFirst {
+    delete "${rootDir}/tests/build/"
+    delete "${rootDir}/../property-checker-out/"
+}
+
+task printClasspath {
+    description 'Prints the runtime classpath of the checker. When using the checker to typecheck' +
+            'another project, you should put the result of running this task on either the processor' +
+            'path or the classpath of the target project.'
+    doLast {
+        println sourceSets.main.runtimeClasspath.asPath
+    }
+}
