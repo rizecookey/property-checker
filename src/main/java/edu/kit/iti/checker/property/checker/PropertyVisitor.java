@@ -79,7 +79,7 @@ public class PropertyVisitor extends BaseTypeVisitor<PropertyAnnotatedTypeFactor
     }
 
     protected String getRelativeSourceFileName() {
-        String classesDir = Paths.get(getPropertyChecker().getOption(Config.INPUT_DIR_OPTION)).toAbsolutePath().toString();
+        String classesDir = Paths.get(getPropertyChecker().getInputDir()).toAbsolutePath().toString();
         return getAbsoluteSourceFileName().substring(classesDir.length());
     }
 

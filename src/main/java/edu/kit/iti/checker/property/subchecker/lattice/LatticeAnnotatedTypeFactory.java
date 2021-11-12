@@ -163,7 +163,7 @@ public class LatticeAnnotatedTypeFactory
                         chk.toString());
             }
         }
-
+        
         Class<?> cls = compiler.compile(latticeChecker.getProjectClassLoader());
 
         for (T chk : checkables) {

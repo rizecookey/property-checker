@@ -94,7 +94,8 @@ public class ClassBuilder {
     				null,
     				Arrays.asList("-classpath", System.getProperty("java.class.path")
     						+ sep
-    						+ Arrays.stream(parentLoader.getURLs()).map(URL::toString).collect(Collectors.joining(sep))),
+    						+ Arrays.stream(parentLoader.getURLs()).map(URL::toString).collect(Collectors.joining(sep)) + sep
+    				        + Arrays.stream(((URLClassLoader) parentLoader.getParent()).getURLs()).map(URL::toString).collect(Collectors.joining(sep))),
     				null,
     				src);
     		task.call();

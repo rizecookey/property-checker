@@ -217,7 +217,12 @@ public class LatticeVisitor extends InitializationVisitor<LatticeAnnotatedTypeFa
 
                 final int idx = i;
                 call(
-                        () -> commonAssignmentCheck(requiredArgs.get(idx), passedArgs.get(idx), "argument.type.incompatible"), //$NON-NLS-1$
+                        () -> commonAssignmentCheck(
+                                requiredArgs.get(idx),
+                                passedArgs.get(idx),
+                                "argument.type.incompatible", //$NON-NLS-1$
+                                paramNames.get(idx).toString(),
+                                executableName.toString()),
                         () -> {
                             Tree leaf = getCurrentPath().getLeaf();
                             if (leaf instanceof MethodInvocationTree) {

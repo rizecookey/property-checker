@@ -69,7 +69,7 @@ publishing {
         maven(MavenPublication) {
             groupId = 'edu.kit.iti'
             artifactId = 'property-checker'
-            version = '1.0'
+            version = '1.0.1'
 
             from components.java
         }
@@ -80,6 +80,12 @@ jar {
     from {
         configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
     }
+    
+    manifest {
+        attributes("Main-Class": "org.checkerframework.framework.util.CheckerMain")
+    }
+    
+    destinationDirectory = file("$rootDir")
  }
 
 test {

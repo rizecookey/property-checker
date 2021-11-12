@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -28,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.PriorityQueue;
+import java.util.stream.Collectors;
 
 import javax.tools.JavaCompiler;
 import javax.tools.JavaFileObject;
@@ -37,6 +39,7 @@ import javax.tools.ToolProvider;
 import org.apache.commons.io.FileUtils;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.source.SupportedOptions;
+import org.checkerframework.javacutil.InternalUtils;
 
 import edu.kit.iti.checker.property.config.Config;
 import edu.kit.iti.checker.property.subchecker.lattice.LatticeSubchecker;
@@ -100,20 +103,28 @@ public class PropertyChecker extends BaseTypeChecker {
         return collectingSubcheckers ? Collections.emptyList() : super.getSubcheckers();
     }
 
+    @SuppressWarnings("nls")
     public URLClassLoader getProjectClassLoader() {
         if (projectClassLoader == null) {
             try {
-                File projectClasses = new File(getOption(Config.INPUT_DIR_OPTION));
+                File projectClasses = new File(getInputDir());
 
                 JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
                 StandardJavaFileManager fileManager = compiler.getStandardFileManager(null, null, null);
-                @SuppressWarnings({ "unchecked", "nls" })
+                @SuppressWarnings({ "unchecked" })
                 Iterable<? extends JavaFileObject> src = fileManager.getJavaFileObjectsFromFiles(
                         FileUtils.listFiles(projectClasses, new String[] {"java"}, true));
-                JavaCompiler.CompilationTask task = compiler.getTask(null, fileManager, null, null, null, src);
-                task.call();
 
-                ClassLoader currentClassLoader = getClass().getClassLoader();
+                ClassLoader currentClassLoader = InternalUtils.getClassLoaderForClass(getClass());
+                
+                String sep = System.getProperty("path.separator");
+                JavaCompiler.CompilationTask task = compiler.getTask(null, fileManager, null,
+                        Arrays.asList("-classpath", System.getProperty("java.class.path") + sep
+                                + projectClasses.toURI().toURL() + sep
+                                + Arrays.stream(((URLClassLoader) currentClassLoader).getURLs()).map(URL::toString).collect(Collectors.joining(sep))),
+                        null, src);
+                task.call();
+                
                 projectClassLoader = new URLClassLoader(new URL[] {projectClasses.toURI().toURL()}, currentClassLoader);
             } catch (IOException e) {
                 e.printStackTrace();
