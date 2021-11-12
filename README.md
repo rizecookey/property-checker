@@ -41,3 +41,4 @@ where
 * `<jml_dialect>` is either `key` or `openjml` depending on the JML dialect that should be used for the translation. The default is `key`.
 * `<translation_only>` is `true` if you want to only run the JML translator without running the Property Checker beforehand. The default is `false`.
 
+For an example project using the Property Checker, see https://github.com/flo2702/property-checker-example.
