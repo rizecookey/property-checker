@@ -19,19 +19,19 @@ annotation IntervalTop() any :<==> "true" for "true";
 annotation IntervalBottom() any :<==> "false" for "true";
 
 annotation Interval(int min, int max) int
-    :<==> "subject >= min && subject <= max"
-    for "min >= 0 && min <= max";
+    :<==> "§subject§ >= min && §subject§ <= max"
+    for "§min§ >= 0 && §min§ <= §max§";
     
 relation Interval(a,b) <: IntervalTop() :<==> "true";
 relation IntervalBottom() <: Interval(a,b) :<==> "true";
     
-relation Interval(a0, b0) <: Interval(a1, b1) :<==> "a0 >= a1 && b0 <= b1";
+relation Interval(a0, b0) <: Interval(a1, b1) :<==> "§a0§ >= §a1§ && §b0§ <= §b1§";
 
-join Interval(a0, b0), Interval(a1, b1) := Interval("java.lang.Math.min(a0, a1)", "java.lang.Math.max(b0, b1)");
+join Interval(a0, b0), Interval(a1, b1) := Interval("java.lang.Math.min(§a0§, §a1§)", "java.lang.Math.max(§b0§, §b1§)");
 
 # overlapping
 meet Interval(a0, b0), Interval(a1, b1)
-    := Interval("java.lang.Math.max(a0, a1)", "java.lang.Math.min(b0, b1)")
+    := Interval("java.lang.Math.max(§a0§, §a1§)", "java.lang.Math.min(§b0§, §b1§)")
     for "b0 >= a1 || b1 >= a0";
     
 # non-overlapping

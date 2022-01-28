@@ -116,12 +116,17 @@ public class PropertyChecker extends BaseTypeChecker {
                         FileUtils.listFiles(projectClasses, new String[] {"java"}, true));
 
                 ClassLoader currentClassLoader = InternalUtils.getClassLoaderForClass(getClass());
-                
                 String sep = System.getProperty("path.separator");
+                String classPathStr = System.getProperty("java.class.path") + sep + projectClasses.toURI().toURL();
+                
+                if (currentClassLoader instanceof URLClassLoader) {
+                    classPathStr +=
+                            sep
+                            + Arrays.stream(((URLClassLoader) currentClassLoader).getURLs()).map(URL::toString).collect(Collectors.joining(sep));
+                }
+                
                 JavaCompiler.CompilationTask task = compiler.getTask(null, fileManager, null,
-                        Arrays.asList("-classpath", System.getProperty("java.class.path") + sep
-                                + projectClasses.toURI().toURL() + sep
-                                + Arrays.stream(((URLClassLoader) currentClassLoader).getURLs()).map(URL::toString).collect(Collectors.joining(sep))),
+                        Arrays.asList("-classpath", classPathStr),
                         null, src);
                 task.call();
                 

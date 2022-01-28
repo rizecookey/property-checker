@@ -1,36 +1,13 @@
-# OS
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-.directory
+# Gradle
+.gradle
+build
 
-# Latex
-*.aux
-*.bbl
-*.bcf
-*.blg
-*.log
-*.out
-*.pdf
-*.run.xml
-*.synctex.gz
-*.toc
-*.mtc*
-*.mtc
-*.maf
+# IntelliJ
+.idea
+*.iml
 
+# Emacs
+*~
 
-# Java
-**/.gradle/
-**/.settings/
-*.class
-**/bin/
-!property-checker/checker-framework/bin/
-
-# Checker
-property-checker-temp/
-property-checker-out/
+# checker-qual
+property-checker-qual/src

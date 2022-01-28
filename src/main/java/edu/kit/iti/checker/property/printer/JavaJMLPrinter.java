@@ -174,7 +174,6 @@ public class JavaJMLPrinter extends PrettyPrinter {
             println();
             align();
             printDocComment(tree);
-            //printAnnotations(tree.mods.annotations);
             printFlags(tree.mods.flags & ~INTERFACE);
 
             JCClassDecl enclClassPrev = enclClass;
@@ -529,19 +528,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
         }
 
         try {
-            if (tree.meth.hasTag(SELECT)) {
-                JCFieldAccess left = (JCFieldAccess)tree.meth;
-                printExpr(left.selected);
-                print(".");
-                print(trampolineName(left.name));
-            } else {
-                print(trampolineName(tree.meth.toString()));
-            }
-
-            print("(");
-
             AnnotatedExecutableType invokedMethod = propertyFactory.methodFromUse(tree).executableType;
-            printExprs(tree.args);
             StringJoiner booleanArgs = new StringJoiner(", ");
 
             for (LatticeVisitor.Result wellTypedness : results) {
@@ -571,6 +558,23 @@ public class JavaJMLPrinter extends PrettyPrinter {
                     }
                 }
             }
+            
+            if (booleanArgs.length() == 0) {
+                super.visitApply(tree);
+                return;
+            }
+            
+            if (tree.meth.hasTag(SELECT)) {
+                JCFieldAccess left = (JCFieldAccess)tree.meth;
+                printExpr(left.selected);
+                print(".");
+                print(trampolineName(left.name));
+            } else {
+                print(trampolineName(tree.meth.toString()));
+            }
+
+            print("(");
+            printExprs(tree.args);
 
             if (!tree.args.isEmpty() && booleanArgs.length() != 0) {
                 print(", ");
@@ -879,6 +883,10 @@ public class JavaJMLPrinter extends PrettyPrinter {
                     }
                 }
             }
+            
+            if (isConstructor(tree)) {
+                printlnAligned("  @ ensures \\result != null;");
+            }
 
             ExecutableElement element = propertyFactory.getAnnotatedType(tree).getElement();
 
@@ -1045,6 +1053,10 @@ public class JavaJMLPrinter extends PrettyPrinter {
                         printlnAligned(new Condition(ConditionType.ASSERTION, ConditionLocation.POSTCONDITION, pa, "\\result").toString());
                     }
                 }
+            }
+            
+            if (isConstructor(tree)) {
+                printlnAligned("  @ ensures \\result != null;");
             }
 
             ExecutableElement element = propertyFactory.getAnnotatedType(tree).getElement();

@@ -24,6 +24,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.List;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
@@ -86,16 +87,24 @@ public class ClassBuilder {
     		@SuppressWarnings("unchecked")
     		Iterable<? extends JavaFileObject> src = fileManager.getJavaFileObjectsFromFiles(
     				org.apache.commons.io.FileUtils.listFiles(dir.toFile(), new String[] {"java"}, true));
-
+    		
+    		ClassLoader grandparentLoader = parentLoader.getParent();
     		String sep = System.getProperty("path.separator");
+    		String classPathStr = System.getProperty("java.class.path")
+                    + sep
+                    + Arrays.stream(parentLoader.getURLs()).map(URL::toString).collect(Collectors.joining(sep));
+    		
+    		if (grandparentLoader instanceof URLClassLoader) {
+    		    classPathStr +=
+    		            sep +
+    		            Arrays.stream(((URLClassLoader) grandparentLoader).getURLs()).map(URL::toString).collect(Collectors.joining(sep));
+    		}
+    		
     		JavaCompiler.CompilationTask task = compiler.getTask(
     				null,
     				fileManager,
     				null,
-    				Arrays.asList("-classpath", System.getProperty("java.class.path")
-    						+ sep
-    						+ Arrays.stream(parentLoader.getURLs()).map(URL::toString).collect(Collectors.joining(sep)) + sep
-    				        + Arrays.stream(((URLClassLoader) parentLoader.getParent()).getURLs()).map(URL::toString).collect(Collectors.joining(sep))),
+    				Arrays.asList("-classpath", classPathStr),
     				null,
     				src);
     		task.call();
