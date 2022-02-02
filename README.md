@@ -9,7 +9,7 @@ An object `o` has the type `@NonNull Object` if the specified property, `o != nu
 
 If the Property Checker is not able to completely prove a program's correctness, it outputs a JML translation, in which all property qualifiers have been translated into specification clauses in the Java Modeling Language (JML). This translation can be given to a deductive verification tool like KeY or OpenJML to prove the parts of the program which the checker was not able to prove. This approach combines the scalability and easy-of-use of pluggable type system with the power of deductive verification.
 
-See the folder `tests` for examples.
+See the folder `tests` for short examples. For a longer example project using the Property Checker, see https://github.com/flo2702/property-checker-example.
 
 To build the Property Checker, run `./gradlew assemble`. The file `property-checker.jar` will be generated in the main directory. To be able to run the Property Checker, the files `property-checker.jar`, `checker-qual.jar`, and `javac` (not the regular Java compiler, but the one included here!) must be kept in the same directory.
 
