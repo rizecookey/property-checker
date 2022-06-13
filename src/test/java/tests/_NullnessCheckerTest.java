@@ -30,7 +30,8 @@ public class _NullnessCheckerTest extends CheckerFrameworkPerDirectoryTest {
     public _NullnessCheckerTest(List<File> testFiles) {
         super(
                 testFiles,
-                NullnessChecker.class, "nullness");
+                NullnessChecker.class, "nullness",
+                "-Aflowdotdir=../flowdot", "-Averbosecfg");
     }
 
     @Parameters

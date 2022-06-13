@@ -210,32 +210,25 @@ public class LatticeVisitor extends InitializationVisitor<LatticeAnnotatedTypeFa
             List<? extends ExpressionTree> passedArgs,
             CharSequence executableName,
             List<?> paramNames) {
-        Pair<Tree, AnnotatedTypeMirror> preAssCtxt = visitorState.getAssignmentContext();
-        try {
-            for (int i = 0; i < requiredArgs.size(); ++i) {
-                visitorState.setAssignmentContext(Pair.of((Tree) null, (AnnotatedTypeMirror) requiredArgs.get(i)));
+        for (int i = 0; i < requiredArgs.size(); ++i) {
+            final int idx = i;
+            call(
+                    () -> commonAssignmentCheck(
+                            requiredArgs.get(idx),
+                            passedArgs.get(idx),
+                            "argument.type.incompatible", //$NON-NLS-1$
+                            paramNames.get(idx).toString(),
+                            executableName.toString()),
+                    () -> {
+                        Tree leaf = getCurrentPath().getLeaf();
+                        if (leaf instanceof MethodInvocationTree) {
+                            result.addMalTypedMethodParam((MethodInvocationTree) getCurrentPath().getLeaf(), idx);
+                        } else {
+                            result.addMalTypedConstructorParam((NewClassTree) getCurrentPath().getLeaf(), idx);
+                        }
+                    });
 
-                final int idx = i;
-                call(
-                        () -> commonAssignmentCheck(
-                                requiredArgs.get(idx),
-                                passedArgs.get(idx),
-                                "argument.type.incompatible", //$NON-NLS-1$
-                                paramNames.get(idx).toString(),
-                                executableName.toString()),
-                        () -> {
-                            Tree leaf = getCurrentPath().getLeaf();
-                            if (leaf instanceof MethodInvocationTree) {
-                                result.addMalTypedMethodParam((MethodInvocationTree) getCurrentPath().getLeaf(), idx);
-                            } else {
-                                result.addMalTypedConstructorParam((NewClassTree) getCurrentPath().getLeaf(), idx);
-                            }
-                        });
-
-                scan(passedArgs.get(i), null);
-            }
-        } finally {
-            visitorState.setAssignmentContext(preAssCtxt);
+            scan(passedArgs.get(i), null);
         }
     }
 

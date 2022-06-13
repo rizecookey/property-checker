@@ -39,6 +39,7 @@ public abstract class PropertyCheckerTest extends CheckerFrameworkPerDirectoryTe
                 "-Anomsgtext",
                 "-Astubs=stubs/",
                 "-nowarn",
+                "-Aflowdotdir=../flowdot",
                 "-APropertyChecker_inDir=" + classesDir,
                 "-APropertyChecker_outDir=" + "../property-checker-out",
                 "-APropertyChecker_lattices=" + latticeFile,

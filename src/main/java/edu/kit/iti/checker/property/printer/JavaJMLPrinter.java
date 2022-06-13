@@ -28,7 +28,9 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.SortedSet;
 import java.util.StringJoiner;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import javax.lang.model.element.AnnotationMirror;
@@ -254,82 +256,99 @@ public class JavaJMLPrinter extends PrettyPrinter {
             JCMethodDecl prevEnclMethod = enclMethod;
             enclMethod = tree;
 
-            try {
-                printlnAligned(String.format("/*@ %s behavior", getVisibilityString(Flags.asFlagSet(tree.mods.flags))));
+            JMLContract jmlContract = new JMLContract(Flags.asFlagSet(tree.mods.flags));
+            jmlContract.addClause("diverges true;");
 
-                for (LatticeVisitor.Result wellTypedness : results) {
-                    LatticeAnnotatedTypeFactory factory = wellTypedness.getTypeFactory();
-                    Lattice lattice = factory.getLattice();
-                    AnnotatedExecutableType method = wellTypedness.getTypeFactory().getAnnotatedType(tree);
-                    List<String> paramNames = tree.params.stream().map(JCVariableDecl::getName).map(Object::toString).collect(Collectors.toList());
-                    String containingClassName = enclClass.sym.getQualifiedName().toString();
+            for (LatticeVisitor.Result wellTypedness : results) {
+                LatticeAnnotatedTypeFactory factory = wellTypedness.getTypeFactory();
+                Lattice lattice = factory.getLattice();
+                AnnotatedExecutableType method = wellTypedness.getTypeFactory().getAnnotatedType(tree);
+                List<String> paramNames = tree.params.stream().map(JCVariableDecl::getName).map(Object::toString).collect(Collectors.toList());
+                String containingClassName = enclClass.sym.getQualifiedName().toString();
 
-                    if (method.getReceiverType() != null) {
-                        AnnotatedTypeMirror requiredReceiverType = method.getReceiverType();
-                        PropertyAnnotation pa = lattice.getPropertyAnnotation(requiredReceiverType);
-                        printlnAligned(new Condition(ConditionType.ASSERTION, ConditionLocation.PRECONDITION, pa, "this"));
+                if (method.getReceiverType() != null) {
+                    AnnotatedTypeMirror requiredReceiverType = method.getReceiverType();
+                    PropertyAnnotation pa = lattice.getPropertyAnnotation(requiredReceiverType);
+                    jmlContract.addClause(new Condition(ConditionType.ASSERTION, ConditionLocation.PRECONDITION, pa, "this"));
+                }
+
+                for (int i = 0; i < method.getParameterTypes().size(); ++i) {
+                    AnnotatedTypeMirror paramType = method.getParameterTypes().get(i);
+                    String paramName = paramNames.get(i);
+
+
+                    if (!AnnotationUtils.areSame(paramType.getAnnotationInHierarchy(factory.getTop()), factory.getTop())) {
+                        jmlContract.addClause(
+                                new Condition(ConditionType.ASSERTION, ConditionLocation.PRECONDITION, lattice.getPropertyAnnotation(paramType), paramName));
+                    }
+                }
+
+                if (method.getElement().getKind() != ElementKind.CONSTRUCTOR && TRANSLATION_JML_DIALECT == JMLDialect.KeYJMLDialect) {
+                    for (LatticeVisitor.Invariant invariant : wellTypedness.getStaticInvariants(containingClassName)) {
+                        jmlContract.addClause(
+                                new Condition(
+                                        ConditionType.ASSUMPTION,
+                                        ConditionLocation.PRECONDITION,
+                                        lattice.getPropertyAnnotation(invariant.getType()), getEnclClassName() + "." + invariant.getFieldName()));
                     }
 
-                    for (int i = 0; i < method.getParameterTypes().size(); ++i) {
-                        AnnotatedTypeMirror paramType = method.getParameterTypes().get(i);
-                        String paramName = paramNames.get(i);
-
-
-                        if (!AnnotationUtils.areSame(paramType.getAnnotationInHierarchy(factory.getTop()), factory.getTop())) {
-                            printlnAligned(
-                                    new Condition(ConditionType.ASSERTION, ConditionLocation.PRECONDITION, lattice.getPropertyAnnotation(paramType), paramName));
-                        }
-                    }
-
-                    if (method.getElement().getKind() != ElementKind.CONSTRUCTOR && TRANSLATION_JML_DIALECT == JMLDialect.KeYJMLDialect) {
-                        for (LatticeVisitor.Invariant invariant : wellTypedness.getStaticInvariants(containingClassName)) {
-                            printlnAligned(
+                    if (!ElementUtils.isStatic(method.getElement()) && (tree.getReceiverParameter() == null
+                            || factory.getAnnotatedType(tree.getReceiverParameter()).getAnnotation(Initialized.class) != null)) {
+                        for (LatticeVisitor.Invariant invariant : wellTypedness.getInstanceInvariants(containingClassName)) {
+                            jmlContract.addClause(
                                     new Condition(
                                             ConditionType.ASSUMPTION,
                                             ConditionLocation.PRECONDITION,
-                                            lattice.getPropertyAnnotation(invariant.getType()), getEnclClassName() + "." + invariant.getFieldName()));
-                        }
-
-                        if (!ElementUtils.isStatic(method.getElement()) && (tree.getReceiverParameter() == null
-                                || factory.getAnnotatedType(tree.getReceiverParameter()).getAnnotation(Initialized.class) != null)) {
-                            for (LatticeVisitor.Invariant invariant : wellTypedness.getInstanceInvariants(containingClassName)) {
-                                printlnAligned(
-                                        new Condition(
-                                                ConditionType.ASSUMPTION,
-                                                ConditionLocation.PRECONDITION,
-                                                lattice.getPropertyAnnotation(invariant.getType()), "this." + invariant.getFieldName()));
-                            }
+                                            lattice.getPropertyAnnotation(invariant.getType()), "this." + invariant.getFieldName()));
                         }
                     }
                 }
-
-                if (isConstructor(tree)) {
-                    for (Condition condition : getPostconditionsForConstructor(tree, "this")) {
-                        printlnAligned(condition);
-                    }
-                } else {
-                    for (Condition condition : getPostconditionsForMethod(tree, "\\result")) {
-                        printlnAligned(condition);
-                    }
-                }
-
-                ExecutableElement element = propertyFactory.getAnnotatedType(tree).getElement();
-
-                for (String clause : getJMLClauseValues(element)) {
-                    printlnAligned(String.format("  @ %s;", clause));
-                }
-
-                if (TRANSLATION_RAW) {
-                    for (String clause : getJMLClauseValuesTranslationOnly(element)) {
-                        printlnAligned(String.format("  @ %s;", clause));
-                    }
-                }
-
-                printlnAligned("  @ diverges true;");
-                printlnAligned("  @*/");
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
             }
+
+            if (isConstructor(tree)) {
+                for (LatticeVisitor.Result wellTypedness : results) {
+                    LatticeAnnotatedTypeFactory factory = wellTypedness.getTypeFactory();
+                    AnnotatedTypeMirror receiverType = factory.getMethodReturnType(enclMethod);
+
+                    if (AnnotationUtils.areSame(receiverType.getAnnotationInHierarchy(factory.getTop()), factory.getTop())) {
+                        continue;
+                    }
+
+                    Lattice lattice = wellTypedness.getLattice();
+                    boolean wt = wellTypedness.isWellTypedConstructor(tree);
+
+                    PropertyAnnotation pa = lattice.getPropertyAnnotation(receiverType);
+                    jmlContract.addClause(new Condition(wt, ConditionLocation.POSTCONDITION, pa, "this"));
+                    if (!wt) {
+                        ++assertions;
+                    }
+                }
+            } else {
+                for (LatticeVisitor.Result wellTypedness : results) {
+                    LatticeAnnotatedTypeFactory factory = wellTypedness.getTypeFactory();
+                    AnnotatedTypeMirror returnType = factory.getMethodReturnType(enclMethod);
+
+                    if (returnType instanceof AnnotatedExecutableType
+                            || returnType.getKind() == TypeKind.VOID
+                            || AnnotationUtils.areSame(returnType.getAnnotationInHierarchy(factory.getTop()), factory.getTop())) {
+                        continue;
+                    }
+
+                    Lattice lattice = wellTypedness.getLattice();
+
+                    PropertyAnnotation pa = lattice.getPropertyAnnotation(returnType);
+                    jmlContract.addClause(new Condition(ConditionType.ASSERTION, ConditionLocation.POSTCONDITION, pa, "\\result"));
+                }
+            }
+
+            ExecutableElement element = propertyFactory.getAnnotatedType(tree).getElement();
+            
+            getJMLClauseValues(element).forEach(jmlContract::addClause);
+            if (TRANSLATION_RAW) {
+                getJMLClauseValuesTranslationOnly(element).forEach(jmlContract::addClause);
+            }
+            
+            printlnAligned(jmlContract.toString());
 
             align();
             printExpr(tree.mods);
@@ -795,164 +814,145 @@ public class JavaJMLPrinter extends PrettyPrinter {
             }
         }
 
-        try {
-            AnnotatedExecutableType propertyMethodType = propertyFactory.getAnnotatedType(tree);
+        AnnotatedExecutableType propertyMethodType = propertyFactory.getAnnotatedType(tree);
 
-            printlnAligned("/*@ public behavior");
-            
-            List<String> nonFreePreconditions = new ArrayList<>();
-            List<String> freePreconditions = new ArrayList<>();
+        JMLContract jmlContract = new JMLContract(EnumSet.of(Flag.PUBLIC));
+        jmlContract.addClause("diverges true;");
 
+        for (LatticeVisitor.Result wellTypedness : results) {
+            LatticeAnnotatedTypeFactory factory = wellTypedness.getTypeFactory();
+            Lattice lattice = wellTypedness.getLattice();
+
+            AnnotatedExecutableType methodType = factory.getAnnotatedType(tree);
+            List<AnnotatedTypeMirror> requiredParamTypes = methodType.getParameterTypes();
+
+            if (methodType.getReceiverType() != null) {
+                AnnotatedTypeMirror requiredReceiverType = methodType.getReceiverType();
+                PropertyAnnotation pa = lattice.getPropertyAnnotation(requiredReceiverType);
+                PropertyAnnotationType pat = pa.getAnnotationType();
+
+                if (!pat.isTrivial()) {
+                    jmlContract.addClause(new Condition(ConditionType.ASSERTION, ConditionLocation.PRECONDITION, pa, "this")
+                            .toStringOr(trampolineBooleanParamName("this", wellTypedness)));
+                    jmlContract.addClause(new Condition(ConditionType.ASSUMPTION, ConditionLocation.PRECONDITION, pa, "this")
+                            .toStringOr("!" + trampolineBooleanParamName("this", wellTypedness)));
+                }
+            }
+
+            for (int i = 0; i < requiredParamTypes.size(); ++i) {
+                PropertyAnnotation pa = lattice.getPropertyAnnotation(requiredParamTypes.get(i));
+                PropertyAnnotationType pat = pa.getAnnotationType();
+
+                if (!pat.isTrivial()
+                        && !AnnotationUtils.areSame(requiredParamTypes.get(i).getAnnotationInHierarchy(factory.getTop()), factory.getTop())) {
+                    jmlContract.addClause(new Condition(ConditionType.ASSERTION, ConditionLocation.PRECONDITION, pa, paramNames.get(i))
+                            .toStringOr(trampolineBooleanParamName(paramNames.get(i), wellTypedness)));
+                    jmlContract.addClause(new Condition(ConditionType.ASSUMPTION, ConditionLocation.PRECONDITION, pa, paramNames.get(i))
+                            .toStringOr("!" + trampolineBooleanParamName(paramNames.get(i), wellTypedness)));
+                }
+            }
+        }
+
+        for (LatticeVisitor.Result wellTypedness : results) {
+            LatticeAnnotatedTypeFactory factory = wellTypedness.getTypeFactory();
+            Lattice lattice = wellTypedness.getLattice();
+
+            AnnotatedExecutableType methodType = factory.getAnnotatedType(tree);
+            List<AnnotatedTypeMirror> requiredParamTypes = methodType.getParameterTypes();
+
+            if (methodType.getReceiverType() != null) {
+                AnnotatedTypeMirror requiredReceiverType = methodType.getReceiverType();
+                PropertyAnnotation pa = lattice.getPropertyAnnotation(requiredReceiverType);
+                jmlContract.addClause(new Condition(ConditionType.ASSUMPTION, ConditionLocation.POSTCONDITION, pa, "this"));
+            }
+
+            for (int i = 0; i < requiredParamTypes.size(); ++i) {
+                PropertyAnnotation pa = lattice.getPropertyAnnotation(requiredParamTypes.get(i));
+                jmlContract.addClause(new Condition(ConditionType.ASSUMPTION, ConditionLocation.POSTCONDITION, pa, paramNames.get(i)));
+            }
+        }
+
+        if (propertyMethodType.getReturnType().getKind() != TypeKind.VOID) {
             for (LatticeVisitor.Result wellTypedness : results) {
-                LatticeAnnotatedTypeFactory factory = wellTypedness.getTypeFactory();
-                Lattice lattice = wellTypedness.getLattice();
+                AnnotatedTypeMirror returnType = wellTypedness.getTypeFactory().getMethodReturnType(tree);
+                AnnotationMirror anno = returnType.getAnnotationInHierarchy(wellTypedness.getTypeFactory().getTop());
 
-                AnnotatedExecutableType methodType = factory.getAnnotatedType(tree);
-                List<AnnotatedTypeMirror> requiredParamTypes = methodType.getParameterTypes();
-
-                if (methodType.getReceiverType() != null) {
-                    AnnotatedTypeMirror requiredReceiverType = methodType.getReceiverType();
-                    PropertyAnnotation pa = lattice.getPropertyAnnotation(requiredReceiverType);
+                if (anno != null && !AnnotationUtils.areSame(
+                        anno,
+                        wellTypedness.getTypeFactory().getTop())) {
+                    PropertyAnnotation pa = wellTypedness.getLattice().getPropertyAnnotation(returnType);
                     PropertyAnnotationType pat = pa.getAnnotationType();
 
-                    if (!pat.isTrivial()) {
-                        nonFreePreconditions.add(new Condition(ConditionType.ASSERTION, ConditionLocation.PRECONDITION, pa, "this")
-                                .toStringOr(trampolineBooleanParamName("this", wellTypedness)));
-                        freePreconditions.add(new Condition(ConditionType.ASSUMPTION, ConditionLocation.PRECONDITION, pa, "this")
-                                .toStringOr("!" + trampolineBooleanParamName("this", wellTypedness)));
+                    if (pat.isTrivial()) {
+                        continue;
                     }
-                }
 
-                for (int i = 0; i < requiredParamTypes.size(); ++i) {
-                    PropertyAnnotation pa = lattice.getPropertyAnnotation(requiredParamTypes.get(i));
-                    PropertyAnnotationType pat = pa.getAnnotationType();
-
-                    if (!pat.isTrivial()
-                            && !AnnotationUtils.areSame(requiredParamTypes.get(i).getAnnotationInHierarchy(factory.getTop()), factory.getTop())) {
-                        nonFreePreconditions.add(new Condition(ConditionType.ASSERTION, ConditionLocation.PRECONDITION, pa, paramNames.get(i))
-                                .toStringOr(trampolineBooleanParamName(paramNames.get(i), wellTypedness)));
-                        freePreconditions.add(new Condition(ConditionType.ASSUMPTION, ConditionLocation.PRECONDITION, pa, paramNames.get(i))
-                                .toStringOr("!" + trampolineBooleanParamName(paramNames.get(i), wellTypedness)));
-                    }
+                    jmlContract.addClause(new Condition(ConditionType.ASSUMPTION, ConditionLocation.POSTCONDITION, pa, "\\result").toString());
                 }
             }
-            
-            for (String s : nonFreePreconditions) {
-                printlnAligned(s);
-            }
-            
-            for (String s : freePreconditions) {
-                printlnAligned(s);
-            }
+        }
 
-            for (LatticeVisitor.Result wellTypedness : results) {
-                LatticeAnnotatedTypeFactory factory = wellTypedness.getTypeFactory();
-                Lattice lattice = wellTypedness.getLattice();
+        if (isConstructor(tree)) {
+            jmlContract.addClause("ensures \\result != null;");
+        }
 
-                AnnotatedExecutableType methodType = factory.getAnnotatedType(tree);
-                List<AnnotatedTypeMirror> requiredParamTypes = methodType.getParameterTypes();
+        ExecutableElement element = propertyFactory.getAnnotatedType(tree).getElement();
 
-                if (methodType.getReceiverType() != null) {
-                    AnnotatedTypeMirror requiredReceiverType = methodType.getReceiverType();
-                    PropertyAnnotation pa = lattice.getPropertyAnnotation(requiredReceiverType);
-                    printlnAligned(new Condition(ConditionType.ASSUMPTION, ConditionLocation.POSTCONDITION, pa, "this"));
-                }
-
-                for (int i = 0; i < requiredParamTypes.size(); ++i) {
-                    PropertyAnnotation pa = lattice.getPropertyAnnotation(requiredParamTypes.get(i));
-                    printlnAligned(new Condition(ConditionType.ASSUMPTION, ConditionLocation.POSTCONDITION, pa, paramNames.get(i)));
-                }
-            }
-
-            if (propertyMethodType.getReturnType().getKind() != TypeKind.VOID) {
-                for (LatticeVisitor.Result wellTypedness : results) {
-                    AnnotatedTypeMirror returnType = wellTypedness.getTypeFactory().getMethodReturnType(tree);
-                    AnnotationMirror anno = returnType.getAnnotationInHierarchy(wellTypedness.getTypeFactory().getTop());
-
-                    if (anno != null && !AnnotationUtils.areSame(
-                            anno,
-                            wellTypedness.getTypeFactory().getTop())) {
-                        PropertyAnnotation pa = wellTypedness.getLattice().getPropertyAnnotation(returnType);
-                        PropertyAnnotationType pat = pa.getAnnotationType();
-
-                        if (pat.isTrivial()) {
-                            continue;
-                        }
-
-                        printlnAligned(new Condition(ConditionType.ASSUMPTION, ConditionLocation.POSTCONDITION, pa, "\\result").toString());
-                    }
-                }
-            }
-            
+        for (String clause : getJMLClauseValues(element)) {
             if (isConstructor(tree)) {
-                printlnAligned("  @ ensures \\result != null;");
+                if (clause.startsWith("assignable")) {
+                    jmlContract.addClause(clause.replace("this.*", "\\nothing"));
+                } else {
+                    jmlContract.addClause(clause.replace("this", "\\result"));
+                }
             }
+        }
 
-            ExecutableElement element = propertyFactory.getAnnotatedType(tree).getElement();
-
-            for (String clause : getJMLClauseValues(element)) {
+        if (TRANSLATION_RAW) {
+            for (String clause : getJMLClauseValuesTranslationOnly(element)) {
                 if (isConstructor(tree)) {
                     if (clause.startsWith("assignable")) {
-                        clause = clause.replace("this.*", "\\nothing");
+                        jmlContract.addClause(clause.replace("this.*", "\\nothing"));
                     } else {
-                        clause = clause.replace("this", "\\result");
+                        jmlContract.addClause(clause.replace("this", "\\result"));
                     }
                 }
-
-                printlnAligned(String.format("  @ %s;", clause));
             }
+        }
 
-            if (TRANSLATION_RAW) {
-                for (String clause : getJMLClauseValuesTranslationOnly(element)) {
-                    if (isConstructor(tree)) {
-                        if (clause.startsWith("assignable")) {
-                            clause = clause.replace("this.*", "\\nothing");
-                        } else {
-                            clause = clause.replace("this", "\\result");
-                        }
-                    }
+        printlnAligned(jmlContract.toString());
 
-                    printlnAligned(String.format("  @ %s;", clause));
-                }
-            }
-
-            printlnAligned("  @ diverges true;");
-            printlnAligned("  @*/");
-
-            if (printBody) {
-                printlnAligned(String.format("public /*@helper@*/ %s %s%s %s(%s) {",
-                        ElementUtils.isStatic(propertyMethodType.getElement()) || isConstructor(tree) ? "static" : "",
-                        propertyMethodType.getReturnType().getKind() == TypeKind.VOID || propertyMethodType.getReturnType().getKind().isPrimitive()
+        if (printBody) {
+            printlnAligned(String.format("public /*@helper@*/ %s %s%s %s(%s) {",
+                    ElementUtils.isStatic(propertyMethodType.getElement()) || isConstructor(tree) ? "static" : "",
+                            propertyMethodType.getReturnType().getKind() == TypeKind.VOID || propertyMethodType.getReturnType().getKind().isPrimitive()
                             ? "" : "/*@nullable@*/ ",
-                        TypeUtils.unannotatedTypeName(propertyMethodType.getReturnType()),
-                        trampolineName(tree.getName()),
-                        paramStr));
+                                    TypeUtils.unannotatedTypeName(propertyMethodType.getReturnType()),
+                                    trampolineName(tree.getName()),
+                                    paramStr));
 
-                indent();
+            indent();
 
-                if (propertyMethodType.getReturnType().getKind() != TypeKind.VOID) {
-                    printlnAligned(String.format(
-                            "return %s(%s);",
-                            tree.getName().toString().equals("<init>") ? ("new " + getEnclClassName()) : tree.getName(),
-                            String.join(", ", paramNames)
-                            ));
-                } else {
-                    printlnAligned(String.format("%s(%s);", tree.getName(), String.join(", ", paramNames)));
-                }
-
-                undent();
-                printlnAligned("}");
+            if (propertyMethodType.getReturnType().getKind() != TypeKind.VOID) {
+                printlnAligned(String.format(
+                        "return %s(%s);",
+                        tree.getName().toString().equals("<init>") ? ("new " + getEnclClassName()) : tree.getName(),
+                                String.join(", ", paramNames)
+                        ));
             } else {
-                printlnAligned(String.format("public %s %s%s %s(%s);",
-                        ElementUtils.isStatic(propertyMethodType.getElement()) || isConstructor(tree) ? "static" : "",
-                        propertyMethodType.getReturnType().getKind() == TypeKind.VOID || propertyMethodType.getReturnType().getKind().isPrimitive()
-                            ? "" : "/*@nullable@*/ ",
-                        TypeUtils.unannotatedTypeName(propertyMethodType.getReturnType()),
-                        trampolineName(tree.getName()),
-                        paramStr));
+                printlnAligned(String.format("%s(%s);", tree.getName(), String.join(", ", paramNames)));
             }
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+
+            undent();
+            printlnAligned("}");
+        } else {
+            printlnAligned(String.format("public %s %s%s %s(%s);",
+                    ElementUtils.isStatic(propertyMethodType.getElement()) || isConstructor(tree) ? "static" : "",
+                            propertyMethodType.getReturnType().getKind() == TypeKind.VOID || propertyMethodType.getReturnType().getKind().isPrimitive()
+                            ? "" : "/*@nullable@*/ ",
+                                    TypeUtils.unannotatedTypeName(propertyMethodType.getReturnType()),
+                                    trampolineName(tree.getName()),
+                                    paramStr));
         }
     }
     
@@ -981,10 +981,122 @@ public class JavaJMLPrinter extends PrettyPrinter {
             }
         }
 
-        try {
-            AnnotatedExecutableType propertyMethodType = propertyFactory.getAnnotatedType(tree);
+        AnnotatedExecutableType propertyMethodType = propertyFactory.getAnnotatedType(tree);
 
-            printlnAligned("/*@ public behavior");
+        printlnAligned("/*@ public behavior");
+
+        for (LatticeVisitor.Result wellTypedness : results) {
+            LatticeAnnotatedTypeFactory factory = wellTypedness.getTypeFactory();
+            Lattice lattice = wellTypedness.getLattice();
+
+            AnnotatedExecutableType methodType = factory.getAnnotatedType(tree);
+            List<AnnotatedTypeMirror> requiredParamTypes = methodType.getParameterTypes();
+
+            if (methodType.getReceiverType() != null) {
+                AnnotatedTypeMirror requiredReceiverType = methodType.getReceiverType();
+                PropertyAnnotation pa = lattice.getPropertyAnnotation(requiredReceiverType);
+                PropertyAnnotationType pat = pa.getAnnotationType();
+
+                if (!pat.isTrivial()) {
+                    printlnAligned(new Condition(ConditionType.ASSERTION, ConditionLocation.PRECONDITION, pa, "this")
+                            .toStringOr(trampolineBooleanParamName("this", wellTypedness)));
+                }
+            }
+
+            for (int i = 0; i < requiredParamTypes.size(); ++i) {
+                PropertyAnnotation pa = lattice.getPropertyAnnotation(requiredParamTypes.get(i));
+                PropertyAnnotationType pat = pa.getAnnotationType();
+
+                if (!pat.isTrivial()
+                        && !AnnotationUtils.areSame(requiredParamTypes.get(i).getAnnotationInHierarchy(factory.getTop()), factory.getTop())) {
+                    printlnAligned(new Condition(ConditionType.ASSERTION, ConditionLocation.PRECONDITION, pa, paramNames.get(i))
+                            .toStringOr(trampolineBooleanParamName(paramNames.get(i), wellTypedness)));
+                }
+            }
+        }
+
+        for (LatticeVisitor.Result wellTypedness : results) {
+            LatticeAnnotatedTypeFactory factory = wellTypedness.getTypeFactory();
+            Lattice lattice = wellTypedness.getLattice();
+
+            AnnotatedExecutableType methodType = factory.getAnnotatedType(tree);
+            List<AnnotatedTypeMirror> requiredParamTypes = methodType.getParameterTypes();
+
+            if (methodType.getReceiverType() != null) {
+                AnnotatedTypeMirror requiredReceiverType = methodType.getReceiverType();
+                PropertyAnnotation pa = lattice.getPropertyAnnotation(requiredReceiverType);
+                printlnAligned(new Condition(ConditionType.ASSERTION, ConditionLocation.POSTCONDITION, pa, "this"));
+            }
+
+            for (int i = 0; i < requiredParamTypes.size(); ++i) {
+                PropertyAnnotation pa = lattice.getPropertyAnnotation(requiredParamTypes.get(i));
+                printlnAligned(new Condition(ConditionType.ASSERTION, ConditionLocation.POSTCONDITION, pa, paramNames.get(i)));
+            }
+        }
+
+        if (propertyMethodType.getReturnType().getKind() != TypeKind.VOID) {
+            for (LatticeVisitor.Result wellTypedness : results) {
+                AnnotatedTypeMirror returnType = wellTypedness.getTypeFactory().getMethodReturnType(tree);
+                AnnotationMirror anno = returnType.getAnnotationInHierarchy(wellTypedness.getTypeFactory().getTop());
+
+                if (anno != null && !AnnotationUtils.areSame(
+                        anno,
+                        wellTypedness.getTypeFactory().getTop())) {
+                    PropertyAnnotation pa = wellTypedness.getLattice().getPropertyAnnotation(returnType);
+                    PropertyAnnotationType pat = pa.getAnnotationType();
+
+                    if (pat.isTrivial()) {
+                        continue;
+                    }
+
+                    printlnAligned(new Condition(ConditionType.ASSERTION, ConditionLocation.POSTCONDITION, pa, "\\result").toString());
+                }
+            }
+        }
+
+        if (isConstructor(tree)) {
+            printlnAligned("  @ ensures \\result != null;");
+        }
+
+        ExecutableElement element = propertyFactory.getAnnotatedType(tree).getElement();
+
+        for (String clause : getJMLClauseValues(element)) {
+            if (isConstructor(tree)) {
+                if (clause.startsWith("assignable")) {
+                    clause = clause.replace("this.*", "\\nothing");
+                } else {
+                    clause = clause.replace("this", "\\result");
+                }
+            }
+
+            printlnAligned(String.format("  @ %s;", clause));
+        }
+
+        if (TRANSLATION_RAW) {
+            for (String clause : getJMLClauseValues(element)) {
+                if (isConstructor(tree)) {
+                    if (clause.startsWith("assignable")) {
+                        clause = clause.replace("this.*", "\\nothing");
+                    } else {
+                        clause = clause.replace("this", "\\result");
+                    }
+                }
+
+                printlnAligned(String.format("  @ %s;", clause));
+            }
+        }
+
+        printlnAligned("  @ diverges true;");
+        printlnAligned("  @*/");
+
+        if (printBody) {
+            printlnAligned(String.format("public %s %s %s(%s) {",
+                    ElementUtils.isStatic(propertyMethodType.getElement()) || isConstructor(tree) ? "static" : "",
+                            TypeUtils.unannotatedTypeName(propertyMethodType.getReturnType()),
+                            trampolineName(tree.getName()),
+                            paramStr));
+
+            indent();
 
             for (LatticeVisitor.Result wellTypedness : results) {
                 LatticeAnnotatedTypeFactory factory = wellTypedness.getTypeFactory();
@@ -999,8 +1111,8 @@ public class JavaJMLPrinter extends PrettyPrinter {
                     PropertyAnnotationType pat = pa.getAnnotationType();
 
                     if (!pat.isTrivial()) {
-                        printlnAligned(new Condition(ConditionType.ASSERTION, ConditionLocation.PRECONDITION, pa, "this")
-                                .toStringOr(trampolineBooleanParamName("this", wellTypedness)));
+                        printlnAligned(new Condition(ConditionType.ASSUMPTION, ConditionLocation.ASSERTION, pa, "this")
+                                .toStringOr("!" + trampolineBooleanParamName("this", wellTypedness)));
                     }
                 }
 
@@ -1010,150 +1122,34 @@ public class JavaJMLPrinter extends PrettyPrinter {
 
                     if (!pat.isTrivial()
                             && !AnnotationUtils.areSame(requiredParamTypes.get(i).getAnnotationInHierarchy(factory.getTop()), factory.getTop())) {
-                        printlnAligned(new Condition(ConditionType.ASSERTION, ConditionLocation.PRECONDITION, pa, paramNames.get(i))
-                                .toStringOr(trampolineBooleanParamName(paramNames.get(i), wellTypedness)));
+                        printlnAligned(new Condition(ConditionType.ASSUMPTION, ConditionLocation.ASSERTION, pa, paramNames.get(i))
+                                .toStringOr("!" + trampolineBooleanParamName(paramNames.get(i), wellTypedness)));
                     }
-                }
-            }
-
-            for (LatticeVisitor.Result wellTypedness : results) {
-                LatticeAnnotatedTypeFactory factory = wellTypedness.getTypeFactory();
-                Lattice lattice = wellTypedness.getLattice();
-
-                AnnotatedExecutableType methodType = factory.getAnnotatedType(tree);
-                List<AnnotatedTypeMirror> requiredParamTypes = methodType.getParameterTypes();
-
-                if (methodType.getReceiverType() != null) {
-                    AnnotatedTypeMirror requiredReceiverType = methodType.getReceiverType();
-                    PropertyAnnotation pa = lattice.getPropertyAnnotation(requiredReceiverType);
-                    printlnAligned(new Condition(ConditionType.ASSERTION, ConditionLocation.POSTCONDITION, pa, "this"));
-                }
-
-                for (int i = 0; i < requiredParamTypes.size(); ++i) {
-                    PropertyAnnotation pa = lattice.getPropertyAnnotation(requiredParamTypes.get(i));
-                    printlnAligned(new Condition(ConditionType.ASSERTION, ConditionLocation.POSTCONDITION, pa, paramNames.get(i)));
                 }
             }
 
             if (propertyMethodType.getReturnType().getKind() != TypeKind.VOID) {
-                for (LatticeVisitor.Result wellTypedness : results) {
-                    AnnotatedTypeMirror returnType = wellTypedness.getTypeFactory().getMethodReturnType(tree);
-                    AnnotationMirror anno = returnType.getAnnotationInHierarchy(wellTypedness.getTypeFactory().getTop());
-
-                    if (anno != null && !AnnotationUtils.areSame(
-                            anno,
-                            wellTypedness.getTypeFactory().getTop())) {
-                        PropertyAnnotation pa = wellTypedness.getLattice().getPropertyAnnotation(returnType);
-                        PropertyAnnotationType pat = pa.getAnnotationType();
-
-                        if (pat.isTrivial()) {
-                            continue;
-                        }
-
-                        printlnAligned(new Condition(ConditionType.ASSERTION, ConditionLocation.POSTCONDITION, pa, "\\result").toString());
-                    }
-                }
-            }
-            
-            if (isConstructor(tree)) {
-                printlnAligned("  @ ensures \\result != null;");
-            }
-
-            ExecutableElement element = propertyFactory.getAnnotatedType(tree).getElement();
-
-            for (String clause : getJMLClauseValues(element)) {
-                if (isConstructor(tree)) {
-                    if (clause.startsWith("assignable")) {
-                        clause = clause.replace("this.*", "\\nothing");
-                    } else {
-                        clause = clause.replace("this", "\\result");
-                    }
-                }
-
-                printlnAligned(String.format("  @ %s;", clause));
-            }
-
-            if (TRANSLATION_RAW) {
-                for (String clause : getJMLClauseValues(element)) {
-                    if (isConstructor(tree)) {
-                        if (clause.startsWith("assignable")) {
-                            clause = clause.replace("this.*", "\\nothing");
-                        } else {
-                            clause = clause.replace("this", "\\result");
-                        }
-                    }
-
-                    printlnAligned(String.format("  @ %s;", clause));
-                }
-            }
-
-            printlnAligned("  @ diverges true;");
-            printlnAligned("  @*/");
-
-            if (printBody) {
-                printlnAligned(String.format("public %s %s %s(%s) {",
-                        ElementUtils.isStatic(propertyMethodType.getElement()) || isConstructor(tree) ? "static" : "",
-                        TypeUtils.unannotatedTypeName(propertyMethodType.getReturnType()),
-                        trampolineName(tree.getName()),
-                        paramStr));
-
-                indent();
-                
-                for (LatticeVisitor.Result wellTypedness : results) {
-                    LatticeAnnotatedTypeFactory factory = wellTypedness.getTypeFactory();
-                    Lattice lattice = wellTypedness.getLattice();
-
-                    AnnotatedExecutableType methodType = factory.getAnnotatedType(tree);
-                    List<AnnotatedTypeMirror> requiredParamTypes = methodType.getParameterTypes();
-
-                    if (methodType.getReceiverType() != null) {
-                        AnnotatedTypeMirror requiredReceiverType = methodType.getReceiverType();
-                        PropertyAnnotation pa = lattice.getPropertyAnnotation(requiredReceiverType);
-                        PropertyAnnotationType pat = pa.getAnnotationType();
-
-                        if (!pat.isTrivial()) {
-                            printlnAligned(new Condition(ConditionType.ASSUMPTION, ConditionLocation.ASSERTION, pa, "this")
-                                    .toStringOr("!" + trampolineBooleanParamName("this", wellTypedness)));
-                        }
-                    }
-
-                    for (int i = 0; i < requiredParamTypes.size(); ++i) {
-                        PropertyAnnotation pa = lattice.getPropertyAnnotation(requiredParamTypes.get(i));
-                        PropertyAnnotationType pat = pa.getAnnotationType();
-
-                        if (!pat.isTrivial()
-                                && !AnnotationUtils.areSame(requiredParamTypes.get(i).getAnnotationInHierarchy(factory.getTop()), factory.getTop())) {
-                            printlnAligned(new Condition(ConditionType.ASSUMPTION, ConditionLocation.ASSERTION, pa, paramNames.get(i))
-                                    .toStringOr("!" + trampolineBooleanParamName(paramNames.get(i), wellTypedness)));
-                        }
-                    }
-                }
-
-                if (propertyMethodType.getReturnType().getKind() != TypeKind.VOID) {
-                    printlnAligned(String.format(
-                            "return %s(%s);",
-                            tree.getName().toString().equals("<init>") ? ("new " + getEnclClassName()) : tree.getName(),
-                            String.join(", ", paramNames)
-                            ));
-                } else {
-                    printlnAligned(String.format("%s(%s);", tree.getName(), String.join(", ", paramNames)));
-                }
-
-                undent();
-                printlnAligned("}");
+                printlnAligned(String.format(
+                        "return %s(%s);",
+                        tree.getName().toString().equals("<init>") ? ("new " + getEnclClassName()) : tree.getName(),
+                                String.join(", ", paramNames)
+                        ));
             } else {
-                printlnAligned(String.format("public %s %s %s(%s);",
-                        ElementUtils.isStatic(propertyMethodType.getElement()) || isConstructor(tree) ? "static" : "",
-                        TypeUtils.unannotatedTypeName(propertyMethodType.getReturnType()),
-                        trampolineName(tree.getName()),
-                        paramStr));
+                printlnAligned(String.format("%s(%s);", tree.getName(), String.join(", ", paramNames)));
             }
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+
+            undent();
+            printlnAligned("}");
+        } else {
+            printlnAligned(String.format("public %s %s %s(%s);",
+                    ElementUtils.isStatic(propertyMethodType.getElement()) || isConstructor(tree) ? "static" : "",
+                            TypeUtils.unannotatedTypeName(propertyMethodType.getReturnType()),
+                            trampolineName(tree.getName()),
+                            paramStr));
         }
     }
 
-    protected void printlnAligned(Condition cond) throws IOException {
+    protected void printlnAligned(Condition cond) {
         PropertyAnnotationType pat = cond.pa.getAnnotationType();
 
         if (pat.isTrivial()) {
@@ -1163,9 +1159,15 @@ public class JavaJMLPrinter extends PrettyPrinter {
         printlnAligned(cond.toString());
     }
 
-    protected void printlnAligned(String s) throws IOException {
-        align();
-        println(s);
+    protected void printlnAligned(String s) {
+        for (String line : s.lines().collect(Collectors.toList())) {
+            try {
+                align();
+                println(line);
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        }
     }
 
     protected void println(String s) throws IOException {
@@ -1355,50 +1357,6 @@ public class JavaJMLPrinter extends PrettyPrinter {
         return Streams.concat(wellTyped.stream(), malTyped.stream()).collect(Collectors.toList());
     }
 
-    protected List<Condition> getPostconditionsForMethod(JCMethodDecl tree, String subject) {
-        List<Condition> postConditions = new ArrayList<>();
-
-        for (LatticeVisitor.Result wellTypedness : results) {
-            LatticeAnnotatedTypeFactory factory = wellTypedness.getTypeFactory();
-            AnnotatedTypeMirror returnType = factory.getMethodReturnType(enclMethod);
-
-            if (returnType instanceof AnnotatedExecutableType
-                    || returnType.getKind() == TypeKind.VOID
-                    || AnnotationUtils.areSame(returnType.getAnnotationInHierarchy(factory.getTop()), factory.getTop())) {
-                continue;
-            }
-
-            Lattice lattice = wellTypedness.getLattice();
-
-            PropertyAnnotation pa = lattice.getPropertyAnnotation(returnType);
-            postConditions.add(new Condition(ConditionType.ASSERTION, ConditionLocation.POSTCONDITION, pa, subject));
-        }
-
-        return postConditions;
-    }
-
-    protected List<Condition> getPostconditionsForConstructor(JCMethodDecl tree, String subject) {
-        List<Condition> wellTyped = new ArrayList<>();
-        List<Condition> malTyped = new ArrayList<>();
-
-        for (LatticeVisitor.Result wellTypedness : results) {
-            LatticeAnnotatedTypeFactory factory = wellTypedness.getTypeFactory();
-            AnnotatedTypeMirror receiverType = factory.getMethodReturnType(enclMethod);
-
-            if (AnnotationUtils.areSame(receiverType.getAnnotationInHierarchy(factory.getTop()), factory.getTop())) {
-                continue;
-            }
-
-            Lattice lattice = wellTypedness.getLattice();
-            boolean wt = wellTypedness.isWellTypedConstructor(tree);
-
-            PropertyAnnotation pa = lattice.getPropertyAnnotation(receiverType);
-            (wt ? wellTyped : malTyped).add(new Condition(wt, ConditionLocation.POSTCONDITION, pa, subject));
-        }
-
-        return Streams.concat(wellTyped.stream(), malTyped.stream()).collect(Collectors.toList());
-    }
-
     protected Object getVisibilityString(EnumSet<Flag> flagSet) {
 		if (flagSet.contains(Flag.PUBLIC)) {
 			return "public";
@@ -1475,10 +1433,10 @@ public class JavaJMLPrinter extends PrettyPrinter {
             case PRECONDITION:
                 switch(conditionType) {
                 case ASSERTION:
-                    sb.append("  @ requires ");
+                    sb.append("requires ");
                     break;
                 case ASSUMPTION:
-                    sb.append("  @ requires_free ");
+                    sb.append("requires_free ");
                     break;
                 default:
                     throw new IllegalStateException();
@@ -1487,10 +1445,10 @@ public class JavaJMLPrinter extends PrettyPrinter {
             case POSTCONDITION:
                 switch(conditionType) {
                 case ASSERTION:
-                    sb.append("  @ ensures ");
+                    sb.append("ensures ");
                     break;
                 case ASSUMPTION:
-                    sb.append(TRANSLATION_RAW ? "  @ ensures " : "  @ ensures_free ");
+                    sb.append(TRANSLATION_RAW ? "ensures " : "ensures_free ");
                     break;
                 default:
                     throw new IllegalStateException();
@@ -1516,6 +1474,88 @@ public class JavaJMLPrinter extends PrettyPrinter {
 
             sb.append(";");
 
+            return sb.toString();
+        }
+    }
+    
+    public class JMLContract {
+        
+        private EnumSet<Flag> flags;
+
+        private List<String> requiresClauses = new ArrayList<>();
+        private List<String> requiresFreeClauses = new ArrayList<>();
+        private List<String> ensuresClauses = new ArrayList<>();
+        private List<String> ensuresFreeClauses = new ArrayList<>();
+        private List<String> otherClauses = new ArrayList<>();
+        
+        public JMLContract(EnumSet<Flag> flags) {
+            this.flags = flags;
+        }
+
+        public void addClause(Condition condition) {
+            if (condition.pa.getAnnotationType().isTrivial()) {
+                return;
+            }
+            
+            switch (condition.conditionLocation) {
+            case PRECONDITION:
+                switch (condition.conditionType) {
+                case ASSERTION:
+                    requiresClauses.add(condition.toString());
+                    break;
+                case ASSUMPTION:
+                    requiresFreeClauses.add(condition.toString());
+                    break;
+                }
+                break;
+            case POSTCONDITION:
+                switch (condition.conditionType) {
+                case ASSERTION:
+                    ensuresClauses.add(condition.toString());
+                    break;
+                case ASSUMPTION:
+                    ensuresFreeClauses.add(condition.toString());
+                    break;
+                }
+                break;
+            case ASSERTION:
+                throw new IllegalArgumentException("condition");
+            }
+        }
+        
+        public void addClause(String clause) {
+            String clauseKind = clause.strip().split("\\s+")[0];
+            switch (clauseKind) {
+            case "requires":
+                requiresClauses.add(clause);
+                break;
+            case "requires_free":
+                requiresFreeClauses.add(clause);
+                break;
+            case "ensures":
+                ensuresClauses.add(clause);
+                break;
+            case "ensures_free":
+                ensuresFreeClauses.add(clause);
+                break;
+            default:
+                otherClauses.add(clause);
+                break;
+            }
+        }
+        
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            sb.append(String.format("/*@ %s behavior\n", getVisibilityString(flags)));
+            
+            requiresClauses.forEach(c -> sb.append(String.format("  @ %s\n", c)));
+            requiresFreeClauses.forEach(c -> sb.append(String.format("  @ %s\n", c)));
+            ensuresClauses.forEach(c -> sb.append(String.format("  @ %s\n", c)));
+            ensuresFreeClauses.forEach(c -> sb.append(String.format("  @ %s\n", c)));
+            otherClauses.forEach(c -> sb.append(String.format("  @ %s\n", c)));
+
+            sb.append("  @*/");
             return sb.toString();
         }
     }

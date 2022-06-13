@@ -18,8 +18,10 @@
 import java.util.*;
 import edu.kit.iti.checker.property.subchecker.lattice.qual.*;
 
-// :: error: initialization.fields.uninitialized
 public class IntWFTest {
+    // :: error: initialization.fields.uninitialized
+    public IntWFTest() {}
+    
     @Interval(min="1", max="3") int wellFormedInterval0;
     @Interval(min="1", max="1") int wellFormedInterval1;
     

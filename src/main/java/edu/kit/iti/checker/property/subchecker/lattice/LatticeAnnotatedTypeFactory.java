@@ -186,9 +186,9 @@ public class LatticeAnnotatedTypeFactory
     protected TreeAnnotator createTreeAnnotator() {
         List<TreeAnnotator> treeAnnotators = new ArrayList<>();
         treeAnnotators.add(new CommitmentTreeAnnotator(this));
-        if (dependentTypesHelper != null) {
-            treeAnnotators.add(dependentTypesHelper.createDependentTypesTreeAnnotator(this));
-        }
+        /*if (dependentTypesHelper != null) {
+            treeAnnotators.add(dependentTypesHelper.createDependentTypesTreeAnnotator());
+        }*/
         return new ListTreeAnnotator(treeAnnotators);
     }
 
@@ -403,20 +403,20 @@ public class LatticeAnnotatedTypeFactory
                 AnnotationMirror a1,
                 AnnotationMirror a2,
                 Map<UnorderedPair<String>, List<Bound>> bounds,
-                AnnotationMirror defaulResult) {
+                AnnotationMirror defaultResult) {
             UnorderedPair<String> names = new UnorderedPair<>(
                     a1.getAnnotationType().asElement().getSimpleName().toString(),
                     a2.getAnnotationType().asElement().getSimpleName().toString());
 
             if (bounds.get(names) == null) {
-                return defaulResult;
+                return defaultResult;
             }
 
             EvaluatedPropertyAnnotation epa1 = lattice.getEvaluatedPropertyAnnotation(a1);
             EvaluatedPropertyAnnotation epa2 = lattice.getEvaluatedPropertyAnnotation(a2);
 
             if (epa1 == null || epa2 == null) {
-                return defaulResult;
+                return defaultResult;
             }
 
             for (Bound bound : bounds.get(names)) {
@@ -453,7 +453,7 @@ public class LatticeAnnotatedTypeFactory
                 }
             }
 
-            return defaulResult;
+            return defaultResult;
         }
     }
     

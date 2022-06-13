@@ -71,9 +71,9 @@ public class Queue {
             // :: error: return.type.incompatible
             return this;
         } else {
-            Queue result = new Queue(rotate(front, back, null), null);
+            Queue res = new Queue(rotate(front, back, null), null);
             // :: error: return.type.incompatible
-            return result;
+            return res;
         }
     }
 

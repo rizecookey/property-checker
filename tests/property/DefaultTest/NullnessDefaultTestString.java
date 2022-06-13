@@ -17,10 +17,12 @@
 import java.util.*;
 import edu.kit.iti.checker.property.subchecker.lattice.qual.*;
 
-// :: error: initialization.fields.uninitialized
 public class NullnessDefaultTestString {
+    // :: error: initialization.field.uninitialized
     @NonNull String nonNullField;
+    // :: error: initialization.field.uninitialized
     @Nullable String nullableField;
+    // :: error: initialization.field.uninitialized
     String defaultField;
 
     public void foo() {

@@ -21,8 +21,10 @@ import java.util.List;
 
 import org.checkerframework.checker.nullness.NullnessChecker;
 import org.checkerframework.framework.test.CheckerFrameworkPerDirectoryTest;
+import org.junit.Ignore;
 import org.junit.runners.Parameterized.Parameters;
 
+@Ignore
 @SuppressWarnings("nls")
 public class DaikonNullnessCheckerTest1 extends CheckerFrameworkPerDirectoryTest {
     public DaikonNullnessCheckerTest1(List<File> testFiles) {

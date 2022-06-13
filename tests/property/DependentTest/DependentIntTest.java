@@ -39,10 +39,10 @@ class A {
     }
 }
 
-// :: error: initialization.fields.uninitialized
 class B {
     
     public static final int MIN = 0, MAX = 1;
 
+    // :: error: initialization.field.uninitialized
     public @Interval(min="MIN", max="MAX") int field;
 }

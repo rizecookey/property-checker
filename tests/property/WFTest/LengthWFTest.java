@@ -17,8 +17,10 @@
 import java.util.*;
 import edu.kit.iti.checker.property.subchecker.lattice.qual.*;
 
-// :: error: initialization.fields.uninitialized
 public class LengthWFTest {
+    // :: error: initialization.fields.uninitialized
+    public LengthWFTest() {}
+    
     @Length(min="1", max="3") List wellFormed0;
     @Length(min="1", max="1") List wellFormed1;
     

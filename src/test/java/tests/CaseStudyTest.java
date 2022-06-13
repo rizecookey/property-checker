@@ -19,8 +19,10 @@ package tests;
 import java.io.File;
 import java.util.List;
 
+import org.junit.Ignore;
 import org.junit.runners.Parameterized.Parameters;
 
+@Ignore
 @SuppressWarnings("nls")
 public class CaseStudyTest extends PropertyCheckerTest {
     public CaseStudyTest(List<File> testFiles) {

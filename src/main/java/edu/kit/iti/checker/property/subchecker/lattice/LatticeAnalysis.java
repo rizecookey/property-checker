@@ -33,9 +33,8 @@ public class LatticeAnalysis extends CFAbstractAnalysis<LatticeValue, LatticeSto
 
     public LatticeAnalysis(
             BaseTypeChecker checker,
-            LatticeAnnotatedTypeFactory factory,
-            List<Pair<VariableElement, LatticeValue>> fieldValues) {
-        super(checker, factory, fieldValues);
+            LatticeAnnotatedTypeFactory factory) {
+        super(checker, factory);
     }
 
     @Override

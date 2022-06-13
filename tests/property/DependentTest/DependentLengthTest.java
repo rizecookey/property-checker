@@ -20,7 +20,7 @@ import edu.kit.iti.checker.property.checker.qual.*;
 
 public class DependentLengthTest {
     public static
-    @JMLClause(values={"requires a+c > 0 && b+d > 0"})
+    @JMLClause("requires a+c > 0 && b+d > 0")
     @Length(min="a+c", max="b+d") List
     concat(
             int a, int b, int c, int d,

@@ -28,7 +28,7 @@ ext.versions = [
 ]
 
 
-sourceCompatibility = 1.8
+sourceCompatibility = 11
 def checkerframework_local = true  // Set this variable to [true] while using local version of checker framework.
 
 dependencies {
@@ -89,6 +89,9 @@ jar {
  }
 
 test {
+    maxHeapSize = "1024m"
+    jvmArgs "-XX:MaxPermSize=256m"
+    
     inputs.files("tests/property")
     
     systemProperty 'jmlDialect', System.getProperty('jmlDialect')
