@@ -15,20 +15,25 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 import java.util.*;
-import edu.kit.iti.checker.property.subchecker.lattice.qual.*;
+import edu.kit.kastel.property.subchecker.lattice.qual.*;
+import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
 
 public abstract class LengthTest {
-    public static void foo0(@Length(min="2", max="2") List arg0, @Length(min="2", max="5") List arg1) {
-        @Length(min="1", max="3") List l0 = arg0;
-        @Length(min="1", max="5") List l1 = arg1;
+    public static void foo0(
+            @Immutable @Length(min="2", max="2") List arg0,
+            @Immutable @Length(min="2", max="5") List arg1) {
+        @Immutable @Length(min="1", max="3") List l0 = arg0;
+        @Immutable @Length(min="1", max="5") List l1 = arg1;
         
         // :: error: assignment.type.incompatible
-        @Length(min="3", max="5") List l2 = arg1;
+        @Immutable @Length(min="3", max="5") List l2 = arg1;
     }
     
-    public static void foo1(@Length(min="2", max="2") List arg0, @Length(min="2", max="5") List arg1) {
+    public static void foo1(
+            @Immutable @Length(min="2", max="2") List arg0,
+            @Immutable @Length(min="2", max="5") List arg1) {
         List l0 = arg0;
-        @Length(min="2", max="2") List l1 = l0;
+        @Immutable @Length(min="2", max="2") List l1 = l0;
         
         foo0(arg0, arg1);
         
@@ -36,15 +41,15 @@ public abstract class LengthTest {
         bar(arg0, arg1, true);
         
         // :: error: argument.type.incompatible
-        @Length(min="2", max="3") List l2 = bar(arg0, arg1, true);
+        @Immutable @Length(min="2", max="3") List l2 = bar(arg0, arg1, true);
         
         // :: error: argument.type.incompatible :: error: assignment.type.incompatible
-        @Length(min="2", max="2") List l3 = bar(arg0, arg1, true);
+        @Immutable @Length(min="2", max="2") List l3 = bar(arg0, arg1, true);
     }
 
-    public static @Length(min="2", max="3") List bar(
-            @Length(min="2", max="2") List arg0,
-            @Length(min="3", max="3") List arg1,
+    public static @Immutable @Length(min="2", max="3") List bar(
+            @Immutable @Length(min="2", max="2") List arg0,
+            @Immutable @Length(min="3", max="3") List arg1,
             boolean b) {
         return b ? arg0 : arg1;
     }
@@ -60,9 +65,9 @@ public abstract class LengthTest {
         }
     }
 
-    public static @Length(min="2", max="3") List baz1(
-            @Length(min="2", max="2") List arg0,
-            @Length(min="3", max="3") List arg1,
+    public static @Immutable @Length(min="2", max="3") List baz1(
+            @Immutable @Length(min="2", max="2") List arg0,
+            @Immutable @Length(min="3", max="3") List arg1,
             boolean b) {
         List result;
         if (b) {
@@ -78,20 +83,22 @@ public abstract class LengthTest {
     //   @Length(min="2", max="3") List l1 = l0;
     //}
     
-    public abstract @Length(min="2", max="3") List override0(@Length(min="2", max="3") List a);
+    public abstract @Immutable @Length(min="2", max="3") List override0(
+            @Immutable @Length(min="2", max="3") List a);
     
-    public abstract @Length(min="2", max="3") List override1();
+    public abstract @Immutable @Length(min="2", max="3") List override1();
     
-    public void override2(@Length(min="2", max="3") List a) { }
+    public void override2(@Immutable @Length(min="2", max="3") List a) { }
 }
 
 abstract class SubLengthTest extends LengthTest {
 
-    public abstract @Length(min="2", max="2") List override0(@Length(min="1", max="4") List a);
+    public abstract @Immutable @Length(min="2", max="2") List override0(
+            @Immutable @Length(min="1", max="4") List a);
     
     // :: error: override.return.invalid
-    public abstract @Length(min="2", max="6") List override1();
+    public abstract @Immutable @Length(min="2", max="6") List override1();
     
     // :: error: override.param.invalid
-    public void override2(@Length(min="1", max="1") List a) { }
+    public void override2(@Immutable @Length(min="1", max="1") List a) { }
 }

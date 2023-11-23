@@ -15,10 +15,10 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 import java.util.*;
-import edu.kit.iti.checker.property.subchecker.lattice.qual.*;
+import edu.kit.kastel.property.subchecker.lattice.qual.*;
 
 public class NullnessTest {
-    public void foo(@Nullable Object possiblyNull) {
+    public static void foo(@Nullable Object possiblyNull) {
         boolean b = possiblyNull != null;
         @Nullable Object tricky = possiblyNull;
 

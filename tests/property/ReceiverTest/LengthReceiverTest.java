@@ -16,13 +16,19 @@
  */
 import java.util.List;
 
-import edu.kit.iti.checker.property.subchecker.lattice.qual.*;
+import edu.kit.kastel.property.subchecker.lattice.qual.*;
+import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
 
 public abstract class LengthReceiverTest implements List {
 
-    public void method(@Length(min="1", max="1") LengthReceiverTest this, @Length(min="2", max="2") LengthReceiverTest that) { }
+    public void method(
+            @Length(min="1", max="1") @Immutable LengthReceiverTest this,
+            @Length(min="2", max="2") @Immutable LengthReceiverTest that) { }
 
-    public void foo(@Length(min="1", max="1") LengthReceiverTest a, @Length(min="2", max="2") LengthReceiverTest b) {
+    public void foo(
+            @Immutable LengthReceiverTest this,
+            @Length(min="1", max="1") @Immutable LengthReceiverTest a,
+            @Length(min="2", max="2") @Immutable LengthReceiverTest b) {
         a.method(b);
 
         // :: error: argument.type.incompatible
@@ -35,9 +41,9 @@ public abstract class LengthReceiverTest implements List {
         b.method(b);
 
         // :: error: method.invocation.invalid :: error: argument.type.incompatible
-        method(a);
+        this.method(a);
 
         // :: error: method.invocation.invalid
-        method(b);
+        this.method(b);
     }
 }

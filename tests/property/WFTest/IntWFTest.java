@@ -16,7 +16,7 @@
  */
 
 import java.util.*;
-import edu.kit.iti.checker.property.subchecker.lattice.qual.*;
+import edu.kit.kastel.property.subchecker.lattice.qual.*;
 
 public class IntWFTest {
     // :: error: initialization.fields.uninitialized

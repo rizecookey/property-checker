@@ -29,15 +29,15 @@ relation Remainder(subRemainder, subModulus) <: Remainder(superRemainder, superM
     :<==> "§subModulus§ % §superModulus§ == 0 && java.lang.Math.floorMod(§subRemainder§, §superModulus§) == java.lang.Math.floorMod(§superRemainder§, §superModulus§)";
 
 join Remainder(a, m), Remainder(b, n)
-    := Remainder("java.lang.Math.floorMod(§a§, edu.kit.iti.checker.property.util.Math.gcd(§m§, §n§))", "edu.kit.iti.checker.property.util.Math.gcd(§m§, §n§)")
-    for "java.lang.Math.floorMod(a, edu.kit.iti.checker.property.util.Math.gcd(§m§, §n§)) == java.lang.Math.floorMod(§b§, edu.kit.iti.checker.property.util.Math.gcd(§m§, §n§))";
+    := Remainder("java.lang.Math.floorMod(§a§, edu.kit.kastel.property.util.Math.gcd(§m§, §n§))", "edu.kit.kastel.property.util.Math.gcd(§m§, §n§)")
+    for "java.lang.Math.floorMod(a, edu.kit.kastel.property.util.Math.gcd(§m§, §n§)) == java.lang.Math.floorMod(§b§, edu.kit.kastel.property.util.Math.gcd(§m§, §n§))";
 
 meet Remainder(a, m), Remainder(b, n)
-    := Remainder("(§a§ * edu.kit.iti.checker.property.util.Math.eea1(§m§,§n§) * n + b * edu.kit.iti.checker.property.util.Math.eea0(§m§,§n§) * §m§) / edu.kit.iti.checker.property.util.Math.gcd(§m§,§n§)", "edu.kit.iti.checker.property.util.Math.lcm(§m§,§n§)")
-    for "java.lang.Math.floorMod(§a§, edu.kit.iti.checker.property.util.Math.gcd(§m§, §n§)) == java.lang.Math.floorMod(§b§, edu.kit.iti.checker.property.util.Math.gcd(§m§, §n§))";
+    := Remainder("(§a§ * edu.kit.kastel.property.util.Math.eea1(§m§,§n§) * n + b * edu.kit.kastel.property.util.Math.eea0(§m§,§n§) * §m§) / edu.kit.kastel.property.util.Math.gcd(§m§,§n§)", "edu.kit.kastel.property.util.Math.lcm(§m§,§n§)")
+    for "java.lang.Math.floorMod(§a§, edu.kit.kastel.property.util.Math.gcd(§m§, §n§)) == java.lang.Math.floorMod(§b§, edu.kit.kastel.property.util.Math.gcd(§m§, §n§))";
     
 join Remainder(a, m), Remainder(b, n)
-    := Remainder("java.lang.Math.floorMod(§a§, edu.kit.iti.checker.property.util.Math.mcd(§m§,§n§,§a§,§b§))", "edu.kit.iti.checker.property.util.Math.mcd(§m§,§n§,§a§,§b§)");
+    := Remainder("java.lang.Math.floorMod(§a§, edu.kit.kastel.property.util.Math.mcd(§m§,§n§,§a§,§b§))", "edu.kit.kastel.property.util.Math.mcd(§m§,§n§,§a§,§b§)");
     
 meet Remainder(a, m), Remainder(b, n)
     := RemainderBottom();

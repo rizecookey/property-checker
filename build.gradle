@@ -24,18 +24,17 @@ configurations {
 }
 
 ext.versions = [
-        checkerFramework: "3.8.0",
+        checkerFramework: "3.39.0-eisop2",
 ]
 
 
-sourceCompatibility = 11
+sourceCompatibility = 17
 def checkerframework_local = true  // Set this variable to [true] while using local version of checker framework.
 
 dependencies {
     // This dependency is found on compile classpath of this component and consumers.
     if (checkerframework_local) {
-        implementation files('checker-framework/dist/checker.jar')
-        implementation files('checker-framework/dist/checker-qual.jar')
+        implementation files('checker-framework/dist/checker-3.39.0-eisop2-SNAPSHOT.jar')
         
     }
     else {
@@ -50,10 +49,10 @@ dependencies {
     // Testing
     testImplementation 'junit:junit:4.13'
     if (checkerframework_local) {
-        testCompile files('checker-framework/dist/checker-qual.jar')
-    	testCompile files('checker-framework/dist/checker.jar')
+        testImplementation files('checker-framework/dist/checker-qual.jar')
+    	testImplementation files('checker-framework/dist/checker.jar')
     }
-    testCompile "org.checkerframework:framework-test:${versions.checkerFramework}"
+    testImplementation "org.checkerframework:framework-test:${versions.checkerFramework}"
 
     errorproneJavac "com.google.errorprone:javac:9+181-r4173-1"
 }

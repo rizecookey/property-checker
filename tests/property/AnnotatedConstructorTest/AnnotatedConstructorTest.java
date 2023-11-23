@@ -14,7 +14,8 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-import edu.kit.iti.checker.property.subchecker.lattice.qual.*;
+import edu.kit.kastel.property.subchecker.lattice.qual.*;
+import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
 
 
 public class AnnotatedConstructorTest {
@@ -24,14 +25,14 @@ public class AnnotatedConstructorTest {
         super();
     }
 
-    public void foo(@B AnnotatedConstructorTest arg) {
-        AnnotatedConstructorTest b = new AnnotatedConstructorTest();
+    public void foo(@Immutable @B AnnotatedConstructorTest arg) {
+        @Immutable AnnotatedConstructorTest b = new AnnotatedConstructorTest();
         arg = b;
         
-        @A AnnotatedConstructorTest a = new AnnotatedConstructorTest();
+        @Immutable @A AnnotatedConstructorTest a = new AnnotatedConstructorTest();
         
         // :: error: assignment.type.incompatible
-        @D AnnotatedConstructorTest d = b;
+        @Immutable @D AnnotatedConstructorTest d = b;
     }
 }
 

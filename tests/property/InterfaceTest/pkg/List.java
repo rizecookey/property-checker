@@ -16,7 +16,7 @@
  */
 package pkg;
 
-import edu.kit.iti.checker.property.subchecker.lattice.qual.*;
+import edu.kit.kastel.property.subchecker.lattice.qual.*;
 
 public interface List {
 

@@ -16,8 +16,8 @@
  */
 package case_study; 
 
-import edu.kit.iti.checker.property.subchecker.lattice.case_study_qual.*;
-import edu.kit.iti.checker.property.checker.qual.*;
+import edu.kit.kastel.property.subchecker.lattice.case_study_qual.*;
+import edu.kit.kastel.property.checker.qual.*;
 
 public class List {
     

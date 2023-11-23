@@ -15,15 +15,21 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 import java.util.*;
-import edu.kit.iti.checker.property.subchecker.lattice.qual.*;
+import edu.kit.kastel.property.subchecker.lattice.qual.*;
+import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
 
 public class NullnessDefaultTest {
     // :: error: initialization.field.uninitialized
-    @NonNull Object nonNullField;
+    @Immutable @NonNull Object nonNullField;
     // :: error: initialization.field.uninitialized
     @Nullable Object nullableField;
     // :: error: initialization.field.uninitialized
-    Object defaultField;
+    @Immutable Object defaultField;
+    
+    // :: error: initialization.field.uninitialized :: error: type.invalid
+    @NonNull Object nonNullField0;
+    // :: error: initialization.field.uninitialized :: error: type.invalid
+    Object defaultField0;
 
     public void foo() {
         @NonNull Object nonNullLocal = nonNullField;

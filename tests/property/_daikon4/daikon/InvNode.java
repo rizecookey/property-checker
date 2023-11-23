@@ -17,8 +17,8 @@
 
 package daikon;
 
-import edu.kit.iti.checker.property.subchecker.lattice.case_study_qual.*;
-import edu.kit.iti.checker.property.checker.qual.*;
+import edu.kit.kastel.property.subchecker.lattice.case_study_qual.*;
+import edu.kit.kastel.property.checker.qual.*;
 
 //@JMLClause("public instance invariant inv1 != null || inv2 != null")
 public class InvNode {

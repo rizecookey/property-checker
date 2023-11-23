@@ -15,31 +15,32 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 import java.util.*;
-import edu.kit.iti.checker.property.subchecker.lattice.qual.*;
+import edu.kit.kastel.property.subchecker.lattice.qual.*;
 import org.checkerframework.checker.initialization.qual.*;
+import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
 
 public class IntInitTest {
     
     int unannotated;
-    @Remainder(remainder="0", modulus="2") int even;
-    @Remainder(remainder="1", modulus="2") int odd;
+    @Immutable @Remainder(remainder="0", modulus="2") int even;
+    @Immutable @Remainder(remainder="1", modulus="2") int odd;
     
     public IntInitTest() {
-        helper();
+        this.helper();
         
         even = 2;
         odd = 1;
         
         // :: error: method.invocation.invalid
-        nonHelper();
+        this.nonHelper();
     }
 
-    public @Remainder(remainder="0", modulus="2") int helper(@UnknownInitialization IntInitTest this) {
+    public @Immutable @Remainder(remainder="0", modulus="2") int helper(@ReadOnly @UnknownInitialization IntInitTest this) {
     	// :: error: return.type.incompatible
-        return even;
+        return this.even;
     }
 
-    public @Remainder(remainder="0", modulus="2") int nonHelper() {
-    	return even;
+    public @Immutable @Remainder(remainder="0", modulus="2") int nonHelper(@ReadOnly @Initialized IntInitTest this) {
+    	return this.even;
     }
 }

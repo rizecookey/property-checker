@@ -15,24 +15,26 @@
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 import java.util.*;
-import edu.kit.iti.checker.property.subchecker.lattice.qual.*;
-import edu.kit.iti.checker.property.checker.qual.*;
+import edu.kit.kastel.property.subchecker.lattice.qual.*;
+import edu.kit.kastel.property.checker.qual.*;
+import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
 
 public class DependentLengthTest {
     public static
     @JMLClause("requires a+c > 0 && b+d > 0")
-    @Length(min="a+c", max="b+d") List
+    @Immutable @Length(min="a+c", max="b+d") List
     concat(
             int a, int b, int c, int d,
-            @Length(min="a", max="b") List l0, @Length(min="c", max="d") List l1) {
+            @Immutable @Length(min="a", max="b") List l0,
+            @Immutable @Length(min="c", max="d") List l1) {
         // :: error: return.type.incompatible
         return null;
     }
 
     public static void foo(
-            @Length(min="1", max="1") List l0,
-            @Length(min="2", max="2") List l1) {
+            @Immutable @Length(min="1", max="1") List l0,
+            @Immutable @Length(min="2", max="2") List l1) {
         // :: error: assignment.type.incompatible :: error: argument.type.incompatible
-        @Length(min="3", max="3") List res = concat(1, 1, 2, 2, l0, l1);
+        @Immutable @Length(min="3", max="3") List res = concat(1, 1, 2, 2, l0, l1);
     }
 }
