@@ -16,11 +16,12 @@
  */
 package edu.kit.kastel.property.subchecker.lattice;
 
-import org.checkerframework.checker.nullness.InitializationStore;
+import org.checkerframework.checker.initialization.InitializationStore;
 import org.checkerframework.framework.flow.CFAbstractAnalysis;
+import org.checkerframework.framework.flow.CFAbstractStore;
 import org.checkerframework.framework.flow.CFValue;
 
-public class LatticeStore extends InitializationStore<LatticeValue, LatticeStore> {
+public class LatticeStore extends CFAbstractStore<LatticeValue, LatticeStore> {
 
 	public LatticeStore(CFAbstractAnalysis<LatticeValue, LatticeStore, ?> analysis, boolean sequentialSemantics) {
 		super(analysis, sequentialSemantics);

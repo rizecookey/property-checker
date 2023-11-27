@@ -41,10 +41,12 @@ import org.checkerframework.checker.initialization.qual.FBCBottom;
 import org.checkerframework.checker.initialization.qual.Initialized;
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
-import org.checkerframework.checker.nullness.InitializationAnnotatedTypeFactory;
+import org.checkerframework.checker.initialization.InitializationAnnotatedTypeFactory;
+import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.ElementQualifierHierarchy;
+import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
 import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
@@ -71,7 +73,7 @@ import edu.kit.kastel.property.util.ClassUtils;
 import edu.kit.kastel.property.util.UnorderedPair;
 
 public class LatticeAnnotatedTypeFactory
-        extends InitializationAnnotatedTypeFactory<LatticeValue, LatticeStore, LatticeTransfer, LatticeAnalysis> {
+        extends GenericAnnotatedTypeFactory<LatticeValue, LatticeStore, LatticeTransfer, LatticeAnalysis> {
 
     private Lattice lattice;
     private LatticeSubchecker latticeChecker;
@@ -185,7 +187,6 @@ public class LatticeAnnotatedTypeFactory
     @Override
     protected TreeAnnotator createTreeAnnotator() {
         List<TreeAnnotator> treeAnnotators = new ArrayList<>();
-        treeAnnotators.add(new CommitmentTreeAnnotator(this));
         /*if (dependentTypesHelper != null) {
             treeAnnotators.add(dependentTypesHelper.createDependentTypesTreeAnnotator());
         }*/
@@ -232,70 +233,17 @@ public class LatticeAnnotatedTypeFactory
         return result;
     }
 
-	@Override
-	public AnnotationMirror getFieldInvariantAnnotation(
-            AnnotatedTypeMirror type, VariableElement fieldElement) {
-		AnnotationMirror anno = type.getAnnotationInHierarchy(getTop());
-		return AnnotationUtils.areSame(anno, getTop()) ? null : anno;
-	}
-
-	@Override
-	protected boolean hasFieldInvariantAnnotation(AnnotatedTypeMirror type, VariableElement fieldElement) {
-		AnnotationMirror anno = type.getAnnotationInHierarchy(getTop());
-		return !AnnotationUtils.areSame(anno, getTop());
-	}
-	
-	@Override
-	public boolean isFieldInvariantAnnotation(AnnotationMirror anno) {
-		return !AnnotationUtils.areSame(anno, getTop());
-	}
-
-    protected final class LatticeInitQualifierHierarchy extends InitializationQualifierHierarchy {
-
-		@Override
-		protected boolean isSubtypeWithElements(AnnotationMirror subAnno, QualifierKind subKind,
-				AnnotationMirror superAnno, QualifierKind superKind) {
-			return isSubtypeInitialization(subAnno, subKind, superAnno, superKind);
-		}
-
-		@Override
-		protected AnnotationMirror leastUpperBoundWithElements(AnnotationMirror a1, QualifierKind qualifierKind1,
-				AnnotationMirror a2, QualifierKind qualifierKind2, QualifierKind lubKind) {
-			return leastUpperBoundInitialization(a1, qualifierKind1, a2, qualifierKind2);
-		}
-
-		@Override
-		protected AnnotationMirror greatestLowerBoundWithElements(AnnotationMirror a1, QualifierKind qualifierKind1,
-				AnnotationMirror a2, QualifierKind qualifierKind2, QualifierKind glbKind) {
-			return greatestLowerBoundInitialization(a1, qualifierKind1, a2, qualifierKind2);
-		}
-        
-        @Override
-        protected QualifierKindHierarchy createQualifierKindHierarchy(
-        		Collection<Class<? extends Annotation>> qualifierClasses) {
-        	return new LatticeQualifierKindHierarchy(qualifierClasses);
-        }
-    }
-
     protected final class LatticeQualifierHierarchy extends ElementQualifierHierarchy {
 
         private AnnotationMirror top;
         private AnnotationMirror bottom;
 
-        private LatticeInitQualifierHierarchy initQualifierHierarchy;
-
         public LatticeQualifierHierarchy(Set<Class<? extends Annotation>> set, Elements elements) {
-            super(set, elements);
-            initQualifierHierarchy = new LatticeInitQualifierHierarchy();
+            super(set, elements, LatticeAnnotatedTypeFactory.this);
         }
 
         @Override
-        public boolean isSubtype(AnnotationMirror subAnno, AnnotationMirror superAnno) {
-            if (isInitAnnotation(subAnno) || isInitAnnotation(superAnno)) {
-                return isInitAnnotation(subAnno) && isInitAnnotation(superAnno)
-                        && initQualifierHierarchy.isSubtype(subAnno, superAnno);
-            }
-
+        public boolean isSubtypeQualifiers(AnnotationMirror subAnno, AnnotationMirror superAnno) {
             if (AnnotationUtils.areSame(superAnno, getTop()) || AnnotationUtils.areSame(subAnno, getBottom())) {
                 return true;
             }
@@ -323,25 +271,17 @@ public class LatticeAnnotatedTypeFactory
         }
 
         @Override
-        public AnnotationMirror leastUpperBound(AnnotationMirror a1, AnnotationMirror a2) {
-            if (isInitAnnotation(a1) || isInitAnnotation(a2)) {
-                if (isInitAnnotation(a1) && isInitAnnotation(a2)) {
-                    return initQualifierHierarchy.leastUpperBound(a1, a2);
-                } else {
-                    return null;
-                }
-            }
-
+        public AnnotationMirror leastUpperBoundQualifiers(AnnotationMirror a1, AnnotationMirror a2) {
             if (AnnotationUtils.areSame(a1, a2)) {
                 return a1;
-            } else if (isSubtype(a1, a2)) {
-                if (isSubtype(a2, a1)) {
+            } else if (isSubtypeQualifiers(a1, a2)) {
+                if (isSubtypeQualifiers(a2, a1)) {
                     throw new BugInCF(
                             "Cycle in type lattice between " + a1 + " and " + a2); //$NON-NLS-1$ //$NON-NLS-2$
                 } else {
                     return a2;
                 }
-            } else if (isSubtype(a2, a1)) {
+            } else if (isSubtypeQualifiers(a2, a1)) {
                 return a1;
             } else {
                 return bound(a1, a2, lattice.getJoins(), getTop());
@@ -349,25 +289,17 @@ public class LatticeAnnotatedTypeFactory
         }
 
         @Override
-        public AnnotationMirror greatestLowerBound(AnnotationMirror a1, AnnotationMirror a2) {
-            if (isInitAnnotation(a1) || isInitAnnotation(a2)) {
-                if (isInitAnnotation(a1) && isInitAnnotation(a2)) {
-                    return initQualifierHierarchy.greatestLowerBound(a1, a2);
-                } else {
-                    return null;
-                }
-            }
-
+        public AnnotationMirror greatestLowerBoundQualifiers(AnnotationMirror a1, AnnotationMirror a2) {
             if (AnnotationUtils.areSame(a1, a2)) {
                 return a1;
-            } else if (isSubtype(a1, a2)) {
-                if (isSubtype(a2, a1)) {
+            } else if (isSubtypeQualifiers(a1, a2)) {
+                if (isSubtypeQualifiers(a2, a1)) {
                     throw new BugInCF(
                             "Cycle in type lattice between " + a1 + " and " + a2); //$NON-NLS-1$ //$NON-NLS-2$
                 } else {
                     return a1;
                 }
-            } else if (isSubtype(a2, a1)) {
+            } else if (isSubtypeQualifiers(a2, a1)) {
                 return a2;
             } else {
                 return bound(a1, a2, lattice.getMeets(), getBottom());
@@ -376,7 +308,7 @@ public class LatticeAnnotatedTypeFactory
 
         public AnnotationMirror getTop() {
             if (top == null) {
-                top = getTopAnnotations().stream().filter(m -> !AnnotationUtils.areSame(m, UNKNOWN_INITIALIZATION)).findAny().get();
+                top = getTopAnnotations().stream().findAny().get();
             }
 
             return top;
@@ -384,7 +316,7 @@ public class LatticeAnnotatedTypeFactory
 
         public AnnotationMirror getBottom() {
             if (bottom == null) {
-                bottom = getBottomAnnotations().stream().filter(m -> !AnnotationUtils.areSame(m, FBCBOTTOM)).findAny().get();
+                bottom = getBottomAnnotations().stream().findAny().get();
             }
             return bottom;
         }
@@ -393,10 +325,6 @@ public class LatticeAnnotatedTypeFactory
         protected QualifierKindHierarchy createQualifierKindHierarchy(
         		Collection<Class<? extends Annotation>> qualifierClasses) {
         	return new LatticeQualifierKindHierarchy(qualifierClasses);
-        }
-
-        private boolean isInitAnnotation(AnnotationMirror a) {
-            return getQualifierKind(a).isInSameHierarchyAs(getQualifierKind(INITIALIZED));
         }
 
         private AnnotationMirror bound(

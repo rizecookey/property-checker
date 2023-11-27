@@ -32,8 +32,9 @@ import javax.lang.model.element.Name;
 import javax.lang.model.type.TypeKind;
 
 import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
-import org.checkerframework.checker.nullness.InitializationVisitor;
+import org.checkerframework.checker.initialization.InitializationVisitor;
 import org.checkerframework.common.basetype.BaseTypeChecker;
+import org.checkerframework.common.basetype.BaseTypeVisitor;
 import org.checkerframework.common.basetype.TypeValidator;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
@@ -71,7 +72,7 @@ import edu.kit.kastel.property.util.ClassUtils;
 import edu.kit.kastel.property.util.CollectionUtils;
 import edu.kit.kastel.property.util.Union;
 
-public class LatticeVisitor extends InitializationVisitor<LatticeAnnotatedTypeFactory, LatticeValue, LatticeStore> {
+public class LatticeVisitor extends BaseTypeVisitor<LatticeAnnotatedTypeFactory> {
 
     private Result result;
 
@@ -277,7 +278,7 @@ public class LatticeVisitor extends InitializationVisitor<LatticeAnnotatedTypeFa
     }
 
     @Override
-    protected void commonAssignmentCheck(
+    protected boolean commonAssignmentCheck(
             AnnotatedTypeMirror varType,
             AnnotatedTypeMirror valueType,
             Tree valueTree,
@@ -307,8 +308,10 @@ public class LatticeVisitor extends InitializationVisitor<LatticeAnnotatedTypeFa
         commonAssignmentCheckEndDiagnostic(success, null, varType, valueType, valueTree);
 
         if (!success) {
-            super.commonAssignmentCheck(varType, valueType, valueTree, errorKey, extraArgs);
+            return super.commonAssignmentCheck(varType, valueType, valueTree, errorKey, extraArgs);
         }
+
+        return success;
     }
 
     @Override
@@ -333,7 +336,7 @@ public class LatticeVisitor extends InitializationVisitor<LatticeAnnotatedTypeFa
 
         AnnotationMirror constructorAnno =
                 qualifierHierarchy.findAnnotationInHierarchy(constructorAnnotations, top);
-        if (!qualifierHierarchy.isSubtype(top, constructorAnno)) {
+        if (!qualifierHierarchy.isSubtypeQualifiersOnly(top, constructorAnno)) {
             // Report an error instead of a warning.
             checker.reportError(
                     constructorElement, "inconsistent.constructor.type", constructorAnno, top); //$NON-NLS-1$

@@ -41,7 +41,7 @@ dependencies {
         implementation "org.checkerframework:checker:${versions.checkerFramework}"
     }
 
-  	implementation "com.google.guava:guava:30.1-jre" 
+  	implementation "com.google.guava:guava:30.1-jre"
   	implementation "org.apache.commons:commons-lang3:3.11"
   	implementation "org.apache.commons:commons-io:1.3.2"
     compileOnly "com.google.errorprone:javac:9+181-r4173-1"
@@ -49,10 +49,11 @@ dependencies {
     // Testing
     testImplementation 'junit:junit:4.13'
     if (checkerframework_local) {
-        testImplementation files('checker-framework/dist/checker-qual.jar')
-    	testImplementation files('checker-framework/dist/checker.jar')
+        implementation files('checker-framework/dist/checker-3.39.0-eisop2-SNAPSHOT.jar')
+        implementation files('checker-framework/dist/framework-test-3.39.0-eisop2-SNAPSHOT.jar')
+    } else {
+        testImplementation "org.checkerframework:framework-test:${versions.checkerFramework}"
     }
-    testImplementation "org.checkerframework:framework-test:${versions.checkerFramework}"
 
     errorproneJavac "com.google.errorprone:javac:9+181-r4173-1"
 }
@@ -83,13 +84,14 @@ jar {
     manifest {
         attributes("Main-Class": "org.checkerframework.framework.util.CheckerMain")
     }
-    
+
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     destinationDirectory = file("$rootDir")
  }
 
 test {
-    maxHeapSize = "1024m"
-    jvmArgs "-XX:MaxPermSize=256m"
+    //maxHeapSize = "1024m"
+    //jvmArgs "-XX:MaxPermSize=256m"
     
     inputs.files("tests/property")
     

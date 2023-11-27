@@ -100,7 +100,7 @@ public class ExclusivityVisitor extends BaseTypeVisitor<ExclusivityAnnotatedType
         return super.isValidUse(type, tree)
                 // Primitives are always immutable and must never
                 // be annotated as mutable
-                && atypeFactory.getQualifierHierarchy().isSubtype(
+                && atypeFactory.getQualifierHierarchy().isSubtypeQualifiersOnly(
                         atypeFactory.IMMUTABLE,
                         type.getAnnotationInHierarchy(atypeFactory.READ_ONLY));
     }
@@ -113,7 +113,7 @@ public class ExclusivityVisitor extends BaseTypeVisitor<ExclusivityAnnotatedType
             return super.isValidUse(declarationType, useType, tree)
                     // Strings are always immutable and must never
                     // be annotated as mutable
-                    && atypeFactory.getQualifierHierarchy().isSubtype(
+                    && atypeFactory.getQualifierHierarchy().isSubtypeQualifiersOnly(
                     atypeFactory.IMMUTABLE,
                     useType.getAnnotationInHierarchy(atypeFactory.READ_ONLY));
         } else {
@@ -138,14 +138,14 @@ public class ExclusivityVisitor extends BaseTypeVisitor<ExclusivityAnnotatedType
         
         AnnotationMirror constructorAnno =
                 qualifierHierarchy.findAnnotationInHierarchy(constructorAnnotations, atypeFactory.EXCL_MUT);
-        if (!qualifierHierarchy.isSubtype(atypeFactory.EXCL_MUT, constructorAnno)) {
+        if (!qualifierHierarchy.isSubtypeQualifiersOnly(atypeFactory.EXCL_MUT, constructorAnno)) {
             checker.reportWarning(
                     constructorElement, "unnecessary.constructor.type", constructorAnno, atypeFactory.EXCL_MUT);
         }
     }
     
     @Override
-    protected void commonAssignmentCheck(
+    protected boolean commonAssignmentCheck(
             AnnotatedTypeMirror varType,
             AnnotatedTypeMirror valueType,
             Tree valueTree,
@@ -155,9 +155,9 @@ public class ExclusivityVisitor extends BaseTypeVisitor<ExclusivityAnnotatedType
             // A constructor result can be of any type, as this cannot be leaked
             // in the constructor except as ReadOnly,
             // so ignore any error here.
-            return;
+            return true;
         }
         
-        super.commonAssignmentCheck(varType, valueType, valueTree, errorKey, extraArgs);
+        return super.commonAssignmentCheck(varType, valueType, valueTree, errorKey, extraArgs);
     }
 }

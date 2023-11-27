@@ -32,7 +32,7 @@ abstract class ExclMutAssignmentRule extends AssignmentRule {
     }
 
     private void checkRhsTypeAnno(Node rhsNode) throws RuleNotApplicable {
-        if (!hierarchy.isSubtype(getRefinedTypeAnnotation(rhsNode), factory.EXCL_MUT)) {
+        if (!hierarchy.isSubtypeQualifiersOnly(getRefinedTypeAnnotation(rhsNode), factory.EXCL_MUT)) {
             throw new RuleNotApplicable(getName(), rhsNode, "rhs is not ExclMut");
         }
     }

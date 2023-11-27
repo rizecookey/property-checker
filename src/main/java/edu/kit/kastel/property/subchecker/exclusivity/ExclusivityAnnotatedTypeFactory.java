@@ -30,6 +30,7 @@ import org.checkerframework.framework.type.treeannotator.PropagationTreeAnnotato
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
 import org.checkerframework.framework.util.dependenttypes.DependentTypesTreeAnnotator;
 import org.checkerframework.javacutil.AnnotationBuilder;
+import org.checkerframework.javacutil.AnnotationMirrorSet;
 import org.checkerframework.javacutil.BugInCF;
 
 import javax.lang.model.element.AnnotationMirror;
@@ -76,7 +77,7 @@ public class ExclusivityAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
     public AnnotationMirror getExclusivityAnnotation(Collection<? extends AnnotationMirror> qualifiers) {
         for (AnnotationMirror qualifier : qualifiers) {
             try {
-                if (qualHierarchy.isSubtype(qualifier, READ_ONLY)) {
+                if (qualHierarchy.isSubtypeQualifiersOnly(qualifier, READ_ONLY)) {
                     return qualifier;
                 }
             } catch (BugInCF b) {
@@ -96,21 +97,21 @@ public class ExclusivityAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
     }
 
     public boolean isCopyable(@NonNull AnnotationMirror annotationMirror) {
-        return !qualHierarchy.isSubtype(
+        return !qualHierarchy.isSubtypeQualifiersOnly(
                 EXCL_MUT,
                 annotationMirror
         );
     }
 
     public boolean isMutable(@NonNull AnnotationMirror annotationMirror) {
-        return !qualHierarchy.isSubtype(
+        return !qualHierarchy.isSubtypeQualifiersOnly(
                 IMMUTABLE,
                 annotationMirror
         );
     }
 
     public boolean mayHoldProperty(@NonNull AnnotationMirror annotationMirror) {
-        return qualHierarchy.isSubtype(
+        return qualHierarchy.isSubtypeQualifiersOnly(
                 annotationMirror,
                 RESTRICTED
         );
@@ -123,7 +124,7 @@ public class ExclusivityAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
     }
 
     public boolean isValid(@NonNull AnnotationMirror annotationMirror) {
-        return !qualHierarchy.isSubtype(
+        return !qualHierarchy.isSubtypeQualifiersOnly(
                 annotationMirror,
                 EXCLUSIVITY_BOTTOM
         );
@@ -211,7 +212,7 @@ public class ExclusivityAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
                         if (node instanceof ValueLiteralNode
                                 || node instanceof BinaryOperationNode
                                 || node instanceof UnaryOperationNode) {
-                            return analysis.createAbstractValue(Set.of(IMMUTABLE), node.getType());
+                            return analysis.createAbstractValue(AnnotationMirrorSet.singleton(IMMUTABLE), node.getType());
                         } else if (!((expr = JavaExpression.fromNode(node)) instanceof Unknown)) {
                             return store.getValue(expr);
                         } else if (node instanceof MethodInvocationNode) {

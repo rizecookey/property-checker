@@ -23,10 +23,13 @@ import javax.lang.model.type.TypeMirror;
 
 import org.checkerframework.framework.flow.CFAbstractAnalysis;
 import org.checkerframework.framework.flow.CFAbstractValue;
+import org.checkerframework.javacutil.AnnotationMirrorSet;
 
 public class LatticeValue extends CFAbstractValue<LatticeValue> {
 
-	protected LatticeValue(CFAbstractAnalysis<LatticeValue, ?, ?> analysis, Set<AnnotationMirror> annotations,
+	protected LatticeValue(
+			CFAbstractAnalysis<LatticeValue, ?, ?> analysis,
+			AnnotationMirrorSet annotations,
 			TypeMirror underlyingType) {
 		super(analysis, annotations, underlyingType);
 	}

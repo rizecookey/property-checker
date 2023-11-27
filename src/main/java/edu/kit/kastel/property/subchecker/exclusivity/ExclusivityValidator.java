@@ -21,7 +21,7 @@ public class ExclusivityValidator extends BaseTypeValidator {
     }
 
     @Override
-    protected List<DiagMessage> isValidStructurally(QualifierHierarchy qualifierHierarchy, AnnotatedTypeMirror type) {
+    protected List<DiagMessage> isValidStructurally(AnnotatedTypeMirror type) {
         AnnotationMirror typeAnno = atypeFactory.getExclusivityAnnotation(type.getAnnotations());
         if (typeAnno == null) {
             return Collections.emptyList();
@@ -31,7 +31,7 @@ public class ExclusivityValidator extends BaseTypeValidator {
                 ? Collections.emptyList()
                 : Collections.singletonList(new DiagMessage(Diagnostic.Kind.ERROR, "type.invalid"));
 
-        return DiagMessage.mergeLists(msgList, super.isValidStructurally(qualifierHierarchy, type));
+        return DiagMessage.mergeLists(msgList, super.isValidStructurally(type));
     }
 
     @Override

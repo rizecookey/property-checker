@@ -20,15 +20,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.PriorityQueue;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import javax.tools.JavaCompiler;
@@ -36,14 +28,18 @@ import javax.tools.JavaFileObject;
 import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
 
+import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
 import org.apache.commons.io.FileUtils;
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.source.SupportedOptions;
+import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.InternalUtils;
 
 import edu.kit.kastel.property.config.Config;
 import edu.kit.kastel.property.subchecker.lattice.LatticeSubchecker;
 import edu.kit.kastel.property.subchecker.lattice.LatticeVisitor;
+import org.checkerframework.org.plumelib.util.ArrayMap;
 
 @SupportedOptions({
     Config.LATTICES_FILE_OPTION,
@@ -58,28 +54,43 @@ public class PropertyChecker extends BaseTypeChecker {
 
     private Map<String, PriorityQueue<LatticeVisitor.Result>> results = new HashMap<>();
 
-    private boolean collectingSubcheckers = false;
+    private ExclusivityChecker exclusivityChecker;
+    private List<LatticeSubchecker> latticeSubcheckers;
 
     private URLClassLoader projectClassLoader;
 
     public PropertyChecker() { }
 
-    @Override
-    protected LinkedHashSet<BaseTypeChecker> getImmediateSubcheckers() {
-        collectingSubcheckers = true;
-
-        LinkedHashSet<BaseTypeChecker> checkers = super.getImmediateSubcheckers();
-
-        String[] lattices = getLattices();
-        String inputDir = getInputDir();
-        String qualPackage = getQualPackage();
-
-        int ident = 0;
-        for (String lattice : lattices) {
-            checkers.add(new LatticeSubchecker(this, new File(lattice.strip()), new File(inputDir), qualPackage, ident++));
+    public ExclusivityChecker getExclusivityChecker() {
+        if (exclusivityChecker == null) {
+            exclusivityChecker = new ExclusivityChecker(this);
         }
 
-        collectingSubcheckers = false;
+        return exclusivityChecker;
+    }
+
+    public List<LatticeSubchecker> getLatticeSubcheckers() {
+        if (latticeSubcheckers == null) {
+            latticeSubcheckers = new ArrayList<>();
+
+            String[] lattices = getLattices();
+            String inputDir = getInputDir();
+            String qualPackage = getQualPackage();
+
+            int ident = 0;
+            for (String lattice : lattices) {
+                latticeSubcheckers.add(new LatticeSubchecker(this, new File(lattice.strip()), new File(inputDir), qualPackage, ident++));
+            }
+        }
+
+        return Collections.unmodifiableList(latticeSubcheckers);
+    }
+
+    @Override
+    public List<BaseTypeChecker> getSubcheckers() {
+        List<BaseTypeChecker> checkers = new ArrayList<>();
+        checkers.add(getExclusivityChecker());
+        checkers.addAll(getLatticeSubcheckers());
         return checkers;
     }
     
@@ -97,11 +108,6 @@ public class PropertyChecker extends BaseTypeChecker {
     
     public String getQualPackage() {
     	return getOption(Config.QUAL_PKG_OPTION);
-    }
-
-    @Override
-    public List<BaseTypeChecker> getSubcheckers() {
-        return collectingSubcheckers ? Collections.emptyList() : super.getSubcheckers();
     }
 
     @SuppressWarnings("nls")

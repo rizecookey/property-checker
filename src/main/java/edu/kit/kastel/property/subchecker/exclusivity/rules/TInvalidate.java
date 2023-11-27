@@ -8,6 +8,7 @@ import org.checkerframework.framework.flow.CFTransfer;
 import org.checkerframework.framework.flow.CFValue;
 
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
+import org.checkerframework.javacutil.AnnotationMirrorSet;
 
 import java.util.Collections;
 
@@ -25,7 +26,7 @@ public class TInvalidate implements TypeRule {
     @Override
     public void apply(Node node) {
         CFValue abstractValue = analysis.createAbstractValue(
-                Collections.singleton(factory.EXCLUSIVITY_BOTTOM), node.getType());
+                AnnotationMirrorSet.singleton(factory.EXCLUSIVITY_BOTTOM), node.getType());
         store.replaceValue(JavaExpression.fromNode(node), abstractValue);
         System.out.printf("[~> ExclusivityBottom] %s ...;\n", node);
         System.out.println("Applied " + getName());

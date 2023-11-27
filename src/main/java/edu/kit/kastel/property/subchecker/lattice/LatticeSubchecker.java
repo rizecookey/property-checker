@@ -18,10 +18,7 @@ package edu.kit.kastel.property.subchecker.lattice;
 
 import java.io.File;
 import java.net.URLClassLoader;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
 import org.checkerframework.common.basetype.BaseTypeChecker;
@@ -39,7 +36,6 @@ public class LatticeSubchecker extends BaseTypeChecker {
     private File inputDir;
     private String qualPackage;
     private int ident;
-    private boolean collectingSubcheckers = false;
 
     public LatticeSubchecker(PropertyChecker parent, File latticeFile, File inputDir, String qualPackage, int ident) {
         this.parent = parent;
@@ -47,6 +43,10 @@ public class LatticeSubchecker extends BaseTypeChecker {
         this.inputDir = inputDir;
         this.qualPackage = qualPackage;
         this.ident = ident;
+
+        setProcessingEnvironment(parent.getProcessingEnvironment());
+        treePathCacher = parent.getTreePathCacher();
+        setParentChecker(parent);
     }
 
     @Override
@@ -71,23 +71,18 @@ public class LatticeSubchecker extends BaseTypeChecker {
     }
 
     @Override
-    protected LinkedHashSet<BaseTypeChecker> getImmediateSubcheckers() {
-        LinkedHashSet<BaseTypeChecker> checkers = super.getImmediateSubcheckers();
-        if (!parent.getBooleanOption(Config.NO_EXCLUSITIVY_OPTION, false)) {
-            checkers.add(new ExclusivityChecker());
+    public List<BaseTypeChecker> getSubcheckers() {
+        if (parent == null) {
+            return Collections.emptyList();
+        } else {
+            return List.of(parent.getExclusivityChecker());
         }
-        return checkers;
     }
 
     @Override
     public void reportError(Object source, @CompilerMessageKey String messageKey, Object... args) {
         ++errorCount;
         super.reportError(source, messageKey, args);
-    }
-
-    @Override
-    public List<BaseTypeChecker> getSubcheckers() {
-        return collectingSubcheckers ? Collections.emptyList() : super.getSubcheckers();
     }
 
     public File getLatticeFile() {

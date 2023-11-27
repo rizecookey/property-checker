@@ -16,9 +16,10 @@
  */
 package edu.kit.kastel.property.subchecker.lattice;
 
-import org.checkerframework.checker.nullness.InitializationTransfer;
+import org.checkerframework.checker.initialization.InitializationTransfer;
+import org.checkerframework.framework.flow.CFAbstractTransfer;
 
-public class LatticeTransfer extends InitializationTransfer<LatticeValue, LatticeTransfer, LatticeStore> {
+public class LatticeTransfer extends CFAbstractTransfer<LatticeValue, LatticeStore, LatticeTransfer> {
 
     public LatticeTransfer(LatticeAnalysis analysis) {
         super(analysis);

@@ -10,6 +10,7 @@ import org.checkerframework.framework.flow.CFValue;
 import org.checkerframework.framework.type.QualifierHierarchy;
 
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
+import org.checkerframework.javacutil.AnnotationMirrorSet;
 
 import javax.lang.model.element.AnnotationMirror;
 import java.util.Collections;
@@ -81,7 +82,7 @@ abstract class AbstractTypeRule<N extends Node> implements TypeRule {
 
         if (store != null && analysis != null) {
         CFValue abstractValue = analysis.createAbstractValue(
-                Collections.singleton(refinedType), node.getType());
+                AnnotationMirrorSet.singleton(refinedType), node.getType());
             store.replaceValue(JavaExpression.fromNode(node),
                     abstractValue);
         }
@@ -97,7 +98,7 @@ abstract class AbstractTypeRule<N extends Node> implements TypeRule {
 
     protected final boolean isValidRefinement(AnnotationMirror declaredType, AnnotationMirror refinedType) {
         assert declaredType != null;
-        return hierarchy.isSubtype(refinedType, declaredType);
+        return hierarchy.isSubtypeQualifiersOnly(refinedType, declaredType);
     }
 
     private AnnotationMirror getDeclaredTypeAnnotation(Node node) {

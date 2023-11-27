@@ -79,7 +79,7 @@ public class TMethodInvocation extends AbstractTypeRule<MethodInvocationNode> {
             if (receiver instanceof ThisNode || !factory.mayHoldProperty(thisType)) {
                 // Copy keySet to prevent ConcurrentModificationException due to clearValue
                 for (FieldAccess field : Set.copyOf(store.getFieldValues().keySet())) {
-                    if (!hierarchy.isSubtype(
+                    if (!hierarchy.isSubtypeQualifiersOnly(
                             factory.getExclusivityAnnotation(store.getValue(field).getAnnotations()),
                             factory.EXCLUSIVITY_BOTTOM)) {
                         store.clearValue(field);

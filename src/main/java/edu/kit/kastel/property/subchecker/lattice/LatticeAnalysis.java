@@ -27,6 +27,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.flow.CFAbstractAnalysis;
 import org.checkerframework.framework.flow.CFAbstractValue;
+import org.checkerframework.javacutil.AnnotationMirrorSet;
 import org.checkerframework.javacutil.Pair;
 
 public class LatticeAnalysis extends CFAbstractAnalysis<LatticeValue, LatticeStore, LatticeTransfer> {
@@ -43,9 +44,10 @@ public class LatticeAnalysis extends CFAbstractAnalysis<LatticeValue, LatticeSto
     }
     
     @Override
-    public @Nullable LatticeValue createAbstractValue(Set<AnnotationMirror> annotations,
+    public @Nullable LatticeValue createAbstractValue(
+            AnnotationMirrorSet annotations,
             TypeMirror underlyingType) {
-        if (!CFAbstractValue.validateSet(annotations, underlyingType, qualifierHierarchy)) {
+        if (!CFAbstractValue.validateSet(annotations, underlyingType, atypeFactory)) {
             return null;
         }
         return new LatticeValue(this, annotations, underlyingType);
