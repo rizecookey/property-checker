@@ -1,10 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="tests.property.IntegerTest" tests="1" skipped="0" failures="1" errors="0" timestamp="2023-11-27T19:46:33" hostname="i57pclanzinger" time="0.0">
+<testsuite name="tests.property.IntegerTest" tests="1" skipped="0" failures="1" errors="0" timestamp="2023-11-30T18:26:06" hostname="i57pclanzinger" time="1.09">
   <properties/>
-  <testcase name="run[/home/florian/git/property-checker-public/tests/property/IntegerTest]" classname="tests.property.IntegerTest" time="0.0">
-    <failure message="java.lang.NoClassDefFoundError: org/plumelib/util/SystemPlume" type="java.lang.NoClassDefFoundError">java.lang.NoClassDefFoundError: org/plumelib/util/SystemPlume
-	at org.checkerframework.framework.test.TestUtilities.getShouldEmitDebugInfo(TestUtilities.java:546)
-	at org.checkerframework.framework.test.CheckerFrameworkPerDirectoryTest.run(CheckerFrameworkPerDirectoryTest.java:151)
+  <testcase name="run[/home/florian/git/property-checker-public/tests/property/IntegerTest]" classname="tests.property.IntegerTest" time="1.09">
+    <failure message="java.lang.AssertionError: 12 out of 12 expected diagnostics were found.&#10;9 unexpected diagnostics were found:&#10;  IntTest.java:42: error: (type.invalid.annotations.on.location)&#10;  IntTest.java:54: error: (type.invalid.annotations.on.location)&#10;  IntTest.java:55: error: (type.invalid.annotations.on.location)&#10;  IntTest.java:56: error: (type.invalid.annotations.on.location)&#10;  IntTest.java:60: error: (type.invalid.annotations.on.location)&#10;  IntTest.java:67: error: (type.invalid.annotations.on.location)&#10;  IntTest.java:70: error: (type.invalid.annotations.on.location)&#10;  IntTest.java:73: error: (type.invalid.annotations.on.location)&#10;  IntTest.java:75: error: (type.invalid.annotations.on.location)&#10;While type-checking /home/florian/git/property-checker-public/tests/property/IntegerTest/IntTest.java" type="java.lang.AssertionError">java.lang.AssertionError: 12 out of 12 expected diagnostics were found.
+9 unexpected diagnostics were found:
+  IntTest.java:42: error: (type.invalid.annotations.on.location)
+  IntTest.java:54: error: (type.invalid.annotations.on.location)
+  IntTest.java:55: error: (type.invalid.annotations.on.location)
+  IntTest.java:56: error: (type.invalid.annotations.on.location)
+  IntTest.java:60: error: (type.invalid.annotations.on.location)
+  IntTest.java:67: error: (type.invalid.annotations.on.location)
+  IntTest.java:70: error: (type.invalid.annotations.on.location)
+  IntTest.java:73: error: (type.invalid.annotations.on.location)
+  IntTest.java:75: error: (type.invalid.annotations.on.location)
+While type-checking /home/florian/git/property-checker-public/tests/property/IntegerTest/IntTest.java
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.checkerframework.framework.test.TestUtilities.assertTestDidNotFail(TestUtilities.java:521)
+	at org.checkerframework.framework.test.CheckerFrameworkRootedTest.checkResult(CheckerFrameworkRootedTest.java:31)
+	at org.checkerframework.framework.test.CheckerFrameworkPerDirectoryTest.checkResult(CheckerFrameworkPerDirectoryTest.java:47)
+	at org.checkerframework.framework.test.CheckerFrameworkPerDirectoryTest.run(CheckerFrameworkPerDirectoryTest.java:164)
 	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
 	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
 	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
@@ -38,7 +52,8 @@
 	at org.gradle.api.internal.tasks.testing.junit.JUnitTestClassExecutor.execute(JUnitTestClassExecutor.java:40)
 	at org.gradle.api.internal.tasks.testing.junit.AbstractJUnitTestClassProcessor.processTestClass(AbstractJUnitTestClassProcessor.java:60)
 	at org.gradle.api.internal.tasks.testing.SuiteTestClassProcessor.processTestClass(SuiteTestClassProcessor.java:52)
-	at jdk.internal.reflect.GeneratedMethodAccessor2.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
 	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
 	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
 	at org.gradle.internal.dispatch.ReflectionDispatch.dispatch(ReflectionDispatch.java:36)
@@ -55,10 +70,14 @@
 	at org.gradle.process.internal.worker.child.SystemApplicationClassLoaderWorker.call(SystemApplicationClassLoaderWorker.java:65)
 	at worker.org.gradle.process.internal.worker.GradleWorkerMain.run(GradleWorkerMain.java:69)
 	at worker.org.gradle.process.internal.worker.GradleWorkerMain.main(GradleWorkerMain.java:74)
-Caused by: java.lang.ClassNotFoundException: org.plumelib.util.SystemPlume
-	... 52 more
 </failure>
   </testcase>
-  <system-out><![CDATA[]]></system-out>
+  <system-out><![CDATA[Wrote file /IntTest.java with: 
+	13 assertions (to be proven in JML)
+	8 assumptions (proven by checker)
+	1 non-free method preconditions (to be proven in JML)
+	3 free method preconditions (proven by checker)
+To see the javac command line and output, run with: -Pemit.test.debug
+]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

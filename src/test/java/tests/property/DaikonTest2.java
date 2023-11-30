@@ -30,7 +30,7 @@ public class DaikonTest2 extends PropertyCheckerTest {
                 testFiles,
                 "tests/property/_daikon2/lattice_nullness",
                 "tests/property/_daikon2/",
-                "edu.kit.iti.checker.property.subchecker.lattice.case_study_qual");
+                "edu.kit.kastel.property.subchecker.lattice.case_study_qual");
     }
 
     @Parameters

@@ -37,11 +37,6 @@ import javax.lang.model.element.VariableElement;
 import javax.lang.model.util.Elements;
 
 import org.apache.commons.lang3.StringUtils;
-import org.checkerframework.checker.initialization.qual.FBCBottom;
-import org.checkerframework.checker.initialization.qual.Initialized;
-import org.checkerframework.checker.initialization.qual.UnderInitialization;
-import org.checkerframework.checker.initialization.qual.UnknownInitialization;
-import org.checkerframework.checker.initialization.InitializationAnnotatedTypeFactory;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
@@ -72,7 +67,7 @@ import edu.kit.kastel.property.lattice.parser.ParseException;
 import edu.kit.kastel.property.util.ClassUtils;
 import edu.kit.kastel.property.util.UnorderedPair;
 
-public class LatticeAnnotatedTypeFactory
+public final class LatticeAnnotatedTypeFactory
         extends GenericAnnotatedTypeFactory<LatticeValue, LatticeStore, LatticeTransfer, LatticeAnalysis> {
 
     private Lattice lattice;
@@ -224,11 +219,6 @@ public class LatticeAnnotatedTypeFactory
         Set<Class<? extends Annotation>> result = new HashSet<>(
                 lattice.getAnnotationTypes().values().stream()
                 .map(PropertyAnnotationType::toClass).collect(Collectors.toList()));
-
-        result.add(UnderInitialization.class);
-        result.add(Initialized.class);
-        result.add(UnknownInitialization.class);
-        result.add(FBCBottom.class);
 
         return result;
     }

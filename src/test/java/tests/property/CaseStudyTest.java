@@ -35,7 +35,7 @@ public class CaseStudyTest extends PropertyCheckerTest {
                         + ",tests/property/_case_study/lattice_okasaki"
                         + ",tests/property/_case_study/lattice_sign",
                 "tests/property/_case_study/",
-                "edu.kit.iti.checker.property.subchecker.lattice.case_study_qual");
+                "edu.kit.kastel.property.subchecker.lattice.case_study_qual");
     }
 
     @Parameters

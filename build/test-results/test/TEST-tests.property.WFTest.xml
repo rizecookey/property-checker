@@ -1,11 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="tests.property.WFTest" tests="1" skipped="0" failures="1" errors="0" timestamp="2023-11-27T19:46:33" hostname="i57pclanzinger" time="0.001">
+<testsuite name="tests.property.WFTest" tests="1" skipped="0" failures="1" errors="0" timestamp="2023-11-30T18:26:11" hostname="i57pclanzinger" time="1.526">
   <properties/>
-  <testcase name="run[/home/florian/git/property-checker-public/tests/property/WFTest]" classname="tests.property.WFTest" time="0.001">
-    <failure message="java.lang.NoClassDefFoundError: org/plumelib/util/SystemPlume" type="java.lang.NoClassDefFoundError">java.lang.NoClassDefFoundError: org/plumelib/util/SystemPlume
-	at org.checkerframework.framework.test.TestUtilities.getShouldEmitDebugInfo(TestUtilities.java:546)
-	at org.checkerframework.framework.test.CheckerFrameworkPerDirectoryTest.run(CheckerFrameworkPerDirectoryTest.java:151)
-	at jdk.internal.reflect.GeneratedMethodAccessor8.invoke(Unknown Source)
+  <testcase name="run[/home/florian/git/property-checker-public/tests/property/WFTest]" classname="tests.property.WFTest" time="1.526">
+    <failure message="java.lang.AssertionError: 10 out of 12 expected diagnostics were found.&#10;12 unexpected diagnostics were found:&#10;  IntWFTest.java:37: error: (type.invalid.annotations.on.location)&#10;  IntWFTest.java:38: error: (type.invalid.annotations.on.location)&#10;  IntWFTest.java:39: error: (type.invalid.annotations.on.location)&#10;  IntWFTest.java:42: error: (type.invalid.annotations.on.location)&#10;  IntWFTest.java:44: error: (type.invalid.annotations.on.location)&#10;  IntWFTest.java:46: error: (type.invalid.annotations.on.location)&#10;  IntWFTest.java:48: error: (type.invalid.annotations.on.location)&#10;  IntWFTest.java:50: error: (type.invalid.annotations.on.location)&#10;  LengthWFTest.java:24: error: (type.invalid.annotations.on.location)&#10;  LengthWFTest.java:25: error: (type.invalid.annotations.on.location)&#10;  LengthWFTest.java:28: error: (type.invalid.annotations.on.location)&#10;  LengthWFTest.java:31: error: (type.invalid.annotations.on.location)&#10;2 expected diagnostics were not found:&#10;  IntWFTest.java:23: error: initialization.fields.uninitialized&#10;  LengthWFTest.java:22: error: initialization.fields.uninitialized&#10;While type-checking /home/florian/git/property-checker-public/tests/property/WFTest/IntWFTest.java, /home/florian/git/property-checker-public/tests/property/WFTest/LengthWFTest.java" type="java.lang.AssertionError">java.lang.AssertionError: 10 out of 12 expected diagnostics were found.
+12 unexpected diagnostics were found:
+  IntWFTest.java:37: error: (type.invalid.annotations.on.location)
+  IntWFTest.java:38: error: (type.invalid.annotations.on.location)
+  IntWFTest.java:39: error: (type.invalid.annotations.on.location)
+  IntWFTest.java:42: error: (type.invalid.annotations.on.location)
+  IntWFTest.java:44: error: (type.invalid.annotations.on.location)
+  IntWFTest.java:46: error: (type.invalid.annotations.on.location)
+  IntWFTest.java:48: error: (type.invalid.annotations.on.location)
+  IntWFTest.java:50: error: (type.invalid.annotations.on.location)
+  LengthWFTest.java:24: error: (type.invalid.annotations.on.location)
+  LengthWFTest.java:25: error: (type.invalid.annotations.on.location)
+  LengthWFTest.java:28: error: (type.invalid.annotations.on.location)
+  LengthWFTest.java:31: error: (type.invalid.annotations.on.location)
+2 expected diagnostics were not found:
+  IntWFTest.java:23: error: initialization.fields.uninitialized
+  LengthWFTest.java:22: error: initialization.fields.uninitialized
+While type-checking /home/florian/git/property-checker-public/tests/property/WFTest/IntWFTest.java, /home/florian/git/property-checker-public/tests/property/WFTest/LengthWFTest.java
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.checkerframework.framework.test.TestUtilities.assertTestDidNotFail(TestUtilities.java:521)
+	at org.checkerframework.framework.test.CheckerFrameworkRootedTest.checkResult(CheckerFrameworkRootedTest.java:31)
+	at org.checkerframework.framework.test.CheckerFrameworkPerDirectoryTest.checkResult(CheckerFrameworkPerDirectoryTest.java:47)
+	at org.checkerframework.framework.test.CheckerFrameworkPerDirectoryTest.run(CheckerFrameworkPerDirectoryTest.java:164)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
 	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
 	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
 	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
@@ -37,7 +58,7 @@
 	at org.gradle.api.internal.tasks.testing.junit.JUnitTestClassExecutor.execute(JUnitTestClassExecutor.java:40)
 	at org.gradle.api.internal.tasks.testing.junit.AbstractJUnitTestClassProcessor.processTestClass(AbstractJUnitTestClassProcessor.java:60)
 	at org.gradle.api.internal.tasks.testing.SuiteTestClassProcessor.processTestClass(SuiteTestClassProcessor.java:52)
-	at jdk.internal.reflect.GeneratedMethodAccessor2.invoke(Unknown Source)
+	at jdk.internal.reflect.GeneratedMethodAccessor64.invoke(Unknown Source)
 	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
 	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
 	at org.gradle.internal.dispatch.ReflectionDispatch.dispatch(ReflectionDispatch.java:36)
@@ -54,10 +75,19 @@
 	at org.gradle.process.internal.worker.child.SystemApplicationClassLoaderWorker.call(SystemApplicationClassLoaderWorker.java:65)
 	at worker.org.gradle.process.internal.worker.GradleWorkerMain.run(GradleWorkerMain.java:69)
 	at worker.org.gradle.process.internal.worker.GradleWorkerMain.main(GradleWorkerMain.java:74)
-Caused by: java.lang.ClassNotFoundException: org.plumelib.util.SystemPlume
-	... 51 more
 </failure>
   </testcase>
-  <system-out><![CDATA[]]></system-out>
+  <system-out><![CDATA[Wrote file /IntWFTest.java with: 
+	0 assertions (to be proven in JML)
+	0 assumptions (proven by checker)
+	0 non-free method preconditions (to be proven in JML)
+	0 free method preconditions (proven by checker)
+Wrote file /LengthWFTest.java with: 
+	0 assertions (to be proven in JML)
+	0 assumptions (proven by checker)
+	0 non-free method preconditions (to be proven in JML)
+	0 free method preconditions (proven by checker)
+To see the javac command line and output, run with: -Pemit.test.debug
+]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

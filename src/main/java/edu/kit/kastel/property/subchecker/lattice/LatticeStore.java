@@ -21,7 +21,7 @@ import org.checkerframework.framework.flow.CFAbstractAnalysis;
 import org.checkerframework.framework.flow.CFAbstractStore;
 import org.checkerframework.framework.flow.CFValue;
 
-public class LatticeStore extends CFAbstractStore<LatticeValue, LatticeStore> {
+public final class LatticeStore extends CFAbstractStore<LatticeValue, LatticeStore> {
 
 	public LatticeStore(CFAbstractAnalysis<LatticeValue, LatticeStore, ?> analysis, boolean sequentialSemantics) {
 		super(analysis, sequentialSemantics);

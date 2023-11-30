@@ -45,7 +45,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-public class ExclusivityAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
+public final class ExclusivityAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
     public final AnnotationMirror EXCL_MUT =
             AnnotationBuilder.fromClass(elements, ExclMut.class);
@@ -64,9 +64,7 @@ public class ExclusivityAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
     public ExclusivityAnnotatedTypeFactory(BaseTypeChecker checker) {
         super(checker);
-        if (this.getClass() == ExclusivityAnnotatedTypeFactory.class) {
-            this.postInit();
-        }
+        postInit();
     }
 
     @Override

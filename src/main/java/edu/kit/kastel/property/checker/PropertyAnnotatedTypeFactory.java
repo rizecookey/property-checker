@@ -28,7 +28,7 @@ import org.checkerframework.framework.flow.CFStore;
 import org.checkerframework.framework.flow.CFTransfer;
 import org.checkerframework.framework.flow.CFValue;
 
-public class PropertyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
+public final class PropertyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
     public PropertyAnnotatedTypeFactory(BaseTypeChecker checker) {
         super(checker);

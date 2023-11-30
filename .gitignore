@@ -29,8 +29,11 @@ Thumbs.db
 **/.settings/
 *.class
 **/bin/
+**/build/
 !property-checker/checker-framework/bin/
 
 # Checker
 property-checker-temp/
 property-checker-out/
+**/property-checker.jar
+flowdot/

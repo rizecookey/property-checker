@@ -27,7 +27,7 @@ import edu.kit.kastel.property.checker.PropertyChecker;
 import edu.kit.kastel.property.config.Config;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
 
-public class LatticeSubchecker extends BaseTypeChecker {
+public final class LatticeSubchecker extends BaseTypeChecker {
 
     private int errorCount = 0;
 
@@ -72,11 +72,7 @@ public class LatticeSubchecker extends BaseTypeChecker {
 
     @Override
     public List<BaseTypeChecker> getSubcheckers() {
-        if (parent == null) {
-            return Collections.emptyList();
-        } else {
-            return List.of(parent.getExclusivityChecker());
-        }
+        return /*List.of(parent.getExclusivityChecker())*/ Collections.emptyList();
     }
 
     @Override

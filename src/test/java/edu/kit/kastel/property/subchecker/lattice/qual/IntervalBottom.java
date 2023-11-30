@@ -23,7 +23,8 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@SubtypeOf({NonNull.class})
+
+@SubtypeOf({Interval.class})
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE_USE})
-public @interface NullBottom {}
+public @interface IntervalBottom {}

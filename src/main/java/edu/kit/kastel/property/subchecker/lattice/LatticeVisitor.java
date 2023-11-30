@@ -72,7 +72,7 @@ import edu.kit.kastel.property.util.ClassUtils;
 import edu.kit.kastel.property.util.CollectionUtils;
 import edu.kit.kastel.property.util.Union;
 
-public class LatticeVisitor extends BaseTypeVisitor<LatticeAnnotatedTypeFactory> {
+public final class LatticeVisitor extends BaseTypeVisitor<LatticeAnnotatedTypeFactory> {
 
     private Result result;
 
@@ -193,7 +193,7 @@ public class LatticeVisitor extends BaseTypeVisitor<LatticeAnnotatedTypeFactory>
     }
     @Override
     public boolean validateTypeOf(Tree tree) {
-        ExclusivityAnnotatedTypeFactory exclFactory = checker.getSubchecker(ExclusivityChecker.class).getTypeFactory();
+        //ExclusivityAnnotatedTypeFactory exclFactory = checker.getSubchecker(ExclusivityChecker.class).getTypeFactory();
         
         AnnotatedTypeMirror type;
         AnnotatedTypeMirror exclType;
@@ -208,11 +208,11 @@ public class LatticeVisitor extends BaseTypeVisitor<LatticeAnnotatedTypeFactory>
             case SUPER_WILDCARD:
             case ANNOTATED_TYPE:
                 type = atypeFactory.getAnnotatedTypeFromTypeTree(tree);
-                exclType = exclFactory.getAnnotatedTypeFromTypeTree(tree);
+                //exclType = exclFactory.getAnnotatedTypeFromTypeTree(tree);
                 break;
             case METHOD:
                 type = atypeFactory.getMethodReturnType((MethodTree) tree);
-                exclType = exclFactory.getMethodReturnType((MethodTree) tree);
+                //exclType = exclFactory.getMethodReturnType((MethodTree) tree);
                 if (type == null || type.getKind() == TypeKind.VOID) {
                     // Nothing to do for void methods.
                     // Note that for a constructor the AnnotatedExecutableType does
@@ -222,10 +222,10 @@ public class LatticeVisitor extends BaseTypeVisitor<LatticeAnnotatedTypeFactory>
                 break;
             default:
                 type = atypeFactory.getAnnotatedType(tree);
-                exclType = exclFactory.getAnnotatedType(tree);
+                //exclType = exclFactory.getAnnotatedType(tree);
         }
         
-        return getTypeValidator().isExclusivitySafe(type, exclType, tree) && validateType(tree, type);
+        return /*getTypeValidator().isExclusivitySafe(type, exclType, tree) &&*/ validateType(tree, type);
     }
 
     public Name getEnclClassName() {

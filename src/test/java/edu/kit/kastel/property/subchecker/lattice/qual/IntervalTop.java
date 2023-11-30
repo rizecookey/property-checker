@@ -14,24 +14,18 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-package tests.property;
+package edu.kit.kastel.property.subchecker.lattice.qual;
 
-import java.io.File;
-import java.util.List;
+import org.checkerframework.framework.qual.DefaultQualifierInHierarchy;
+import org.checkerframework.framework.qual.SubtypeOf;
 
-import org.junit.runners.Parameterized.Parameters;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-@SuppressWarnings("nls")
-public class ExclSafetyTest extends PropertyCheckerTest {
-    public ExclSafetyTest(List<File> testFiles) {
-        super(
-                testFiles,
-                "tests/property/lattice_length",
-                "tests/property/ExclSafetyTest/");
-    }
-
-    @Parameters
-    public static String[] getTestDirs() {
-        return new String[] {"property/ExclSafetyTest"};
-    }
-}
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.TYPE_USE})
+@DefaultQualifierInHierarchy
+@SubtypeOf({})
+public @interface IntervalTop {}

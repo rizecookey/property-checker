@@ -18,7 +18,7 @@ package edu.kit.kastel.property.subchecker.lattice;
 
 import org.checkerframework.framework.util.dependenttypes.DependentTypesHelper;
 
-public class LatticeDependentTypesHelper extends DependentTypesHelper {
+public final class LatticeDependentTypesHelper extends DependentTypesHelper {
 
     public LatticeDependentTypesHelper(LatticeAnnotatedTypeFactory factory) {
         super(factory);

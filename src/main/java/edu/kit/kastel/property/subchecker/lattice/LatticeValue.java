@@ -25,7 +25,7 @@ import org.checkerframework.framework.flow.CFAbstractAnalysis;
 import org.checkerframework.framework.flow.CFAbstractValue;
 import org.checkerframework.javacutil.AnnotationMirrorSet;
 
-public class LatticeValue extends CFAbstractValue<LatticeValue> {
+public final class LatticeValue extends CFAbstractValue<LatticeValue> {
 
 	protected LatticeValue(
 			CFAbstractAnalysis<LatticeValue, ?, ?> analysis,

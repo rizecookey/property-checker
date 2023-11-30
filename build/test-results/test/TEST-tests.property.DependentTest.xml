@@ -1,10 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="tests.property.DependentTest" tests="1" skipped="0" failures="1" errors="0" timestamp="2023-11-27T19:46:33" hostname="i57pclanzinger" time="0.001">
+<testsuite name="tests.property.DependentTest" tests="1" skipped="0" failures="1" errors="0" timestamp="2023-11-30T18:26:04" hostname="i57pclanzinger" time="1.39">
   <properties/>
-  <testcase name="run[/home/florian/git/property-checker-public/tests/property/DependentTest]" classname="tests.property.DependentTest" time="0.001">
-    <failure message="java.lang.NoClassDefFoundError: org/plumelib/util/SystemPlume" type="java.lang.NoClassDefFoundError">java.lang.NoClassDefFoundError: org/plumelib/util/SystemPlume
-	at org.checkerframework.framework.test.TestUtilities.getShouldEmitDebugInfo(TestUtilities.java:546)
-	at org.checkerframework.framework.test.CheckerFrameworkPerDirectoryTest.run(CheckerFrameworkPerDirectoryTest.java:151)
+  <testcase name="run[/home/florian/git/property-checker-public/tests/property/DependentTest]" classname="tests.property.DependentTest" time="1.39">
+    <failure message="java.lang.AssertionError: 7 out of 8 expected diagnostics were found.&#10;5 unexpected diagnostics were found:&#10;  DependentLengthTest.java:28: error: (type.invalid.annotations.on.location)&#10;  DependentLengthTest.java:29: error: (type.invalid.annotations.on.location)&#10;  DependentLengthTest.java:35: error: (type.invalid.annotations.on.location)&#10;  DependentLengthTest.java:36: error: (type.invalid.annotations.on.location)&#10;  DependentLengthTest.java:38: error: (type.invalid.annotations.on.location)&#10;1 expected diagnostic was not found:&#10;  DependentIntTest.java:48: error: initialization.field.uninitialized&#10;While type-checking /home/florian/git/property-checker-public/tests/property/DependentTest/DependentIntTest.java, /home/florian/git/property-checker-public/tests/property/DependentTest/DependentLengthTest.java" type="java.lang.AssertionError">java.lang.AssertionError: 7 out of 8 expected diagnostics were found.
+5 unexpected diagnostics were found:
+  DependentLengthTest.java:28: error: (type.invalid.annotations.on.location)
+  DependentLengthTest.java:29: error: (type.invalid.annotations.on.location)
+  DependentLengthTest.java:35: error: (type.invalid.annotations.on.location)
+  DependentLengthTest.java:36: error: (type.invalid.annotations.on.location)
+  DependentLengthTest.java:38: error: (type.invalid.annotations.on.location)
+1 expected diagnostic was not found:
+  DependentIntTest.java:48: error: initialization.field.uninitialized
+While type-checking /home/florian/git/property-checker-public/tests/property/DependentTest/DependentIntTest.java, /home/florian/git/property-checker-public/tests/property/DependentTest/DependentLengthTest.java
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.checkerframework.framework.test.TestUtilities.assertTestDidNotFail(TestUtilities.java:521)
+	at org.checkerframework.framework.test.CheckerFrameworkRootedTest.checkResult(CheckerFrameworkRootedTest.java:31)
+	at org.checkerframework.framework.test.CheckerFrameworkPerDirectoryTest.checkResult(CheckerFrameworkPerDirectoryTest.java:47)
+	at org.checkerframework.framework.test.CheckerFrameworkPerDirectoryTest.run(CheckerFrameworkPerDirectoryTest.java:164)
 	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
 	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
 	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
@@ -38,7 +50,8 @@
 	at org.gradle.api.internal.tasks.testing.junit.JUnitTestClassExecutor.execute(JUnitTestClassExecutor.java:40)
 	at org.gradle.api.internal.tasks.testing.junit.AbstractJUnitTestClassProcessor.processTestClass(AbstractJUnitTestClassProcessor.java:60)
 	at org.gradle.api.internal.tasks.testing.SuiteTestClassProcessor.processTestClass(SuiteTestClassProcessor.java:52)
-	at jdk.internal.reflect.GeneratedMethodAccessor2.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
 	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
 	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
 	at org.gradle.internal.dispatch.ReflectionDispatch.dispatch(ReflectionDispatch.java:36)
@@ -55,10 +68,24 @@
 	at org.gradle.process.internal.worker.child.SystemApplicationClassLoaderWorker.call(SystemApplicationClassLoaderWorker.java:65)
 	at worker.org.gradle.process.internal.worker.GradleWorkerMain.run(GradleWorkerMain.java:69)
 	at worker.org.gradle.process.internal.worker.GradleWorkerMain.main(GradleWorkerMain.java:74)
-Caused by: java.lang.ClassNotFoundException: org.plumelib.util.SystemPlume
-	... 52 more
 </failure>
   </testcase>
-  <system-out><![CDATA[]]></system-out>
+  <system-out><![CDATA[Wrote file /DependentIntTest.java with: 
+	4 assertions (to be proven in JML)
+	1 assumptions (proven by checker)
+	0 non-free method preconditions (to be proven in JML)
+	0 free method preconditions (proven by checker)
+Wrote file /DependentIntTest.java with: 
+	4 assertions (to be proven in JML)
+	1 assumptions (proven by checker)
+	0 non-free method preconditions (to be proven in JML)
+	0 free method preconditions (proven by checker)
+Wrote file /DependentLengthTest.java with: 
+	2 assertions (to be proven in JML)
+	0 assumptions (proven by checker)
+	2 non-free method preconditions (to be proven in JML)
+	0 free method preconditions (proven by checker)
+To see the javac command line and output, run with: -Pemit.test.debug
+]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

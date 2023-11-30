@@ -23,7 +23,11 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@SubtypeOf({NonNull.class})
+@SubtypeOf({IntervalTop.class})
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE_USE})
-public @interface NullBottom {}
+public @interface Interval {
+
+    String min();
+    String max();
+}

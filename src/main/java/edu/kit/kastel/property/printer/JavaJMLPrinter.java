@@ -163,7 +163,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
     
     @Override
     public void visitImport(JCImport tree) {
-    	if (tree.qualid.toString().startsWith("edu.kit.iti.checker.property")) {
+    	if (tree.qualid.toString().startsWith("edu.kit.kastel.property")) {
     		return;
     	}
     	

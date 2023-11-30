@@ -50,7 +50,7 @@ import org.checkerframework.org.plumelib.util.ArrayMap;
     Config.TRANSLATION_ONLY_OPTION,
     Config.NO_EXCLUSITIVY_OPTION
 })
-public class PropertyChecker extends BaseTypeChecker {
+public final class PropertyChecker extends BaseTypeChecker {
 
     private Map<String, PriorityQueue<LatticeVisitor.Result>> results = new HashMap<>();
 
@@ -89,7 +89,7 @@ public class PropertyChecker extends BaseTypeChecker {
     @Override
     public List<BaseTypeChecker> getSubcheckers() {
         List<BaseTypeChecker> checkers = new ArrayList<>();
-        checkers.add(getExclusivityChecker());
+        //checkers.add(getExclusivityChecker());
         checkers.addAll(getLatticeSubcheckers());
         return checkers;
     }

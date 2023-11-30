@@ -29,7 +29,7 @@ public class OopslaPosterDemo extends PropertyCheckerTest {
                 testFiles,
                 "tests/property/lattice_nullness",
                 "tests/property/_oopsla_demo/",
-                "edu.kit.iti.checker.property.subchecker.lattice.qual");
+                "edu.kit.kastel.property.subchecker.lattice.qual");
     }
 
     @Parameters

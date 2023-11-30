@@ -30,7 +30,7 @@ import org.checkerframework.framework.flow.CFAbstractValue;
 import org.checkerframework.javacutil.AnnotationMirrorSet;
 import org.checkerframework.javacutil.Pair;
 
-public class LatticeAnalysis extends CFAbstractAnalysis<LatticeValue, LatticeStore, LatticeTransfer> {
+public final class LatticeAnalysis extends CFAbstractAnalysis<LatticeValue, LatticeStore, LatticeTransfer> {
 
     public LatticeAnalysis(
             BaseTypeChecker checker,

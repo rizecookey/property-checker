@@ -35,7 +35,7 @@ import edu.kit.kastel.property.printer.PrettyPrinter;
 import edu.kit.kastel.property.subchecker.lattice.LatticeVisitor.Result;
 import edu.kit.kastel.property.util.FileUtils;
 
-public class PropertyVisitor extends BaseTypeVisitor<PropertyAnnotatedTypeFactory> {
+public final class PropertyVisitor extends BaseTypeVisitor<PropertyAnnotatedTypeFactory> {
 
     protected PropertyVisitor(BaseTypeChecker checker, PropertyAnnotatedTypeFactory typeFactory) {
         super(checker, typeFactory);

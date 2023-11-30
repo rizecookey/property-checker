@@ -35,7 +35,7 @@ import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFa
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
 import edu.kit.kastel.property.util.ClassUtils;
 
-public class LatticeTypeValidator extends BaseTypeValidator {
+public final class LatticeTypeValidator extends BaseTypeValidator {
 
     public LatticeTypeValidator(
             BaseTypeChecker checker,
