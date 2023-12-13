@@ -76,9 +76,11 @@ public final class LatticeTypeValidator extends BaseTypeValidator {
         }
 
         Class<?> expectedSubjectType = epa.getAnnotationType().getSubjectType();
-        Class<?> actualSubjectType = ClassUtils.classOrPrimitiveForName(((Type) type.getUnderlyingType()).asElement().toString(), getPropertyChecker());
+        Class<?> actualSubjectType = ClassUtils.classOrPrimitiveForName(
+                ((Type) type.getUnderlyingType()).asElement().toString(), getLatticeSubchecker());
 
-        if (actualSubjectType != null && expectedSubjectType != null && !expectedSubjectType.isAssignableFrom(actualSubjectType)) {
+        if (actualSubjectType != null && expectedSubjectType != null
+                && !expectedSubjectType.isAssignableFrom(actualSubjectType)) {
             reportInvalidType(type, tree);
             return false;
         }
@@ -88,7 +90,7 @@ public final class LatticeTypeValidator extends BaseTypeValidator {
 
     public boolean isExclusivitySafe(AnnotatedTypeMirror type, AnnotatedTypeMirror exclType, Tree tree) {
         LatticeAnnotatedTypeFactory factory = getPropertyAnnotatedTypeFactory();
-        ExclusivityAnnotatedTypeFactory exclFactory = checker.getSubchecker(ExclusivityChecker.class).getTypeFactory();
+        ExclusivityAnnotatedTypeFactory exclFactory = getLatticeSubchecker().getExclusivityFactory();
         AnnotationMirror annotation = type.getAnnotationInHierarchy(factory.getTop());
         AnnotationMirror exclAnnotation = exclType.getAnnotationInHierarchy(exclFactory.READ_ONLY);
         
@@ -117,7 +119,7 @@ public final class LatticeTypeValidator extends BaseTypeValidator {
         return (LatticeAnnotatedTypeFactory) atypeFactory;
     }
 
-    public LatticeSubchecker getPropertyChecker() {
+    public LatticeSubchecker getLatticeSubchecker() {
         return (LatticeSubchecker) checker;
     }
 }

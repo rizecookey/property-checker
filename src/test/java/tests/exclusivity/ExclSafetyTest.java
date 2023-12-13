@@ -33,6 +33,6 @@ public class ExclSafetyTest extends PropertyCheckerTest {
 
     @Parameters
     public static String[] getTestDirs() {
-        return new String[] {"property/ExclSafetyTest"};
+        return new String[] {"propertyExclusivity/ExclSafetyTest"};
     }
 }

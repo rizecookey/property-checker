@@ -4,6 +4,7 @@ import com.sun.tools.javac.code.Type;
 
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 
+import org.checkerframework.dataflow.cfg.node.ExplicitThisNode;
 import org.checkerframework.dataflow.cfg.node.MethodInvocationNode;
 import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.dataflow.cfg.node.ThisNode;
@@ -16,6 +17,7 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.VariableElement;
+import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import java.util.Set;
 
@@ -30,7 +32,8 @@ public class TMethodInvocation extends AbstractTypeRule<MethodInvocationNode> {
         TypeMirror receiverType;
         receiverType = node.getTarget().getMethod().getReceiverType();
 
-        if (receiverType == null) {
+        if (receiverType == null || receiverType.getKind().equals(TypeKind.NONE)) {
+            //TODO
             System.err.printf("warning: ignoring call to method without explicit 'this' parameter declaration: %s\n", node.getTarget());
             return;
         }

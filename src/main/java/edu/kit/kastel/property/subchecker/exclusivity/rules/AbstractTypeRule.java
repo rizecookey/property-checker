@@ -1,6 +1,7 @@
 package edu.kit.kastel.property.subchecker.exclusivity.rules;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.dataflow.cfg.node.ImplicitThisNode;
 import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.framework.flow.CFAbstractAnalysis;
@@ -36,7 +37,6 @@ abstract class AbstractTypeRule<N extends Node> implements TypeRule {
     public final void apply(Node abstractNode) throws RuleNotApplicable {
         N node;
         try {
-            // TODO Why does javac produce warning even if ClassCastException is caught?
             @SuppressWarnings("unchecked")
             N concreteNode = (N) abstractNode;
             node = concreteNode;
@@ -108,8 +108,14 @@ abstract class AbstractTypeRule<N extends Node> implements TypeRule {
     }
 
     protected final AnnotationMirror getRefinedTypeAnnotation(Node node) {
-        AnnotationMirror oldAnno = factory.getExclusivityAnnotation(
-                factory.getAnnotatedType(node.getTree()).getAnnotations());
+        AnnotationMirror oldAnno;
+        if (node instanceof ImplicitThisNode) {
+            //TODO
+            assert false;
+            oldAnno = null;
+        } else {
+            oldAnno = factory.getExclusivityAnnotation(factory.getAnnotatedType(node.getTree()).getAnnotations());
+        }
         assert oldAnno != null;
         return oldAnno;
     }

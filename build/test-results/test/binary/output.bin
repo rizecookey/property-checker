@@ -1,136 +1,0 @@
-1Wrote file /AnnotatedConstructorTest.java with: 
-$	1 assertions (to be proven in JML)
-#	0 assumptions (proven by checker)
-7	0 non-free method preconditions (to be proven in JML)
-1	0 free method preconditions (proven by checker)
-1Wrote file /AnnotatedConstructorTest.java with: 
-$	2 assertions (to be proven in JML)
-#	0 assumptions (proven by checker)
-7	0 non-free method preconditions (to be proven in JML)
-1	0 free method preconditions (proven by checker)
-,Wrote file /NullnessDefaultTest.java with: 
-$	2 assertions (to be proven in JML)
-#	2 assumptions (proven by checker)
-7	0 non-free method preconditions (to be proven in JML)
-1	0 free method preconditions (proven by checker)
-FTo see the javac command line and output, run with: -Pemit.test.debug
-)Wrote file /DependentIntTest.java with: 
-$	4 assertions (to be proven in JML)
-#	1 assumptions (proven by checker)
-7	0 non-free method preconditions (to be proven in JML)
-1	0 free method preconditions (proven by checker)
-)Wrote file /DependentIntTest.java with: 
-$	4 assertions (to be proven in JML)
-#	1 assumptions (proven by checker)
-7	0 non-free method preconditions (to be proven in JML)
-1	0 free method preconditions (proven by checker)
-,Wrote file /DependentLengthTest.java with: 
-$	2 assertions (to be proven in JML)
-#	0 assumptions (proven by checker)
-7	2 non-free method preconditions (to be proven in JML)
-1	0 free method preconditions (proven by checker)
-FTo see the javac command line and output, run with: -Pemit.test.debug
-$Wrote file /IntInitTest.java with: 
-$	0 assertions (to be proven in JML)
-#	4 assumptions (proven by checker)
-7	0 non-free method preconditions (to be proven in JML)
-1	0 free method preconditions (proven by checker)
-'Wrote file /LengthInitTest.java with: 
-$	1 assertions (to be proven in JML)
-#	1 assumptions (proven by checker)
-7	0 non-free method preconditions (to be proven in JML)
-1	0 free method preconditions (proven by checker)
-FTo see the javac command line and output, run with: -Pemit.test.debug
-
-	 Wrote file /IntTest.java with: 
-
-	%	13 assertions (to be proven in JML)
-
-	#	8 assumptions (proven by checker)
-
-	7	1 non-free method preconditions (to be proven in JML)
-
-	1	3 free method preconditions (proven by checker)
-
-	FTo see the javac command line and output, run with: -Pemit.test.debug
-#Wrote file /LengthTest.java with: 
-$	6 assertions (to be proven in JML)
-#	4 assumptions (proven by checker)
-7	3 non-free method preconditions (to be proven in JML)
-1	5 free method preconditions (proven by checker)
-#Wrote file /LengthTest.java with: 
-$	6 assertions (to be proven in JML)
-#	4 assumptions (proven by checker)
-7	3 non-free method preconditions (to be proven in JML)
-1	5 free method preconditions (proven by checker)
-FTo see the javac command line and output, run with: -Pemit.test.debug
-3Wrote file /LengthMultiInheritanceTest.java with: 
-$	0 assertions (to be proven in JML)
-#	0 assumptions (proven by checker)
-7	0 non-free method preconditions (to be proven in JML)
-1	0 free method preconditions (proven by checker)
-3Wrote file /LengthMultiInheritanceTest.java with: 
-$	0 assertions (to be proven in JML)
-#	0 assumptions (proven by checker)
-7	0 non-free method preconditions (to be proven in JML)
-1	0 free method preconditions (proven by checker)
-3Wrote file /LengthMultiInheritanceTest.java with: 
-$	0 assertions (to be proven in JML)
-#	0 assumptions (proven by checker)
-7	0 non-free method preconditions (to be proven in JML)
-1	0 free method preconditions (proven by checker)
-3Wrote file /LengthMultiInheritanceTest.java with: 
-$	0 assertions (to be proven in JML)
-#	0 assumptions (proven by checker)
-7	0 non-free method preconditions (to be proven in JML)
-1	0 free method preconditions (proven by checker)
-3Wrote file /LengthMultiInheritanceTest.java with: 
-$	0 assertions (to be proven in JML)
-#	0 assumptions (proven by checker)
-7	0 non-free method preconditions (to be proven in JML)
-1	0 free method preconditions (proven by checker)
-FTo see the javac command line and output, run with: -Pemit.test.debug
-%Wrote file /NullnessTest.java with: 
-$	2 assertions (to be proven in JML)
-#	0 assumptions (proven by checker)
-7	0 non-free method preconditions (to be proven in JML)
-1	0 free method preconditions (proven by checker)
-FTo see the javac command line and output, run with: -Pemit.test.debug
-Wrote file /A.java with: 
-$	1 assertions (to be proven in JML)
-#	0 assumptions (proven by checker)
-7	1 non-free method preconditions (to be proven in JML)
-1	1 free method preconditions (proven by checker)
-Wrote file /B.java with: 
-$	1 assertions (to be proven in JML)
-#	0 assumptions (proven by checker)
-7	0 non-free method preconditions (to be proven in JML)
-1	0 free method preconditions (proven by checker)
-FTo see the javac command line and output, run with: -Pemit.test.debug
-+Wrote file /LengthReceiverTest.java with: 
-$	0 assertions (to be proven in JML)
-#	0 assumptions (proven by checker)
-7	7 non-free method preconditions (to be proven in JML)
-1	5 free method preconditions (proven by checker)
-FTo see the javac command line and output, run with: -Pemit.test.debug
-0Wrote file /IntSuperConstructorTest.java with: 
-$	0 assertions (to be proven in JML)
-#	0 assumptions (proven by checker)
-7	0 non-free method preconditions (to be proven in JML)
-1	0 free method preconditions (proven by checker)
-0Wrote file /IntSuperConstructorTest.java with: 
-$	0 assertions (to be proven in JML)
-#	0 assumptions (proven by checker)
-7	0 non-free method preconditions (to be proven in JML)
-1	0 free method preconditions (proven by checker)
-"Wrote file /IntWFTest.java with: 
-$	0 assertions (to be proven in JML)
-#	0 assumptions (proven by checker)
-7	0 non-free method preconditions (to be proven in JML)
-1	0 free method preconditions (proven by checker)
-%Wrote file /LengthWFTest.java with: 
-$	0 assertions (to be proven in JML)
-#	0 assumptions (proven by checker)
-7	0 non-free method preconditions (to be proven in JML)
-1	0 free method preconditions (proven by checker)
-FTo see the javac command line and output, run with: -Pemit.test.debug

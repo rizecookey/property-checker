@@ -15,6 +15,8 @@ public class ExclusivityChecker extends BaseTypeChecker {
         treePathCacher = parent.getTreePathCacher();
         setParentChecker(parent);
     }
+
+    public ExclusivityChecker() { }
     
     @Override
     public ExclusivityAnnotatedTypeFactory getTypeFactory() {

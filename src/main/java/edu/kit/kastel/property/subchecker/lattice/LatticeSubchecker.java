@@ -20,6 +20,7 @@ import java.io.File;
 import java.net.URLClassLoader;
 import java.util.*;
 
+import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 
@@ -70,9 +71,17 @@ public final class LatticeSubchecker extends BaseTypeChecker {
         return parent;
     }
 
+    public ExclusivityChecker getExclusivityChecker() {
+        return parent.getExclusivityChecker();
+    }
+
+    public ExclusivityAnnotatedTypeFactory getExclusivityFactory() {
+        return getExclusivityChecker().getTypeFactory();
+    }
+
     @Override
     public List<BaseTypeChecker> getSubcheckers() {
-        return /*List.of(parent.getExclusivityChecker())*/ Collections.emptyList();
+        return List.of(parent.getExclusivityChecker());
     }
 
     @Override

@@ -89,7 +89,7 @@ public final class PropertyChecker extends BaseTypeChecker {
     @Override
     public List<BaseTypeChecker> getSubcheckers() {
         List<BaseTypeChecker> checkers = new ArrayList<>();
-        //checkers.add(getExclusivityChecker());
+        checkers.add(getExclusivityChecker());
         checkers.addAll(getLatticeSubcheckers());
         return checkers;
     }
