@@ -78,24 +78,11 @@ public class TMethodInvocation extends AbstractTypeRule<MethodInvocationNode> {
                 thisType = factory.getExclusivityAnnotation(
                         currentMethodReceiverType.getAnnotations());
             }
-
-            if (receiver instanceof ThisNode || !factory.mayHoldProperty(thisType)) {
-                // Copy keySet to prevent ConcurrentModificationException due to clearValue
-                for (FieldAccess field : Set.copyOf(store.getFieldValues().keySet())) {
-                    if (!hierarchy.isSubtypeQualifiersOnly(
-                            factory.getExclusivityAnnotation(store.getValue(field).getAnnotations()),
-                            factory.EXCLUSIVITY_BOTTOM)) {
-                        store.clearValue(field);
-                        System.out.printf("Clearing refinement for %s after %s\n",
-                                field, node);
-                    }
-                }
-            }
         }
     }
 
     @Override
     public String getName() {
-        return "T-Method-Invocation";
+        return "U-Method-Invocation";
     }
 }

@@ -41,13 +41,8 @@ public final class ExclusivityVisitor extends BaseTypeVisitor<ExclusivityAnnotat
             MemberSelectTree lhs = (MemberSelectTree) node.getVariable();
             try {
                 IdentifierTree ident = (IdentifierTree) lhs.getExpression();
-                if (ident.getName().contentEquals("this")) {
-                    if (!atypeFactory.isMutable(atypeFactory.getAnnotatedType(ident))) {
-                        // T-Assign: lhs is local var OR this is modifiable
-                        checker.reportError(node, "assignment.this-not-writable");
-                    }
-                } else {
-                    // Field access is only allowed to fields of this, not other objects
+                // Field access is only allowed to fields of this, not other objects
+                if (!ident.getName().contentEquals("this")) {
                     checker.reportError(node, "assignment.invalid-lhs");
                 }
             } catch (ClassCastException e) {
@@ -98,11 +93,8 @@ public final class ExclusivityVisitor extends BaseTypeVisitor<ExclusivityAnnotat
     @Override
     public boolean isValidUse(AnnotatedPrimitiveType type, Tree tree) {
         return super.isValidUse(type, tree)
-                // Primitives are always immutable and must never
-                // be annotated as mutable
-                && atypeFactory.getQualifierHierarchy().isSubtypeQualifiersOnly(
-                        atypeFactory.IMMUTABLE,
-                        type.getAnnotationInHierarchy(atypeFactory.READ_ONLY));
+                // Primitives are always MaybeAliased
+                && type.getAnnotationInHierarchy(atypeFactory.READ_ONLY).equals(atypeFactory.MAYBE_ALIASED);
     }
     
     @SuppressWarnings("nls")
@@ -111,11 +103,9 @@ public final class ExclusivityVisitor extends BaseTypeVisitor<ExclusivityAnnotat
             AnnotatedDeclaredType useType, Tree tree) {
         if (declarationType.getUnderlyingType().asElement().toString().equals("java.lang.String")) {
             return super.isValidUse(declarationType, useType, tree)
-                    // Strings are always immutable and must never
-                    // be annotated as mutable
-                    && atypeFactory.getQualifierHierarchy().isSubtypeQualifiersOnly(
-                    atypeFactory.IMMUTABLE,
-                    useType.getAnnotationInHierarchy(atypeFactory.READ_ONLY));
+                    // Strings should always be annotated as MaybeAliased.
+                    // There's no point annotating them as Unique, since they're immutable.
+                    && useType.getAnnotationInHierarchy(atypeFactory.READ_ONLY).equals(atypeFactory.MAYBE_ALIASED);
         } else {
             return super.isValidUse(declarationType, useType, tree);
         }
@@ -137,10 +127,10 @@ public final class ExclusivityVisitor extends BaseTypeVisitor<ExclusivityAnnotat
                 constructorType.getReturnType().getAnnotations();
         
         AnnotationMirror constructorAnno =
-                qualifierHierarchy.findAnnotationInHierarchy(constructorAnnotations, atypeFactory.EXCL_MUT);
-        if (!qualifierHierarchy.isSubtypeQualifiersOnly(atypeFactory.EXCL_MUT, constructorAnno)) {
+                qualifierHierarchy.findAnnotationInHierarchy(constructorAnnotations, atypeFactory.UNIQUE);
+        if (!qualifierHierarchy.isSubtypeQualifiersOnly(atypeFactory.UNIQUE, constructorAnno)) {
             checker.reportWarning(
-                    constructorElement, "unnecessary.constructor.type", constructorAnno, atypeFactory.EXCL_MUT);
+                    constructorElement, "unnecessary.constructor.type", constructorAnno, atypeFactory.UNIQUE);
         }
     }
     

@@ -2,11 +2,11 @@ import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
 
 // Test reference splitting rules for the Exclusivity Checker.
 class ReferenceSplitting {
-    @ExclMut Foo field;
+    @Unique Foo field;
 
     void refTransfer() {
         @ReadOnly Foo x;
-        @ExclMut Foo a;
+        @Unique Foo a;
 
         x = new Foo();  // x is refined to @ExclMut
         a = x;          // x is updated to @ReadOnly

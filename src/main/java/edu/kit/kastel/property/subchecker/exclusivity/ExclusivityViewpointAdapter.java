@@ -25,12 +25,8 @@ public class ExclusivityViewpointAdapter extends AbstractViewpointAdapter {
             AnnotationMirror receiverAnnotation, AnnotationMirror declaredAnnotation
     ) {
         QualifierHierarchy hierarchy = atypeFactory.getQualifierHierarchy();
-        if (hierarchy.isSubtypeQualifiersOnly(declaredAnnotation, atypeFactory.EXCL_MUT)
-                && !hierarchy.isSubtypeQualifiersOnly(receiverAnnotation, atypeFactory.EXCL_MUT)) {
-            return atypeFactory.RESTRICTED;
-        } else if (hierarchy.isSubtypeQualifiersOnly(declaredAnnotation, atypeFactory.SHR_MUT)
-                && !atypeFactory.isMutable(receiverAnnotation)) {
-            return atypeFactory.READ_ONLY;
+        if (hierarchy.isSubtypeQualifiersOnly(declaredAnnotation, atypeFactory.UNIQUE)) {
+            return receiverAnnotation;
         } else {
             return declaredAnnotation;
         }

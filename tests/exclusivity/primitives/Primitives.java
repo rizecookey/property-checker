@@ -1,41 +1,41 @@
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
 
 class Primitives {
-    @ExclMut Foo excl;
-    @ShrMut Foo shr;
-    @Immutable Foo immut;
+    @Unique Foo excl;
+    @MaybeAliased Foo shr;
+    @MaybeAliased Foo immut;
     
     boolean b;
-    @Immutable boolean immutB;
+    @MaybeAliased boolean immutB;
     @ReadOnly boolean readOnlyB;
     // :: error: type.invalid.annotations.on.use
-    @ShrMut boolean shrMutB;
+    @MaybeAliased boolean shrMutB;
     // :: error: type.invalid.annotations.on.use
-    @ExclMut boolean exclMutB;
+    @Unique boolean exclMutB;
     
     int i;
-    @Immutable int immutI;
+    @MaybeAliased int immutI;
     @ReadOnly int readOnlyI;
     // :: error: type.invalid.annotations.on.use
-    @ShrMut int shrMutI;
+    @MaybeAliased int shrMutI;
     // :: error: type.invalid.annotations.on.use
-    @ExclMut int exclMutI;
+    @Unique int exclMutI;
     
     String s;
-    @Immutable String immutS;
+    @MaybeAliased String immutS;
     @ReadOnly String readOnlyS;
     // :: error: type.invalid.annotations.on.use
-    @ShrMut String shrMutS;
+    @MaybeAliased String shrMutS;
     // :: error: type.invalid.annotations.on.use
-    @ExclMut String exclMutS;
+    @Unique String exclMutS;
 
-    void assignWritableThisObjectField0(@ExclMut Primitives this) {
+    void assignWritableThisObjectField0(@Unique Primitives this) {
         this.excl = new Foo();
         this.shr = new Foo();
         this.immut = new Foo();
     }
 
-    void assignWritableThisPrimitiveField0(@ExclMut Primitives this, int x, boolean b) {
+    void assignWritableThisPrimitiveField0(@Unique Primitives this, int x, boolean b) {
         this.i = 42;
         this.i = 10 * 4 + 2;
         this.i = - (10 * 4 + 2);
@@ -48,13 +48,13 @@ class Primitives {
         this.b = false || b;
     }
 
-    void assignWritableThisObjectField1(@ShrMut Primitives this) {
+    void assignWritableThisObjectField1(@MaybeAliased Primitives this) {
         this.excl = new Foo();
         this.shr = new Foo();
         this.immut = new Foo();
     }
 
-    void assignWritableThisPrimitiveField1(@ShrMut Primitives this, int x, boolean b) {
+    void assignWritableThisPrimitiveField1(@MaybeAliased Primitives this, int x, boolean b) {
         this.i = 42;
         this.i = 10 * 4 + 2;
         this.i = - (10 * 4 + 2);
@@ -67,19 +67,19 @@ class Primitives {
         this.b = false || b;
     }
 
-    void assignWritableThisStringField0(@ExclMut Primitives this, String s) {
+    void assignWritableThisStringField0(@MaybeAliased Primitives this, String s) {
         this.s = "42";
         this.s = "4" + "2";
         this.s = "4" + s;
     }
 
-    void assignWritableThisStringField1(@ShrMut Primitives this, String s) {
+    void assignWritableThisStringField1(@MaybeAliased Primitives this, String s) {
         this.s = "42";
         this.s = "4" + "2";
         this.s = "4" + s;
     }
 
-    void assignNonWritableThis(@Immutable Primitives this) {
+    void assignNonWritableThis(@MaybeAliased Primitives this) {
         // :: error: assignment.this-not-writable
         this.excl = new Foo();
         // :: error: assignment.this-not-writable
@@ -92,16 +92,16 @@ class Primitives {
         this.s = "42";
     }
 
-    @ExclMut Foo copyExclFieldReference() {
+    @Unique Foo copyExclFieldReference() {
         // :: error: type.invalid
         return this.excl;
     }
 
-    @ShrMut Foo copyShrFieldReference() {
+    @MaybeAliased Foo copyShrFieldReference() {
         return this.shr;
     }
 
-    @Immutable Foo copyImmutFieldReference() {
+    @MaybeAliased Foo copyImmutFieldReference() {
         return this.immut;
     }
 

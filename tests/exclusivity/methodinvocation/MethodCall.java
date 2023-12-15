@@ -5,16 +5,16 @@ class MethodCall {
 
     void mth(@ReadOnly MethodCall this) {}
 
-    void mthParam(@ShrMut MethodCall this, @ShrMut Foo arg) {}
+    void mthParam(@MaybeAliased MethodCall this, @MaybeAliased Foo arg) {}
 
-    @ExclMut Foo
-    mthret(@ShrMut MethodCall this) {
+    @Unique Foo
+    mthret(@MaybeAliased MethodCall this) {
         return new Foo();
     }
 
-    void invoke(@ShrMut MethodCall this) {
+    void invoke(@MaybeAliased MethodCall this) {
         @ReadOnly Foo x;
-        @ExclMut Foo a;
+        @Unique Foo a;
         x = new Foo();   // x is refined to @ExclMut
         this.mthParam(x);     // x is refined to @ShrMut
         // :: error: type.invalid
@@ -22,30 +22,30 @@ class MethodCall {
     }
 
     void invokeAssign() {
-        @ExclMut Foo b;
+        @Unique Foo b;
         b = this.mthret();
     }
 
-    void invalidate1(@ExclMut MethodCall this) {
-        @ExclMut Foo a;
+    void invalidate1(@Unique MethodCall this) {
+        @Unique Foo a;
         this.field = new Foo(); // field is refined to @ExclMut
         this.mth();
         // :: error: type.invalid
         a = this.field; // invalid, refinement of field has been forgotten
     }
 
-    void invalidate2(@ShrMut MethodCall this) {
-        @ExclMut Foo recv = new Foo();
-        @ExclMut Foo a;
+    void invalidate2(@MaybeAliased MethodCall this) {
+        @Unique Foo recv = new Foo();
+        @Unique Foo a;
         this.field = new Foo(); // field is refined to @ExclMut
         recv.mth();
         // :: error: type.invalid
         a = this.field; // invalid, refinement of field has been forgotten
     }
 
-    void dontInvalidate(@ExclMut MethodCall this) {
-        @ExclMut Foo recv = new Foo();
-        @ExclMut Foo a;
+    void dontInvalidate(@Unique MethodCall this) {
+        @Unique Foo recv = new Foo();
+        @Unique Foo a;
         this.field = new Foo(); // field is refined to @ExclMut
         recv.mth();
         a = this.field; // still valid, since we control all access to this

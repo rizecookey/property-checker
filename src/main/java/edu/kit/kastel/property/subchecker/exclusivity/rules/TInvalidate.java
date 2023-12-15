@@ -26,7 +26,7 @@ public class TInvalidate implements TypeRule {
     @Override
     public void apply(Node node) {
         CFValue abstractValue = analysis.createAbstractValue(
-                AnnotationMirrorSet.singleton(factory.EXCLUSIVITY_BOTTOM), node.getType());
+                AnnotationMirrorSet.singleton(factory.EXCL_BOTTOM), node.getType());
         store.replaceValue(JavaExpression.fromNode(node), abstractValue);
         System.out.printf("[~> ExclusivityBottom] %s ...;\n", node);
         System.out.println("Applied " + getName());
@@ -34,6 +34,6 @@ public class TInvalidate implements TypeRule {
 
     @Override
     public String getName() {
-        return "T-Invalidate";
+        return "U-Invalidate";
     }
 }

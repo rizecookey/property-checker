@@ -19,14 +19,14 @@ public class TRefNew extends AssignmentRule {
 
     @Override
     public String getName() {
-        return "T-Ref-New";
+        return "U-Ref-New";
     }
 
     @Override
     public void applyInternal(Node lhsNode, Node rhsNode) throws RuleNotApplicable {
         checkRhsNode(rhsNode);
         try {
-            updateType(lhsNode, factory.EXCL_MUT);
+            updateType(lhsNode, factory.UNIQUE);
         } catch (RuleNotApplicable e) {
             // While a constructor result can be refined to ExclMut,
             // a constructor can also be made to return any other type.
@@ -38,7 +38,7 @@ public class TRefNew extends AssignmentRule {
     protected void applyInternal(AnnotationMirror lhsType, Node rhsNode) throws RuleNotApplicable {
         checkRhsNode(rhsNode);
         try {
-            canUpdateType(lhsType, factory.EXCL_MUT);
+            canUpdateType(lhsType, factory.UNIQUE);
         } catch (RuleNotApplicable e) {
             // While a constructor result can be refined to ExclMut,
             // a constructor can also be made to return any other type.

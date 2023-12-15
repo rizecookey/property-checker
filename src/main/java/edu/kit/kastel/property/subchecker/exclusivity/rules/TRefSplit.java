@@ -10,8 +10,8 @@ import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFa
 
 import javax.lang.model.element.AnnotationMirror;
 
-abstract class ExclMutAssignmentRule extends AssignmentRule {
-    public ExclMutAssignmentRule(CFStore store, ExclusivityAnnotatedTypeFactory factory, CFAbstractAnalysis<CFValue, CFStore, CFTransfer> analysis) {
+public class TRefSplit extends AssignmentRule {
+    public TRefSplit(CFStore store, ExclusivityAnnotatedTypeFactory factory, CFAbstractAnalysis<CFValue, CFStore, CFTransfer> analysis) {
         super(store, factory, analysis);
     }
 
@@ -32,11 +32,21 @@ abstract class ExclMutAssignmentRule extends AssignmentRule {
     }
 
     private void checkRhsTypeAnno(Node rhsNode) throws RuleNotApplicable {
-        if (!hierarchy.isSubtypeQualifiersOnly(getRefinedTypeAnnotation(rhsNode), factory.EXCL_MUT)) {
-            throw new RuleNotApplicable(getName(), rhsNode, "rhs is not ExclMut");
+        if (!hierarchy.isSubtypeQualifiersOnly(getRefinedTypeAnnotation(rhsNode), factory.MAYBE_ALIASED)) {
+            throw new RuleNotApplicable(getName(), rhsNode, "rhs is ReadOnly");
         }
     }
 
-    protected abstract AnnotationMirror getNewLhsTypeAnnotation();
-    protected abstract AnnotationMirror getNewRhsTypeAnnotation();
+    protected AnnotationMirror getNewLhsTypeAnnotation() {
+        return factory.MAYBE_ALIASED;
+    }
+
+    protected AnnotationMirror getNewRhsTypeAnnotation() {
+        return factory.MAYBE_ALIASED;
+    }
+
+    @Override
+    public String getName() {
+        return "U-Ref-Split";
+    }
 }

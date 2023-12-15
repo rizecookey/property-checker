@@ -16,8 +16,8 @@ public class ExclusivityPropagationTreeAnnotator extends PropagationTreeAnnotato
     @Override
     public Void visitBinary(BinaryTree node, AnnotatedTypeMirror type) {
         // The result of a binary operation is either primitive or a String,
-        // thus immutable.
-        type.addMissingAnnotations(Set.of(((ExclusivityAnnotatedTypeFactory) atypeFactory).IMMUTABLE));
+        // thus MaybeAliased.
+        type.addMissingAnnotations(Set.of(((ExclusivityAnnotatedTypeFactory) atypeFactory).MAYBE_ALIASED));
         return null;
     }
 }

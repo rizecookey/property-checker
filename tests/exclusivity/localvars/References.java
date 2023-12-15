@@ -6,11 +6,11 @@ class References {
     void refNew() {
         @ReadOnly Foo x;
         x = new Foo();  // T-Ref-New
-        @ExclMut Foo y;
+        @Unique Foo y;
         y = x;          // T-Ref-Transfer
     }
 
-    void refCopyRo(@ExclMut Foo a) {
+    void refCopyRo(@Unique Foo a) {
         @ReadOnly Foo x;
         @ReadOnly Foo y;
         @ReadOnly Foo z;

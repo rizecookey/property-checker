@@ -32,7 +32,6 @@ import com.sun.tools.javac.code.Type;
 import edu.kit.kastel.property.lattice.EvaluatedPropertyAnnotation;
 import edu.kit.kastel.property.lattice.PropertyAnnotation;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
-import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
 import edu.kit.kastel.property.util.ClassUtils;
 
 public final class LatticeTypeValidator extends BaseTypeValidator {
@@ -97,11 +96,7 @@ public final class LatticeTypeValidator extends BaseTypeValidator {
         PropertyAnnotation pa = factory.getLattice().getPropertyAnnotation(annotation);
         
         if (!pa.getAnnotationType().isTrivial()
-                && (exclAnnotation == null || !(
-                           AnnotationUtils.areSame(exclAnnotation, exclFactory.IMMUTABLE)
-                        || AnnotationUtils.areSame(exclAnnotation, exclFactory.EXCL_MUT)
-                        || AnnotationUtils.areSame(exclAnnotation, exclFactory.EXCLUSIVITY_BOTTOM)))) {
-            
+                && (exclAnnotation == null || AnnotationUtils.areSame(exclAnnotation, exclFactory.READ_ONLY))) {
             reportInvalidType(type, tree);
             return false;
         }

@@ -27,6 +27,6 @@ public class TRefCopyRo extends AssignmentRule {
 
     @Override
     public String getName() {
-        return "T-Ref-Copy-Ro";
+        return "U-Ref-Copy-Ro";
     }
 }

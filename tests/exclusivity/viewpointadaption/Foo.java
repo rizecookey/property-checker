@@ -2,14 +2,14 @@ import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
 
 class Bar {
 
-    public void change(@ExclMut Bar this) {}
+    public void change(@Unique Bar this) {}
 }
 
 class Foo {
     @ReadOnly Bar ro;
-    @ShrMut Bar shrMut;
-    @Immutable Bar immut;
-    @ExclMut Bar exclMut;
+    @MaybeAliased Bar shrMut;
+    @MaybeAliased Bar immut;
+    @Unique Bar unique;
 
     public @ReadOnly Bar getRO(@ReadOnly Foo this) {
         return ro;
@@ -17,19 +17,19 @@ class Foo {
 
     public @ReadOnly Bar getROFake(@ReadOnly Foo this) {
         // :: error: type.invalid
-        this.exclMut.change();
+        this.unique.change();
         // :: error: type.invalid
         this.shrMut.change();
         return ro;
     }
 
-    public @ExclMut Bar getExclMutFromRO(@ReadOnly Foo this) {
+    public @Unique Bar getUniqueFromRO(@ReadOnly Foo this) {
         // :: error: type.invalid
-        return exclMut;
+        return unique;
     }
 
-    public @ExclMut Bar getExclMutFromShrMut(@ShrMut Foo this) {
+    public @Unique Bar getUniqueFromShrMut(@MaybeAliased Foo this) {
         // :: error: type.invalid
-        return exclMut;
+        return unique;
     }
 }

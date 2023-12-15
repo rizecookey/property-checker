@@ -58,7 +58,7 @@ public abstract class AssignmentRule extends AbstractTypeRule<AssignmentNode> {
             if (node instanceof ValueLiteralNode) {
                 System.out.printf("[%s ~> %s] ",
                         prettyPrint(oldTypeAnno),
-                        prettyPrint(factory.IMMUTABLE));
+                        prettyPrint(factory.MAYBE_ALIASED));
             } else {
                 try {
                     value = store.getValue(JavaExpression.fromNode(node));
@@ -79,9 +79,7 @@ public abstract class AssignmentRule extends AbstractTypeRule<AssignmentNode> {
     protected final ChainRule<AssignmentRule> getAssignmentRules() {
         return new ChainRule<>(
                 new TRefNew(store, factory, analysis),
-                new TRefCopy(store, factory, analysis),
-                new TRefSplitMut(store, factory, analysis),
-                new TRefSplitImmut(store, factory, analysis),
+                new TRefSplit(store, factory, analysis),
                 new TRefTransfer(store, factory, analysis),
                 new TRefCopyRo(store, factory, analysis)
         );

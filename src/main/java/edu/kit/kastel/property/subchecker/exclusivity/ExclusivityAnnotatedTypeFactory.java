@@ -8,7 +8,6 @@ import com.sun.source.util.TreePath;
 
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
 
-import org.apache.commons.lang3.ArrayUtils;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
@@ -21,14 +20,11 @@ import org.checkerframework.framework.flow.CFAbstractAnalysis;
 import org.checkerframework.framework.flow.CFStore;
 import org.checkerframework.framework.flow.CFTransfer;
 import org.checkerframework.framework.flow.CFValue;
-import org.checkerframework.framework.qual.QualifierForLiterals;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.LiteralTreeAnnotator;
-import org.checkerframework.framework.type.treeannotator.PropagationTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
-import org.checkerframework.framework.util.dependenttypes.DependentTypesTreeAnnotator;
 import org.checkerframework.javacutil.AnnotationBuilder;
 import org.checkerframework.javacutil.AnnotationMirrorSet;
 import org.checkerframework.javacutil.BugInCF;
@@ -39,7 +35,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
@@ -47,18 +42,14 @@ import java.util.Set;
 
 public final class ExclusivityAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
 
-    public final AnnotationMirror EXCL_MUT =
-            AnnotationBuilder.fromClass(elements, ExclMut.class);
-    public final AnnotationMirror EXCLUSIVITY_BOTTOM =
-            AnnotationBuilder.fromClass(elements, ExclusivityBottom.class);
-    public final AnnotationMirror IMMUTABLE =
-            AnnotationBuilder.fromClass(elements, Immutable.class);
+    public final AnnotationMirror EXCL_BOTTOM =
+            AnnotationBuilder.fromClass(elements, ExclBottom.class);
+    public final AnnotationMirror UNIQUE =
+            AnnotationBuilder.fromClass(elements, Unique.class);
     public final AnnotationMirror READ_ONLY =
             AnnotationBuilder.fromClass(elements, ReadOnly.class);
-    public final AnnotationMirror RESTRICTED =
-            AnnotationBuilder.fromClass(elements, Restricted.class);
-    public final AnnotationMirror SHR_MUT =
-            AnnotationBuilder.fromClass(elements, ShrMut.class);
+    public final AnnotationMirror MAYBE_ALIASED =
+            AnnotationBuilder.fromClass(elements, MaybeAliased.class);
     @Nullable
     private Tree useIFlowAfter;
 
@@ -92,40 +83,6 @@ public final class ExclusivityAnnotatedTypeFactory extends BaseAnnotatedTypeFact
 
     public AnnotationMirror getExclusivityAnnotation(Node node) {
         return getExclusivityAnnotation(getAnnotatedType(node.getTree()));
-    }
-
-    public boolean isCopyable(@NonNull AnnotationMirror annotationMirror) {
-        return !qualHierarchy.isSubtypeQualifiersOnly(
-                EXCL_MUT,
-                annotationMirror
-        );
-    }
-
-    public boolean isMutable(@NonNull AnnotationMirror annotationMirror) {
-        return !qualHierarchy.isSubtypeQualifiersOnly(
-                IMMUTABLE,
-                annotationMirror
-        );
-    }
-
-    public boolean mayHoldProperty(@NonNull AnnotationMirror annotationMirror) {
-        return qualHierarchy.isSubtypeQualifiersOnly(
-                annotationMirror,
-                RESTRICTED
-        );
-    }
-
-    public boolean isMutable(AnnotatedTypeMirror annotatedType) {
-        AnnotationMirror annotation = getExclusivityAnnotation(annotatedType);
-        assert annotation != null;
-        return isMutable(annotation);
-    }
-
-    public boolean isValid(@NonNull AnnotationMirror annotationMirror) {
-        return !qualHierarchy.isSubtypeQualifiersOnly(
-                annotationMirror,
-                EXCLUSIVITY_BOTTOM
-        );
     }
 
     @Override
@@ -174,7 +131,7 @@ public final class ExclusivityAnnotatedTypeFactory extends BaseAnnotatedTypeFact
         @Override
         public Void visitNewClass(NewClassTree node, AnnotatedTypeMirror annotatedTypeMirror) {
             // new C() is always @ExclMut
-            annotatedTypeMirror.replaceAnnotation(EXCL_MUT);
+            annotatedTypeMirror.replaceAnnotation(UNIQUE);
             return super.visitNewClass(node, annotatedTypeMirror);
         }
     }
@@ -210,7 +167,7 @@ public final class ExclusivityAnnotatedTypeFactory extends BaseAnnotatedTypeFact
                         if (node instanceof ValueLiteralNode
                                 || node instanceof BinaryOperationNode
                                 || node instanceof UnaryOperationNode) {
-                            return analysis.createAbstractValue(AnnotationMirrorSet.singleton(IMMUTABLE), node.getType());
+                            return analysis.createAbstractValue(AnnotationMirrorSet.singleton(MAYBE_ALIASED), node.getType());
                         } else if (!((expr = JavaExpression.fromNode(node)) instanceof Unknown)) {
                             return store.getValue(expr);
                         } else if (node instanceof MethodInvocationNode) {

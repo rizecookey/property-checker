@@ -1,9 +1,9 @@
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
 
 class MutateOtherObjects {
-    @ExclMut Foo foo;
+    @Unique Foo foo;
 
-    void mutate(@ExclMut MutateOtherObjects this, @ExclMut MutateOtherObjects other) {
+    void mutate(@Unique MutateOtherObjects this, @Unique MutateOtherObjects other) {
         this.foo = new Foo();
         // :: error: assignment.invalid-lhs
         this.foo.i = 42;

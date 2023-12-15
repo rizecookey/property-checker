@@ -50,6 +50,6 @@ public class TAssign extends AssignmentRule {
 
     @Override
     public String getName() {
-        return "T-Assign";
+        return "U-Assign";
     }
 }

@@ -5,8 +5,8 @@ class ReferenceSplitting {
 
     void splitMut() {
         @ReadOnly Foo x;
-        @ShrMut Foo a;
-        @Immutable Foo b;
+        @MaybeAliased Foo a;
+        @MaybeAliased Foo b;
         x = new Foo();      // x is refined to @ExclMut
         a = x;              // x is updated to @ShrMut
         // :: error: type.invalid
@@ -15,23 +15,23 @@ class ReferenceSplitting {
 
     void splitMut0() {
         @ReadOnly Foo x = new Foo();
-        @ShrMut Foo a = x;
+        @MaybeAliased Foo a = x;
         // :: error: type.invalid
-        @Immutable Foo b = x;
+        @MaybeAliased Foo b = x;
     }
 
     void splitMut1() {
         @ReadOnly Foo x; x = new Foo();
         @ShrMut Foo a; a = x;
-        @Immutable Foo b;
+        @MaybeAliased Foo b;
         // :: error: type.invalid
         b = x;
     }
 
     void splitImmut() {
         @ReadOnly Foo x;
-        @Immutable Foo a;
-        @ShrMut Foo b;
+        @MaybeAliased Foo a;
+        @MaybeAliased Foo b;
         x = new Foo();      // x is refined to @ExclMut
         a = x;              // x is updated to @Immut
         // :: error: type.invalid
@@ -40,9 +40,9 @@ class ReferenceSplitting {
 
     void refTransfer() {
         @ReadOnly Foo x;
-        @ExclMut Foo a;
-        @ShrMut Foo b;
-        @Immutable Foo c;
+        @Unique Foo a;
+        @MaybeAliased Foo b;
+        @MaybeAliased Foo c;
 
         x = new Foo();  // x is refined to @ExclMut
         a = x;          // x is updated to @ReadOnly
