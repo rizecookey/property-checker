@@ -2,53 +2,40 @@ import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
 
 class LeakThis {
     @ReadOnly LeakThis readOnly;
-    @Unique LeakThis exclMut;
-    @MaybeAliased LeakThis shrMut;
-    @MaybeAliased LeakThis immut;
+    @Unique LeakThis unique;
+    @MaybeAliased LeakThis aliased;
     
     LeakThis() {
         this.readOnly = this;
-        this.mth0();
+        this.mthReadOnly();
     }
     
     LeakThis(boolean dummy) {
         // :: error: type.invalid
-        this.exclMut = this;
+        this.unique = this;
         // :: error: type.invalid
-        this.mth3();
+        this.mthUnique();
     }
     
     LeakThis(int dummy) {
         // :: error: type.invalid
-        this.shrMut = this;
+        this.aliased = this;
         // :: error: type.invalid
-        this.mth1();
-    }
-    
-    LeakThis(short dummy) {
-        // :: error: type.invalid
-        this.immut = this;
-        // :: error: type.invalid
-        this.mth2();
+        this.mthAliased();
     }
 
-    void mth0(@ReadOnly LeakThis this) {
+    void mthReadOnly(@ReadOnly LeakThis this) {
         // :: error: assignment.this-not-writable
         this.readOnly = this;
     }
 
-    void mth1(@MaybeAliased LeakThis this) {
-        this.shrMut = this;
+    void mthAliased(@MaybeAliased LeakThis this) {
+        this.aliased = this;
     }
     
-    void mth2(@MaybeAliased LeakThis this) {
-        // :: error: assignment.this-not-writable
-        this.immut = this;
-    }
-    
-    void mth3(@Unique LeakThis this) {
+    void mthUnique(@Unique LeakThis this) {
         // :: error: type.invalid
-        this.exclMut = this;
+        this.unique = this;
     }
     
     void foo0(@Unique LeakThis this, @Unique LeakThis a) { }

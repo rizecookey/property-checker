@@ -3,6 +3,7 @@ package edu.kit.kastel.property.subchecker.exclusivity;
 import org.checkerframework.framework.type.AbstractViewpointAdapter;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.QualifierHierarchy;
+import org.checkerframework.javacutil.AnnotationUtils;
 
 import javax.lang.model.element.AnnotationMirror;
 
@@ -24,8 +25,7 @@ public class ExclusivityViewpointAdapter extends AbstractViewpointAdapter {
     protected AnnotationMirror combineAnnotationWithAnnotation(
             AnnotationMirror receiverAnnotation, AnnotationMirror declaredAnnotation
     ) {
-        QualifierHierarchy hierarchy = atypeFactory.getQualifierHierarchy();
-        if (hierarchy.isSubtypeQualifiersOnly(declaredAnnotation, atypeFactory.UNIQUE)) {
+        if (AnnotationUtils.areSame(declaredAnnotation, atypeFactory.UNIQUE)) {
             return receiverAnnotation;
         } else {
             return declaredAnnotation;

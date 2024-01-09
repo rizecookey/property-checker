@@ -6,30 +6,54 @@ class Bar {
 }
 
 class Foo {
-    @ReadOnly Bar ro;
-    @MaybeAliased Bar shrMut;
-    @MaybeAliased Bar immut;
+    @ReadOnly Bar readOnly;
+    @MaybeAliased Bar aliased;
     @Unique Bar unique;
 
-    public @ReadOnly Bar getRO(@ReadOnly Foo this) {
-        return ro;
+    public void foo(@ReadOnly Foo this) {
+        // :: error: type.invalid
+        this.unique.change();
     }
 
-    public @ReadOnly Bar getROFake(@ReadOnly Foo this) {
+    public @ReadOnly Bar getReadOnly(@ReadOnly Foo this) {
+        return readOnly;
+    }
+
+    public @ReadOnly Bar getReadOnlyFake(@ReadOnly Foo this) {
         // :: error: type.invalid
         this.unique.change();
         // :: error: type.invalid
-        this.shrMut.change();
-        return ro;
+        this.aliased.change();
+        // :: error: type.invalid
+        this.readOnly.change();
+        return readOnly;
     }
 
-    public @Unique Bar getUniqueFromRO(@ReadOnly Foo this) {
+    public @Unique Bar getUniqueFromReadOnly(@ReadOnly Foo this) {
         // :: error: type.invalid
         return unique;
     }
 
-    public @Unique Bar getUniqueFromShrMut(@MaybeAliased Foo this) {
+    public @MaybeAliased Bar getAliasedFromReadOnly(@ReadOnly Foo this) {
+        return aliased;
+    }
+
+    public @Unique Bar getUniqueFromAliased(@MaybeAliased Foo this) {
         // :: error: type.invalid
         return unique;
+    }
+
+    public @MaybeAliased Bar getAliasedFromAliased(@MaybeAliased Foo this) {
+        return aliased;
+    }
+
+    public @Unique Bar getUniqueFromUnique(@Unique Foo this) {
+        // The adapted field type is compatible with the result type, we we're not allowed to leak a unique field
+        // :: error: type.invalid
+        return unique;
+    }
+
+    public @MaybeAliased Bar getAliasedFromUnique(@Unique Foo this) {
+        return aliased;
     }
 }

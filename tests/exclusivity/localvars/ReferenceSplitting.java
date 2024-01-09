@@ -7,10 +7,10 @@ class ReferenceSplitting {
         @ReadOnly Foo x;
         @MaybeAliased Foo a;
         @MaybeAliased Foo b;
-        x = new Foo();      // x is refined to @ExclMut
-        a = x;              // x is updated to @ShrMut
+        x = new Foo();      // x is refined to @Unique
+        a = x;              // x is updated to @MaybeAliased
         // :: error: type.invalid
-        b = x;              // invalid, x is not @ExclMut anyomre
+        b = x;              // invalid, x is not @Unique anyomre
     }
 
     void splitMut0() {
@@ -22,7 +22,7 @@ class ReferenceSplitting {
 
     void splitMut1() {
         @ReadOnly Foo x; x = new Foo();
-        @ShrMut Foo a; a = x;
+        @MaybeAliased Foo a; a = x;
         @MaybeAliased Foo b;
         // :: error: type.invalid
         b = x;
@@ -32,10 +32,10 @@ class ReferenceSplitting {
         @ReadOnly Foo x;
         @MaybeAliased Foo a;
         @MaybeAliased Foo b;
-        x = new Foo();      // x is refined to @ExclMut
-        a = x;              // x is updated to @Immut
+        x = new Foo();      // x is refined to @Unique
+        a = x;              // x is updated to @MaybeAliased
         // :: error: type.invalid
-        b = x;              // invalid, x is not @ExclMut anyomre
+        b = x;              // invalid, x is not @Unique anyomre
     }
 
     void refTransfer() {
@@ -44,11 +44,11 @@ class ReferenceSplitting {
         @MaybeAliased Foo b;
         @MaybeAliased Foo c;
 
-        x = new Foo();  // x is refined to @ExclMut
+        x = new Foo();  // x is refined to @Unique
         a = x;          // x is updated to @ReadOnly
         // :: error: type.invalid
-        b = x;          // invalid, x is not @ExclMut anymore
+        b = x;          // invalid, x is not @Unique anymore
         // :: error: type.invalid
-        c = x;          // invalid, x is not @ExclMut anymore
+        c = x;          // invalid, x is not @Unique anymore
     }
 }

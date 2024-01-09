@@ -1,8 +1,12 @@
 package edu.kit.kastel.property.subchecker.exclusivity.rules;
 
+import com.sun.source.tree.ExpressionTree;
+import com.sun.source.tree.Tree;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.cfg.node.ImplicitThisNode;
+import org.checkerframework.dataflow.cfg.node.IntegerLiteralNode;
 import org.checkerframework.dataflow.cfg.node.Node;
+import org.checkerframework.dataflow.cfg.node.ValueLiteralNode;
 import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.framework.flow.CFAbstractAnalysis;
 import org.checkerframework.framework.flow.CFStore;
@@ -12,6 +16,9 @@ import org.checkerframework.framework.type.QualifierHierarchy;
 
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 import org.checkerframework.javacutil.AnnotationMirrorSet;
+import org.checkerframework.javacutil.AnnotationUtils;
+import org.checkerframework.javacutil.BugInCF;
+import org.checkerframework.javacutil.TreeUtils;
 
 import javax.lang.model.element.AnnotationMirror;
 import java.util.Collections;
@@ -76,6 +83,17 @@ abstract class AbstractTypeRule<N extends Node> implements TypeRule {
     protected final void updateType(
             Node node, AnnotationMirror refinedType, boolean checkValidity
     ) throws RuleNotApplicable {
+        // Cannot update the type of a non-lhs expression in the store,
+        // so we just check if the old type fits.
+        if (!isLhs(node)) {
+            if (AnnotationUtils.areSame(getRefinedTypeAnnotation(node), refinedType)) {
+                return;
+            } else {
+                throw new RuleNotApplicable(
+                        getName(), getRefinedTypeAnnotation(node), "refinement violates non-lhs expression type");
+            }
+        }
+
         if (checkValidity) {
             canUpdateType(getDeclaredTypeAnnotation(node), refinedType);
         }
@@ -85,6 +103,19 @@ abstract class AbstractTypeRule<N extends Node> implements TypeRule {
                 AnnotationMirrorSet.singleton(refinedType), node.getType());
             store.replaceValue(JavaExpression.fromNode(node),
                     abstractValue);
+        }
+    }
+
+    protected final boolean isLhs(Node node) {
+        switch (node.getTree().getKind()) {
+            case VARIABLE:
+            case IDENTIFIER:
+            case MEMBER_SELECT:
+            case ARRAY_ACCESS:
+            case PARENTHESIZED:
+                return true;
+            default:
+                return TreeUtils.isTypeTree(node.getTree());
         }
     }
 

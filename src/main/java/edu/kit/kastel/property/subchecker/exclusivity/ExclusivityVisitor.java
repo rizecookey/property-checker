@@ -45,6 +45,11 @@ public final class ExclusivityVisitor extends BaseTypeVisitor<ExclusivityAnnotat
                 if (!ident.getName().contentEquals("this")) {
                     checker.reportError(node, "assignment.invalid-lhs");
                 }
+                // Field access is only allowed if this is not ReadOnly
+                if (atypeFactory.getAnnotatedType(ident).hasAnnotation(atypeFactory.READ_ONLY)) {
+                    // T-Assign: lhs is local var OR this is modifiable
+                    checker.reportError(node, "assignment.this-not-writable");
+                }
             } catch (ClassCastException e) {
                 // No field access to arbitrary expressions is allowed
                 checker.reportError(node, "assignment.invalid-lhs");
@@ -94,7 +99,7 @@ public final class ExclusivityVisitor extends BaseTypeVisitor<ExclusivityAnnotat
     public boolean isValidUse(AnnotatedPrimitiveType type, Tree tree) {
         return super.isValidUse(type, tree)
                 // Primitives are always MaybeAliased
-                && type.getAnnotationInHierarchy(atypeFactory.READ_ONLY).equals(atypeFactory.MAYBE_ALIASED);
+                && type.hasAnnotation(atypeFactory.MAYBE_ALIASED);
     }
     
     @SuppressWarnings("nls")
@@ -105,7 +110,7 @@ public final class ExclusivityVisitor extends BaseTypeVisitor<ExclusivityAnnotat
             return super.isValidUse(declarationType, useType, tree)
                     // Strings should always be annotated as MaybeAliased.
                     // There's no point annotating them as Unique, since they're immutable.
-                    && useType.getAnnotationInHierarchy(atypeFactory.READ_ONLY).equals(atypeFactory.MAYBE_ALIASED);
+                    && useType.hasAnnotation(atypeFactory.MAYBE_ALIASED);
         } else {
             return super.isValidUse(declarationType, useType, tree);
         }

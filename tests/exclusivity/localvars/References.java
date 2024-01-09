@@ -15,7 +15,7 @@ class References {
         @ReadOnly Foo y;
         @ReadOnly Foo z;
 
-        // a stays @ExclMut for all of these
+        // a stays @Unique for all of these
         x = a;
         y = a;
         z = a;

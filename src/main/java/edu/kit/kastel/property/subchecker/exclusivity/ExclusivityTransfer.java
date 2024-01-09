@@ -7,17 +7,15 @@ import edu.kit.kastel.property.subchecker.exclusivity.rules.*;
 import org.checkerframework.dataflow.analysis.RegularTransferResult;
 import org.checkerframework.dataflow.analysis.TransferInput;
 import org.checkerframework.dataflow.analysis.TransferResult;
-import org.checkerframework.dataflow.cfg.node.AssignmentNode;
-import org.checkerframework.dataflow.cfg.node.MethodAccessNode;
-import org.checkerframework.dataflow.cfg.node.MethodInvocationNode;
-import org.checkerframework.dataflow.cfg.node.ReturnNode;
-import org.checkerframework.dataflow.cfg.node.VariableDeclarationNode;
+import org.checkerframework.dataflow.cfg.UnderlyingAST;
+import org.checkerframework.dataflow.cfg.node.*;
 import org.checkerframework.framework.flow.CFAbstractAnalysis;
 import org.checkerframework.framework.flow.CFStore;
 import org.checkerframework.framework.flow.CFTransfer;
 import org.checkerframework.framework.flow.CFValue;
 
 import javax.lang.model.element.AnnotationMirror;
+import java.util.List;
 
 public class ExclusivityTransfer extends CFTransfer {
     private final ExclusivityAnnotatedTypeFactory factory;
@@ -27,6 +25,15 @@ public class ExclusivityTransfer extends CFTransfer {
         super(analysis);
         assert factory == analysis.getTypeFactory();
         this.factory = factory;
+    }
+
+    @Override
+    public CFStore initialStore(UnderlyingAST underlyingAST, List<LocalVariableNode> parameters) {
+        CFStore store = super.initialStore(underlyingAST, parameters);
+        /*for (CFAbstractAnalysis.FieldInitialValue val : store.get) {
+            // Viewpoint-adapt field values? Should be done in atc#performanalysis where initial field values are set instead?
+        }*/
+        return store;
     }
 
     @Override

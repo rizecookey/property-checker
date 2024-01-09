@@ -15,10 +15,10 @@ class MethodCall {
     void invoke(@MaybeAliased MethodCall this) {
         @ReadOnly Foo x;
         @Unique Foo a;
-        x = new Foo();   // x is refined to @ExclMut
-        this.mthParam(x);     // x is refined to @ShrMut
+        x = new Foo();   // x is refined to @Unique
+        this.mthParam(x);     // x is refined to @MaybeAliased
         // :: error: type.invalid
-        a = x;           // invalid, x is not @ExclMut anymore
+        a = x;           // invalid, x is not @Unique anymore
     }
 
     void invokeAssign() {
@@ -28,7 +28,7 @@ class MethodCall {
 
     void invalidate1(@Unique MethodCall this) {
         @Unique Foo a;
-        this.field = new Foo(); // field is refined to @ExclMut
+        this.field = new Foo(); // field is refined to @Unique
         this.mth();
         // :: error: type.invalid
         a = this.field; // invalid, refinement of field has been forgotten
@@ -37,7 +37,7 @@ class MethodCall {
     void invalidate2(@MaybeAliased MethodCall this) {
         @Unique Foo recv = new Foo();
         @Unique Foo a;
-        this.field = new Foo(); // field is refined to @ExclMut
+        this.field = new Foo(); // field is refined to @Unique
         recv.mth();
         // :: error: type.invalid
         a = this.field; // invalid, refinement of field has been forgotten
@@ -46,7 +46,7 @@ class MethodCall {
     void dontInvalidate(@Unique MethodCall this) {
         @Unique Foo recv = new Foo();
         @Unique Foo a;
-        this.field = new Foo(); // field is refined to @ExclMut
+        this.field = new Foo(); // field is refined to @Unique
         recv.mth();
         a = this.field; // still valid, since we control all access to this
     }
