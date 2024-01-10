@@ -3,10 +3,7 @@ package edu.kit.kastel.property.subchecker.exclusivity.rules;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.Tree;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.dataflow.cfg.node.ImplicitThisNode;
-import org.checkerframework.dataflow.cfg.node.IntegerLiteralNode;
-import org.checkerframework.dataflow.cfg.node.Node;
-import org.checkerframework.dataflow.cfg.node.ValueLiteralNode;
+import org.checkerframework.dataflow.cfg.node.*;
 import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.framework.flow.CFAbstractAnalysis;
 import org.checkerframework.framework.flow.CFStore;
@@ -145,7 +142,18 @@ abstract class AbstractTypeRule<N extends Node> implements TypeRule {
             assert false;
             oldAnno = null;
         } else {
-            oldAnno = factory.getExclusivityAnnotation(factory.getAnnotatedType(node.getTree()).getAnnotations());
+            CFValue value = null;
+            if (node instanceof FieldAccessNode) {
+                value = store.getValue((FieldAccessNode) node);
+            } else if (node instanceof LocalVariableNode) {
+                value = store.getValue((LocalVariableNode) node);
+            }
+
+            if (value != null) {
+                oldAnno = factory.getExclusivityAnnotation(value.getAnnotations());
+            } else {
+                oldAnno = factory.getExclusivityAnnotation(factory.getAnnotatedType(node.getTree()).getAnnotations());
+            }
         }
         assert oldAnno != null;
         return oldAnno;

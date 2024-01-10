@@ -78,8 +78,22 @@ public class TMethodInvocation extends AbstractTypeRule<MethodInvocationNode> {
                 thisType = factory.getExclusivityAnnotation(
                         currentMethodReceiverType.getAnnotations());
             }
+
+            if ((receiver instanceof ThisNode && hierarchy.isSubtypeQualifiersOnly(receiverTypeAnno, factory.MAYBE_ALIASED))
+                    || !hierarchy.isSubtypeQualifiersOnly(thisType, factory.UNIQUE)) {
+                for (FieldAccess field : Set.copyOf(store.getFieldValues().keySet())) {
+                    if (!hierarchy.isSubtypeQualifiersOnly(
+                            factory.getExclusivityAnnotation(store.getValue(field).getAnnotations()),
+                            factory.EXCL_BOTTOM)) {
+                        store.clearValue(field);
+                        System.out.printf("Clearing refinement for %s after %s\n",
+                                field, node);
+                    }
+                }
+            }
         }
     }
+
 
     @Override
     public String getName() {

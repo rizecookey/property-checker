@@ -7,6 +7,7 @@ import org.checkerframework.common.basetype.BaseTypeVisitor;
 import org.checkerframework.framework.source.DiagMessage;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.QualifierHierarchy;
+import org.checkerframework.javacutil.AnnotationUtils;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.tools.Diagnostic;
@@ -27,7 +28,7 @@ public class ExclusivityValidator extends BaseTypeValidator {
             return Collections.emptyList();
         }
 
-        List<DiagMessage> msgList = !typeAnno.equals(atypeFactory.EXCL_BOTTOM)
+        List<DiagMessage> msgList = !AnnotationUtils.areSame(typeAnno, atypeFactory.EXCL_BOTTOM)
                 ? Collections.emptyList()
                 : Collections.singletonList(new DiagMessage(Diagnostic.Kind.ERROR, "type.invalid"));
 

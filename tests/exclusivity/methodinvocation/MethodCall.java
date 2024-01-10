@@ -3,7 +3,11 @@ import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
 class MethodCall {
     @ReadOnly Foo field;
 
-    void mth(@ReadOnly MethodCall this) {}
+    void mthRO(@ReadOnly MethodCall this) {}
+
+    void mthUnique(@Unique MethodCall this) {}
+
+    void mthMA(@MaybeAliased MethodCall this) {}
 
     void mthParam(@MaybeAliased MethodCall this, @MaybeAliased Foo arg) {}
 
@@ -29,7 +33,7 @@ class MethodCall {
     void invalidate1(@Unique MethodCall this) {
         @Unique Foo a;
         this.field = new Foo(); // field is refined to @Unique
-        this.mth();
+        this.mthUnique();
         // :: error: type.invalid
         a = this.field; // invalid, refinement of field has been forgotten
     }
@@ -38,7 +42,7 @@ class MethodCall {
         @Unique Foo recv = new Foo();
         @Unique Foo a;
         this.field = new Foo(); // field is refined to @Unique
-        recv.mth();
+        this.mthMA();
         // :: error: type.invalid
         a = this.field; // invalid, refinement of field has been forgotten
     }
@@ -47,7 +51,7 @@ class MethodCall {
         @Unique Foo recv = new Foo();
         @Unique Foo a;
         this.field = new Foo(); // field is refined to @Unique
-        recv.mth();
+        this.mthRO();
         a = this.field; // still valid, since we control all access to this
     }
 }

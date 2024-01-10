@@ -28,15 +28,6 @@ public class ExclusivityTransfer extends CFTransfer {
     }
 
     @Override
-    public CFStore initialStore(UnderlyingAST underlyingAST, List<LocalVariableNode> parameters) {
-        CFStore store = super.initialStore(underlyingAST, parameters);
-        /*for (CFAbstractAnalysis.FieldInitialValue val : store.get) {
-            // Viewpoint-adapt field values? Should be done in atc#performanalysis where initial field values are set instead?
-        }*/
-        return store;
-    }
-
-    @Override
     public TransferResult<CFValue, CFStore> visitAssignment(
             AssignmentNode node, TransferInput<CFValue, CFStore> in) {
         CFStore store = in.getRegularStore();
@@ -49,12 +40,6 @@ public class ExclusivityTransfer extends CFTransfer {
         }
 
         return new RegularTransferResult<>(null, in.getRegularStore());
-    }
-    
-    @Override
-    public TransferResult<CFValue, CFStore> visitMethodAccess(MethodAccessNode n, TransferInput<CFValue, CFStore> p) {
-        // TODO Auto-generated method stub
-        return super.visitMethodAccess(n, p);
     }
 
     @Override

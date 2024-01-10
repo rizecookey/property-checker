@@ -38,8 +38,12 @@ class Foo {
         return aliased;
     }
 
-    public @Unique Bar getUniqueFromAliased(@MaybeAliased Foo this) {
+    public @Unique Bar getUniqueFromAliasedWrong(@MaybeAliased Foo this) {
         // :: error: type.invalid
+        return unique;
+    }
+
+    public @MaybeAliased Bar getUniqueFromAliasedRight(@MaybeAliased Foo this) {
         return unique;
     }
 
