@@ -20,15 +20,15 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import edu.kit.kastel.property.packing.PackingAnnotatedTypeFactory;
+import org.checkerframework.checker.initialization.InitializationStore;
+import org.checkerframework.checker.initialization.InitializationTransfer;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.dataflow.cfg.visualize.CFGVisualizer;
-import org.checkerframework.framework.flow.CFStore;
-import org.checkerframework.framework.flow.CFTransfer;
 import org.checkerframework.framework.flow.CFValue;
 
-public final class PropertyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
+public final class PropertyAnnotatedTypeFactory extends PackingAnnotatedTypeFactory {
 
     public PropertyAnnotatedTypeFactory(BaseTypeChecker checker) {
         super(checker);
@@ -37,7 +37,7 @@ public final class PropertyAnnotatedTypeFactory extends BaseAnnotatedTypeFactory
     
     @SuppressWarnings("nls")
     @Override
-    protected @Nullable CFGVisualizer<CFValue, CFStore, CFTransfer> createCFGVisualizer() {
+    protected @Nullable CFGVisualizer<CFValue, PackingStore, PackingTransfer> createCFGVisualizer() {
         if (checker.hasOption("flowdotdir")) {
             try {
                 Files.createDirectories(Path.of(checker.getOption("flowdotdir")));

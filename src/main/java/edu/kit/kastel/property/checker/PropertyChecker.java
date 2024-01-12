@@ -28,6 +28,7 @@ import javax.tools.JavaFileObject;
 import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
 
+import edu.kit.kastel.property.packing.PackingChecker;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
 import org.apache.commons.io.FileUtils;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
@@ -50,16 +51,37 @@ import org.checkerframework.org.plumelib.util.ArrayMap;
     Config.TRANSLATION_ONLY_OPTION,
     Config.NO_EXCLUSITIVY_OPTION
 })
-public final class PropertyChecker extends BaseTypeChecker {
+public final class PropertyChecker extends PackingChecker {
 
     private Map<String, PriorityQueue<LatticeVisitor.Result>> results = new HashMap<>();
-
-    private ExclusivityChecker exclusivityChecker;
-    private List<LatticeSubchecker> latticeSubcheckers;
 
     private URLClassLoader projectClassLoader;
 
     public PropertyChecker() { }
+
+    @Override
+    public boolean checkPrimitives() {
+        return true;
+    }
+
+
+    //TODO just implement packing for excl to start with
+
+    @Override
+    public Class<? extends BaseTypeChecker> getTargetCheckerClass() {
+        return ExclusivityChecker.class;
+    }
+
+    /*@Override
+    public List<BaseTypeChecker> getSubcheckers() {
+        List<BaseTypeChecker> checkers = new ArrayList<>();
+        checkers.add(getExclusivityChecker());
+        checkers.addAll(getLatticeSubcheckers());
+        return checkers;
+    }*/
+
+    private ExclusivityChecker exclusivityChecker;
+    private List<LatticeSubchecker> latticeSubcheckers;
 
     public ExclusivityChecker getExclusivityChecker() {
         if (exclusivityChecker == null) {
@@ -84,14 +106,6 @@ public final class PropertyChecker extends BaseTypeChecker {
         }
 
         return Collections.unmodifiableList(latticeSubcheckers);
-    }
-
-    @Override
-    public List<BaseTypeChecker> getSubcheckers() {
-        List<BaseTypeChecker> checkers = new ArrayList<>();
-        checkers.add(getExclusivityChecker());
-        checkers.addAll(getLatticeSubcheckers());
-        return checkers;
     }
     
     public String getInputDir() {
