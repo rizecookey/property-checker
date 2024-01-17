@@ -8,6 +8,7 @@ class Bar {
 class Foo {
     @ReadOnly Bar readOnly;
     @MaybeAliased Bar aliased;
+    // :: error: initialization.field.uninitialized
     @Unique Bar unique;
 
     public void foo(@ReadOnly Foo this) {

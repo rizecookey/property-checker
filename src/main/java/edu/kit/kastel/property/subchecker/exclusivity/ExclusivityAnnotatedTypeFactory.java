@@ -6,6 +6,7 @@ import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePath;
 
+import edu.kit.kastel.property.packing.PackingFieldAccessTreeAnnotator;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -94,6 +95,7 @@ public final class ExclusivityAnnotatedTypeFactory extends BaseAnnotatedTypeFact
             treeAnnotators.add(dependentTypesHelper.createDependentTypesTreeAnnotator());
         }
         treeAnnotators.add(new ExclusivityTreeAnnotator(this));
+        treeAnnotators.add(new PackingFieldAccessTreeAnnotator(this));
         return new ListTreeAnnotator(treeAnnotators);
     }
 

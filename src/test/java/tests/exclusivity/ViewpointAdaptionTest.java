@@ -22,7 +22,7 @@ public class ViewpointAdaptionTest extends CheckerFrameworkPerDirectoryTest {
         super(
                 testFiles,
                 PropertyChecker.class,
-                "exclusivity/methodinvocation",
+                "exclusivity/viewpointadaption",
                 "-Anomsgtext",
                 "-Astubs=stubs/",
                 "-nowarn");

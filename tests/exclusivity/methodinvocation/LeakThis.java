@@ -1,22 +1,25 @@
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
 
 class LeakThis {
+
     @ReadOnly LeakThis readOnly;
     @Unique LeakThis unique;
     @MaybeAliased LeakThis aliased;
-    
+
+    // :: error: initialization.fields.uninitialized
     LeakThis() {
         this.readOnly = this;
         this.mthReadOnly();
     }
-    
+
     LeakThis(boolean dummy) {
         // :: error: type.invalid
         this.unique = this;
         // :: error: type.invalid
         this.mthUnique();
     }
-    
+
+    // :: error: initialization.fields.uninitialized
     LeakThis(int dummy) {
         // :: error: type.invalid
         this.aliased = this;

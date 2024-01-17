@@ -49,7 +49,8 @@ import org.checkerframework.org.plumelib.util.ArrayMap;
     Config.QUAL_PKG_OPTION,
     Config.TRANSLATION_JML_DIALECT_OPTION,
     Config.TRANSLATION_ONLY_OPTION,
-    Config.NO_EXCLUSITIVY_OPTION
+    Config.NO_EXCLUSITIVY_OPTION,
+    "assumeInitialized"
 })
 public final class PropertyChecker extends PackingChecker {
 

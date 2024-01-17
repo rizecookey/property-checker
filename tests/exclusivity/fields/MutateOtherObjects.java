@@ -1,6 +1,8 @@
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
 
 class MutateOtherObjects {
+
+    // :: error: initialization.field.uninitialized
     @Unique Foo foo;
 
     void mutate(@Unique MutateOtherObjects this, @Unique MutateOtherObjects other) {

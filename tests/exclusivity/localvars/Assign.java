@@ -1,8 +1,10 @@
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
 
 class Assign {
+
+    // :: error: initialization.field.uninitialized
     @Unique Foo foo;
-    // :: error: type.invalid
+    // :: error: type.invalid :: error: initialization.field.uninitialized
     @ExclBottom Foo bar;
 
     void assignReadOnlyThis(@ReadOnly Assign this) {
