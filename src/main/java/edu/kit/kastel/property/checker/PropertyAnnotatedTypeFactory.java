@@ -21,6 +21,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import edu.kit.kastel.property.packing.PackingAnnotatedTypeFactory;
+import edu.kit.kastel.property.packing.PackingStore;
+import edu.kit.kastel.property.packing.PackingTransfer;
 import org.checkerframework.checker.initialization.InitializationStore;
 import org.checkerframework.checker.initialization.InitializationTransfer;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -34,7 +36,7 @@ public final class PropertyAnnotatedTypeFactory extends PackingAnnotatedTypeFact
         super(checker);
         postInit();
     }
-    
+
     @SuppressWarnings("nls")
     @Override
     protected @Nullable CFGVisualizer<CFValue, PackingStore, PackingTransfer> createCFGVisualizer() {

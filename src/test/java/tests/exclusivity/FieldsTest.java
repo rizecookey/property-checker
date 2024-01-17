@@ -1,5 +1,6 @@
 package tests.exclusivity;
 
+import edu.kit.kastel.property.checker.PropertyChecker;
 import org.checkerframework.framework.test.CheckerFrameworkPerDirectoryTest;
 import org.junit.runners.Parameterized.Parameters;
 
@@ -20,7 +21,7 @@ public class FieldsTest extends CheckerFrameworkPerDirectoryTest {
     public FieldsTest(List<File> testFiles) {
         super(
                 testFiles,
-                ExclusivityChecker.class,
+                PropertyChecker.class,
                 "exclusivity/fields",
                 "-Anomsgtext",
                 "-Astubs=stubs/",

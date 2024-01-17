@@ -26,6 +26,8 @@ public abstract class PackingChecker extends InitializationChecker {
 
     @Override
     protected PackingVisitor createSourceVisitor() {
+        // Don't load the visitor reflexively based on checker class name.
+        // Instead, always use the PackingVisitor.
         return new PackingVisitor(this);
     }
 }

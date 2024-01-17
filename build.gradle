@@ -24,7 +24,7 @@ configurations {
 }
 
 ext.versions = [
-        checkerFramework: "3.42.0-eisop2",
+        checkerFramework: "3.42.0-eisop3",
 ]
 
 
@@ -34,9 +34,9 @@ def checkerframework_local = true  // Set this variable to [true] while using lo
 dependencies {
     // This dependency is found on compile classpath of this component and consumers.
     if (checkerframework_local) {
-        implementation files('checker-framework/dist/checker-3.42.0-eisop2-SNAPSHOT.jar')
-        implementation files('checker-framework/dist/checker-qual-3.42.0-eisop2-SNAPSHOT.jar')
-        implementation files('checker-framework/dist/framework-3.42.0-eisop2-SNAPSHOT.jar')
+        implementation files('checker-framework/dist/checker-3.42.0-eisop3-SNAPSHOT.jar')
+        implementation files('checker-framework/dist/checker-qual-3.42.0-eisop3-SNAPSHOT.jar')
+        implementation files('checker-framework/dist/framework-3.42.0-eisop3-SNAPSHOT.jar')
         
     }
     else {
@@ -52,8 +52,8 @@ dependencies {
     // Testing
     testImplementation 'junit:junit:4.13'
     if (checkerframework_local) {
-        implementation files('checker-framework/dist/checker-3.42.0-eisop2-SNAPSHOT.jar')
-        implementation files('checker-framework/dist/framework-test-3.42.0-eisop2-SNAPSHOT.jar')
+        implementation files('checker-framework/dist/checker-3.42.0-eisop3-SNAPSHOT.jar')
+        implementation files('checker-framework/dist/framework-test-3.42.0-eisop3-SNAPSHOT.jar')
     } else {
         testImplementation "org.checkerframework:framework-test:${versions.checkerFramework}"
     }
