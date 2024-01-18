@@ -13,7 +13,7 @@ final class B extends A {
     // :: error: initialization.field.uninitialized
     @Unique Object bField;
 
-    void foo(@Unique B this) {
+    void correctPacking(@Unique B this) {
         Packing.unpack(this, B.class);
         this.isPackedToA();
         Packing.unpack(this, A.class);
@@ -24,18 +24,38 @@ final class B extends A {
         this.isFullyPacked();
     }
 
+    void correctPackingCovariant(@UnknownInitialization(A.class) @Unique B this) {
+        Packing.unpack(this, A.class);
+        this.isPackedToAtLeastObject();
+        Packing.pack(this, A.class);
+        this.isPackedToPackedToAtLeastA();
+        Packing.pack(this, B.class);
+        this.isFullyPacked();
+    }
+
     void isUnpacked(@Unique @UnderInitialization(Object.class) B this) {}
     void isPackedToA(@Unique @UnderInitialization(A.class) B this) {}
     void isPackedToB(@Unique @UnderInitialization(B.class) B this) {}
     void isFullyPacked(@Unique @UnderInitialization(B.class) B this) {}
+    void isPackedToAtLeastObject(@Unique @UnknownInitialization(Object.class) B this) {}
+    void isPackedToPackedToAtLeastA(@Unique @UnknownInitialization(A.class) B this) {}
 
-    void bar(@Unique B this) {
+    void doublePacking0(@Unique B this) {
         Packing.unpack(this, B.class);
         // :: error: initialization.already.unpacked
         Packing.unpack(this, B.class);
         Packing.pack(this, B.class);
         // :: error: initialization.already.packed
         Packing.pack(this, B.class);
+    }
+
+    void doublePacking1(@Unique B this) {
+        Packing.unpack(this, A.class);
+        // :: error: initialization.already.unpacked
+        Packing.unpack(this, B.class);
+        Packing.pack(this, B.class);
+        // :: error: initialization.already.packed
+        Packing.pack(this, A.class);
     }
 
     void baz(@Unique B this) {
