@@ -18,6 +18,9 @@ package edu.kit.kastel.property.util;
 
 import com.sun.source.tree.Tree.Kind;
 
+import edu.kit.kastel.property.checker.PropertyChecker;
+import edu.kit.kastel.property.packing.PackingChecker;
+import edu.kit.kastel.property.packing.PackingFieldAccessSubchecker;
 import edu.kit.kastel.property.subchecker.lattice.LatticeSubchecker;
 
 public final class ClassUtils {
@@ -47,8 +50,16 @@ public final class ClassUtils {
         
 	}
 
+    public static Class<?> classOrPrimitiveForName(String str, PackingFieldAccessSubchecker checker) {
+        return classOrPrimitiveForName(str, checker.getPackingChecker());
+    }
+
     @SuppressWarnings("nls")
     public static Class<?> classOrPrimitiveForName(String str, LatticeSubchecker checker) {
+        return classOrPrimitiveForName(str, checker.getParentChecker());
+    }
+
+    public static Class<?> classOrPrimitiveForName(String str, PackingChecker checker) {
         switch(str) {
         case "boolean": return boolean.class;
         case "byte": return byte.class;

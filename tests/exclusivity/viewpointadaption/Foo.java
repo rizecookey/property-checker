@@ -12,7 +12,7 @@ class Foo {
     @Unique Bar unique;
 
     public void foo(@ReadOnly Foo this) {
-        // :: error: type.invalid
+        // :: error: exclusivity.type.invalidated
         this.unique.change();
     }
 
@@ -21,17 +21,17 @@ class Foo {
     }
 
     public @ReadOnly Bar getReadOnlyFake(@ReadOnly Foo this) {
-        // :: error: type.invalid
+        // :: error: exclusivity.type.invalidated
         this.unique.change();
-        // :: error: type.invalid
+        // :: error: exclusivity.type.invalidated
         this.aliased.change();
-        // :: error: type.invalid
+        // :: error: exclusivity.type.invalidated
         this.readOnly.change();
         return readOnly;
     }
 
     public @Unique Bar getUniqueFromReadOnly(@ReadOnly Foo this) {
-        // :: error: type.invalid
+        // :: error: exclusivity.type.invalidated
         return unique;
     }
 
@@ -40,7 +40,7 @@ class Foo {
     }
 
     public @Unique Bar getUniqueFromAliasedWrong(@MaybeAliased Foo this) {
-        // :: error: type.invalid
+        // :: error: exclusivity.type.invalidated
         return unique;
     }
 
@@ -54,7 +54,7 @@ class Foo {
 
     public @Unique Bar getUniqueFromUnique(@Unique Foo this) {
         // The adapted field type is compatible with the result type, we we're not allowed to leak a unique field
-        // :: error: type.invalid
+        // :: error: exclusivity.type.invalidated
         return unique;
     }
 

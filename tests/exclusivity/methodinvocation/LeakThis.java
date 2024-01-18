@@ -13,17 +13,17 @@ class LeakThis {
     }
 
     LeakThis(boolean dummy) {
-        // :: error: type.invalid
+        // :: error: exclusivity.type.invalidated
         this.unique = this;
-        // :: error: type.invalid
+        // :: error: exclusivity.type.invalidated
         this.mthUnique();
     }
 
     // :: error: initialization.fields.uninitialized
     LeakThis(int dummy) {
-        // :: error: type.invalid
+        // :: error: exclusivity.type.invalidated
         this.aliased = this;
-        // :: error: type.invalid
+        // :: error: exclusivity.type.invalidated
         this.mthAliased();
     }
 
@@ -37,7 +37,7 @@ class LeakThis {
     }
     
     void mthUnique(@Unique LeakThis this) {
-        // :: error: type.invalid
+        // :: error: exclusivity.type.invalidated
         this.unique = this;
     }
     
@@ -45,12 +45,12 @@ class LeakThis {
     
     void bar0() {
         LeakThis a = new LeakThis();
-        // :: error: type.invalid
+        // :: error: exclusivity.type.invalidated
         a.foo0(a);
     }
     
     void bar1(@Unique LeakThis this) {
-        // :: error: type.invalid
+        // :: error: exclusivity.type.invalidated
         this.foo0(this);
     }
     
@@ -64,13 +64,13 @@ class LeakThis {
     void bar3() {
         LeakThis a = new LeakThis();
         LeakThis b = new LeakThis();
-        // :: error: type.invalid
+        // :: error: exclusivity.type.invalidated
         a.foo1(b, b);
     }
     
     void bar4(@Unique LeakThis this) {
         LeakThis a = new LeakThis();
-        // :: error: type.invalid
+        // :: error: exclusivity.type.invalidated
         a.foo1(this, this);
     }
     

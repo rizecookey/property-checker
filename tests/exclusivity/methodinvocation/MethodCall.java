@@ -21,7 +21,7 @@ class MethodCall {
         @Unique Foo a;
         x = new Foo();   // x is refined to @Unique
         this.mthParam(x);     // x is refined to @MaybeAliased
-        // :: error: type.invalid
+        // :: error: exclusivity.type.invalidated
         a = x;           // invalid, x is not @Unique anymore
     }
 
@@ -34,7 +34,7 @@ class MethodCall {
         @Unique Foo a;
         this.field = new Foo(); // field is refined to @Unique
         this.mthUnique();
-        // :: error: type.invalid
+        // :: error: exclusivity.type.invalidated
         a = this.field; // invalid, refinement of field has been forgotten
     }
 
@@ -43,7 +43,7 @@ class MethodCall {
         @Unique Foo a;
         this.field = new Foo(); // field is refined to @Unique
         this.mthMA();
-        // :: error: type.invalid
+        // :: error: exclusivity.type.invalidated
         a = this.field; // invalid, refinement of field has been forgotten
     }
 

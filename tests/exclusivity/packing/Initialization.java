@@ -6,11 +6,13 @@ class Foo {
     @Unique Object unique;
 
     Foo() {
-        // :: error: method.invocation.invalid
-        foo(unique);
-        unique = new Object();
-        foo(unique);
+        this.foo(this.unique);
     }
 
-    void foo(@Unique Object bar) {}
+    Foo(int dummy) {
+        this.unique = new Object();
+        this.foo(this.unique);
+    }
+
+    void foo(@Unique Foo this, @Unique Object bar) {}
 }

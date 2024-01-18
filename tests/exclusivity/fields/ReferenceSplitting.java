@@ -12,7 +12,7 @@ class ReferenceSplitting {
 
         x = new Foo();  // x is refined to @ExclMut
         a = x;          // x is updated to @ReadOnly
-        // :: error: type.invalid
+        // :: error: exclusivity.type.invalidated
         this.field = x; // invalid, x is not @ExclMut anymore
     }
 }

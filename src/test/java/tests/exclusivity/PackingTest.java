@@ -3,6 +3,7 @@ package tests.exclusivity;
 import edu.kit.kastel.property.checker.PropertyChecker;
 import org.checkerframework.framework.test.CheckerFrameworkPerDirectoryTest;
 import org.junit.runners.Parameterized.Parameters;
+import tests.property.PropertyCheckerTest;
 
 import java.io.File;
 import java.util.List;
@@ -15,19 +16,16 @@ import java.util.List;
  * errors and warnings; see
  * https://github.com/typetools/checker-framework/blob/master/checker/tests/README .
  */
-public class InitializationTest extends CheckerFrameworkPerDirectoryTest {
-    public InitializationTest(List<File> testFiles) {
+public class PackingTest extends PropertyCheckerTest {
+    public PackingTest(List<File> testFiles) {
         super(
                 testFiles,
-                PropertyChecker.class,
-                "exclusivity/initialization",
-                "-Anomsgtext",
-                "-Astubs=stubs/",
-                "-nowarn");
+                null,
+                "tests/exclusivity/packing");
     }
 
     @Parameters
     public static String[] getTestDirs() {
-        return new String[] {"exclusivity/initialization"};
+        return new String[] {"exclusivity/packing"};
     }
 }

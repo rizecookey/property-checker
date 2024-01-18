@@ -4,7 +4,7 @@ class Assign {
 
     // :: error: initialization.field.uninitialized
     @Unique Foo foo;
-    // :: error: type.invalid :: error: initialization.field.uninitialized
+    // :: error: exclusivity.type.invalidated :: error: initialization.field.uninitialized
     @ExclBottom Foo bar;
 
     void assignReadOnlyThis(@ReadOnly Assign this) {

@@ -95,7 +95,7 @@ class Primitives {
     }
 
     @Unique Foo copyUniqueFieldReference() {
-        // :: error: type.invalid
+        // :: error: exclusivity.type.invalidated
         return this.unique;
     }
 

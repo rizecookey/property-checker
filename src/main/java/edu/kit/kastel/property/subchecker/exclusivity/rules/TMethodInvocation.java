@@ -38,6 +38,7 @@ public class TMethodInvocation extends AbstractTypeRule<MethodInvocationNode> {
             return;
         }
 
+        // "param_0 = arg_0"
         System.out.printf("%s(", node.getTarget().getMethod().getSimpleName());
         AnnotationMirror receiverTypeAnno = factory.getExclusivityAnnotation(receiverType.getAnnotationMirrors());
         new TAssign(store, factory, analysis).applyOrInvalidate(receiverTypeAnno, receiver);
@@ -70,7 +71,8 @@ public class TMethodInvocation extends AbstractTypeRule<MethodInvocationNode> {
                                 .getReceiverType();
 
                 if (currentMethodReceiverType == null) {
-                    System.err.printf("warning: ignoring call in method without explicit 'this' parameter declaration: %s\n",
+                    System.err.printf(
+                            "warning: ignoring call in method without explicit 'this' parameter declaration: %s\n",
                             analysis.getContainingMethod(node.getTree()));
                     return;
                 }

@@ -56,8 +56,6 @@ public final class PropertyChecker extends PackingChecker {
 
     private Map<String, PriorityQueue<LatticeVisitor.Result>> results = new HashMap<>();
 
-    private URLClassLoader projectClassLoader;
-
     public PropertyChecker() { }
 
     @Override
@@ -109,10 +107,6 @@ public final class PropertyChecker extends PackingChecker {
         return Collections.unmodifiableList(latticeSubcheckers);
     }
     
-    public String getInputDir() {
-    	return getOption(Config.INPUT_DIR_OPTION);
-    }
-    
     public String[] getLattices() {
     	return getOption(Config.LATTICES_FILE_OPTION).split(Config.SPLIT);
     }
@@ -123,43 +117,6 @@ public final class PropertyChecker extends PackingChecker {
     
     public String getQualPackage() {
     	return getOption(Config.QUAL_PKG_OPTION);
-    }
-
-    @SuppressWarnings("nls")
-    public URLClassLoader getProjectClassLoader() {
-        if (projectClassLoader == null) {
-            try {
-                File projectClasses = new File(getInputDir());
-
-                JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-                StandardJavaFileManager fileManager = compiler.getStandardFileManager(null, null, null);
-                @SuppressWarnings({ "unchecked" })
-                Iterable<? extends JavaFileObject> src = fileManager.getJavaFileObjectsFromFiles(
-                        FileUtils.listFiles(projectClasses, new String[] {"java"}, true));
-
-                ClassLoader currentClassLoader = InternalUtils.getClassLoaderForClass(getClass());
-                String sep = System.getProperty("path.separator");
-                String classPathStr = System.getProperty("java.class.path") + sep + projectClasses.toURI().toURL();
-                
-                if (currentClassLoader instanceof URLClassLoader) {
-                    classPathStr +=
-                            sep
-                            + Arrays.stream(((URLClassLoader) currentClassLoader).getURLs()).map(URL::toString).collect(Collectors.joining(sep));
-                }
-                
-                JavaCompiler.CompilationTask task = compiler.getTask(null, fileManager, null,
-                        Arrays.asList("-classpath", classPathStr),
-                        null, src);
-                task.call();
-                
-                projectClassLoader = new URLClassLoader(new URL[] {projectClasses.toURI().toURL()}, currentClassLoader);
-            } catch (IOException e) {
-                e.printStackTrace();
-                System.exit(1);
-            }
-        }
-
-        return projectClassLoader;
     }
 
     public void addResult(String fileName, LatticeVisitor.Result result) {

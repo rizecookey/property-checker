@@ -36,6 +36,7 @@ dependencies {
     if (checkerframework_local) {
         implementation files('checker-framework/dist/checker-3.42.0-eisop3-SNAPSHOT.jar')
         implementation files('checker-framework/dist/checker-qual-3.42.0-eisop3-SNAPSHOT.jar')
+        implementation files('checker-framework/dist/dataflow-3.42.0-eisop3-SNAPSHOT.jar')
         implementation files('checker-framework/dist/framework-3.42.0-eisop3-SNAPSHOT.jar')
         
     }
