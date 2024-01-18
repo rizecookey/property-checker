@@ -36,7 +36,7 @@ final class B extends A {
     void isUnpacked(@Unique @UnderInitialization(Object.class) B this) {}
     void isPackedToA(@Unique @UnderInitialization(A.class) B this) {}
     void isPackedToB(@Unique @UnderInitialization(B.class) B this) {}
-    void isFullyPacked(@Unique @UnderInitialization(B.class) B this) {}
+    void isFullyPacked(@Unique @Initialized B this) {}
     void isPackedToAtLeastObject(@Unique @UnknownInitialization(Object.class) B this) {}
     void isPackedToPackedToAtLeastA(@Unique @UnknownInitialization(A.class) B this) {}
 
@@ -60,10 +60,10 @@ final class B extends A {
 
     void baz(@Unique B this) {
         Packing.unpack(this, B.class);
-        this.field = null;
+        this.bField = null;
         // :: error: initialization.fields.uninitialized
         Packing.pack(this, B.class);
-        this.field = new Object();
+        this.bField = new Object();
         Packing.pack(this, B.class);
     }
 }
