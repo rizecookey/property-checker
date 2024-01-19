@@ -33,8 +33,6 @@ public abstract class PackingChecker extends InitializationChecker {
     @Override
     public NavigableSet<String> getSuppressWarningsPrefixes() {
         NavigableSet<String> result = super.getSuppressWarningsPrefixes();
-        // The default prefix "packing" must be added manually because this checker class
-        // is abstract and its subclasses are not named "PackingChecker".
         result.add("packing");
         return result;
     }

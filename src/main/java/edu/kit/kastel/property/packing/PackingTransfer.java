@@ -62,8 +62,10 @@ public class PackingTransfer extends InitializationAbstractTransfer<CFValue, Pac
                 } else {
                     newAnnotation = atypeFactory.createUnderInitializationAnnotation(clazzToPackTo);
                 }
+
                 store.insertValue(objToPack, newAnnotation);
-                return new RegularTransferResult<>(null, store);
+
+                return new RegularTransferResult<>(null, store, true);
             }
         }
 

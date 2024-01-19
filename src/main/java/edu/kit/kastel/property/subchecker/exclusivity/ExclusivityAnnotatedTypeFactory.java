@@ -60,6 +60,11 @@ public final class ExclusivityAnnotatedTypeFactory extends BaseAnnotatedTypeFact
     }
 
     @Override
+    public AnnotatedTypeMirror.AnnotatedNullType getAnnotatedNullType(Set<? extends AnnotationMirror> annotations) {
+        return super.getAnnotatedNullType(annotations);
+    }
+
+    @Override
     public CFTransfer createFlowTransferFunction(CFAbstractAnalysis<CFValue, CFStore, CFTransfer> analysis) {
         return new ExclusivityTransfer(analysis, this);
     }

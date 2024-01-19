@@ -514,7 +514,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
 
                 for (int i = 0; i < invokedMethod.getParameterTypes().size(); ++i) {
                     if (!wellTypedness.getLattice().getPropertyAnnotation(methodType.getParameterTypes().get(i)).getAnnotationType().isTrivial()) {
-                        args.add(wellTypedness.getMalTypedConstructorParams(tree).contains(i) || TRANSLATION_RAW ? "false" : "true");
+                        args.add(wellTypedness.getIllTypedConstructorParams(tree).contains(i) || TRANSLATION_RAW ? "false" : "true");
                     }
                 }
             }
@@ -555,7 +555,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
 
                 if (!ElementUtils.isStatic(invokedMethod.getElement())) {
                     if (!wellTypedness.getLattice().getPropertyAnnotation(methodType.getReceiverType()).getAnnotationType().isTrivial()) {
-                    	if (wellTypedness.getMalTypedMethodReceivers().contains(tree) || TRANSLATION_RAW ) {
+                    	if (wellTypedness.getIllTypedMethodReceivers().contains(tree) || TRANSLATION_RAW ) {
                     		booleanArgs.add("false");
                     		++methodCallPreconditions;
                     	} else {
@@ -567,7 +567,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
 
                 for (int i = 0; i < invokedMethod.getParameterTypes().size(); ++i) {
                     if (!wellTypedness.getLattice().getPropertyAnnotation(methodType.getParameterTypes().get(i)).getAnnotationType().isTrivial()) {
-                    	if (wellTypedness.getMalTypedMethodParams(tree).contains(i) || TRANSLATION_RAW) {
+                    	if (wellTypedness.getIllTypedMethodParams(tree).contains(i) || TRANSLATION_RAW) {
                     		booleanArgs.add("false");
                     		++methodCallPreconditions;
                     	} else {

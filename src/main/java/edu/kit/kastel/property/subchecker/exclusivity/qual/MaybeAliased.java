@@ -1,6 +1,7 @@
 package edu.kit.kastel.property.subchecker.exclusivity.qual;
 
 import org.checkerframework.checker.initialization.qual.HoldsForDefaultValue;
+import org.checkerframework.framework.qual.DefaultFor;
 import org.checkerframework.framework.qual.DefaultQualifierInHierarchy;
 import org.checkerframework.framework.qual.SubtypeOf;
 

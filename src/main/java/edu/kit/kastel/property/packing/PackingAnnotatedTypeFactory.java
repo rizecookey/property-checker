@@ -1,5 +1,8 @@
 package edu.kit.kastel.property.packing;
 
+import com.sun.source.tree.Tree;
+import com.sun.source.tree.VariableTree;
+import com.sun.source.util.TreePath;
 import org.checkerframework.checker.initialization.*;
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
@@ -7,13 +10,17 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.dataflow.cfg.visualize.CFGVisualizer;
 import org.checkerframework.framework.flow.CFAbstractAnalysis;
+import org.checkerframework.framework.flow.CFAbstractStore;
 import org.checkerframework.framework.flow.CFValue;
+import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.framework.util.QualifierKind;
 import org.checkerframework.javacutil.AnnotationUtils;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.type.TypeMirror;
+import java.util.Collection;
+import java.util.List;
 
 public class PackingAnnotatedTypeFactory
         extends InitializationAbstractAnnotatedTypeFactory<CFValue, PackingStore, PackingTransfer, PackingAnalysis> {
@@ -43,6 +50,48 @@ public class PackingAnnotatedTypeFactory
     @Override
     protected QualifierHierarchy createQualifierHierarchy() {
         return new PackingQualifierHierarchy();
+    }
+
+    @Override
+    public List<VariableTree> getUninitializedFields(
+            PackingStore store, TreePath path, boolean isStatic, Collection<? extends AnnotationMirror> receiverAnnotations) {
+        getFieldAccessFactory().setComputingUninitializedFields(true);
+        List<VariableTree> result = super.getUninitializedFields(store, path, isStatic, receiverAnnotations);
+        getFieldAccessFactory().setComputingUninitializedFields(false);
+        return result;
+    }
+
+    @Override
+    public List<VariableTree> getUninitializedFields(
+            PackingStore initStore, CFAbstractStore<?, ?> targetStore, TreePath path, boolean isStatic, Collection<? extends AnnotationMirror> receiverAnnotations) {
+        getFieldAccessFactory().setComputingUninitializedFields(true);
+        List<VariableTree> result = super.getUninitializedFields(initStore, targetStore, path, isStatic, receiverAnnotations);
+        getFieldAccessFactory().setComputingUninitializedFields(false);
+        return result;
+    }
+
+    @Override
+    protected void setSelfTypeInInitializationCode(
+            Tree tree, AnnotatedTypeMirror.AnnotatedDeclaredType selfType, TreePath path) {
+        // TODO: For now, the packing checker only changes a reference's type for explicit (un-)pack statements.
+        // When implementing implicit (un-)packing, remove this override.
+        return;
+    }
+
+    protected AnnotationMirror getInitialized() {
+        return INITIALIZED;
+    }
+
+    protected AnnotationMirror getUnknownInitialization() {
+        return UNKNOWN_INITIALIZATION;
+    }
+
+    protected AnnotationMirror getUnderInitialization() {
+        return UNDER_INITALIZATION;
+    }
+
+    protected AnnotationMirror getFBCBottom() {
+        return FBCBOTTOM;
     }
 
     protected class PackingQualifierHierarchy extends InitializationQualifierHierarchy {

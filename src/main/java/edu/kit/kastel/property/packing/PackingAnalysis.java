@@ -3,6 +3,7 @@ package edu.kit.kastel.property.packing;
 import org.checkerframework.checker.initialization.*;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
+import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.framework.flow.CFValue;
 import org.checkerframework.javacutil.AnnotationMirrorSet;
 

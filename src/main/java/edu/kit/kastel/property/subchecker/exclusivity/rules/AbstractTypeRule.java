@@ -18,6 +18,7 @@ import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.TreeUtils;
 
 import javax.lang.model.element.AnnotationMirror;
+import java.lang.annotation.Annotation;
 import java.util.Collections;
 
 abstract class AbstractTypeRule<N extends Node> implements TypeRule {
@@ -119,7 +120,6 @@ abstract class AbstractTypeRule<N extends Node> implements TypeRule {
     protected final void canUpdateType(AnnotationMirror declTypeAnno, AnnotationMirror refinedType)
             throws RuleNotApplicable {
         if (!isValidRefinement(declTypeAnno, refinedType)) {
-            // TODO This is technically not the correct exception
             throw new RuleNotApplicable(getName(), declTypeAnno, "refinement violates declaration");
         }
     }
@@ -141,6 +141,8 @@ abstract class AbstractTypeRule<N extends Node> implements TypeRule {
             //TODO
             assert false;
             oldAnno = null;
+        } else if (node instanceof ValueLiteralNode) {
+            return factory.MAYBE_ALIASED;
         } else {
             CFValue value = null;
             if (node instanceof FieldAccessNode) {

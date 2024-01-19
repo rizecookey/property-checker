@@ -100,19 +100,19 @@ public final class LatticeVisitor extends BaseTypeVisitor<LatticeAnnotatedTypeFa
 
     @Override
     public Void visitReturn(ReturnTree node, Void p) {
-        call(() -> super.visitReturn(node, p), () -> result.malTypedReturns.add(node));
+        call(() -> super.visitReturn(node, p), () -> result.illTypedReturns.add(node));
         return null;
     }
 
     @Override
     public Void visitAssignment(AssignmentTree node, Void p) {
-        call(() -> super.visitAssignment(node, p), () -> result.malTypedAssignments.add(node));
+        call(() -> super.visitAssignment(node, p), () -> result.illTypedAssignments.add(node));
         return null;
     }
 
     @Override
     public Void visitVariable(VariableTree node, Void p) {
-        call(() -> super.visitVariable(node, p), () -> result.malTypedVars.add(node));
+        call(() -> super.visitVariable(node, p), () -> result.illTypedVars.add(node));
 
         AnnotatedTypeMirror varType = atypeFactory.getAnnotatedTypeLhs(node);
 
@@ -267,9 +267,9 @@ public final class LatticeVisitor extends BaseTypeVisitor<LatticeAnnotatedTypeFa
                     () -> {
                         Tree leaf = getCurrentPath().getLeaf();
                         if (leaf instanceof MethodInvocationTree) {
-                            result.addMalTypedMethodParam((MethodInvocationTree) getCurrentPath().getLeaf(), idx);
+                            result.addillTypedMethodParam((MethodInvocationTree) getCurrentPath().getLeaf(), idx);
                         } else {
-                            result.addMalTypedConstructorParam((NewClassTree) getCurrentPath().getLeaf(), idx);
+                            result.addillTypedConstructorParam((NewClassTree) getCurrentPath().getLeaf(), idx);
                         }
                     });
 
@@ -318,7 +318,7 @@ public final class LatticeVisitor extends BaseTypeVisitor<LatticeAnnotatedTypeFa
     protected void checkMethodInvocability(AnnotatedExecutableType method, MethodInvocationTree node) {
         call(
                 () -> super.checkMethodInvocability(method, node),
-                () -> result.malTypedMethodReceivers.add(node));
+                () -> result.illTypedMethodReceivers.add(node));
     }
 
     @Override
@@ -341,7 +341,7 @@ public final class LatticeVisitor extends BaseTypeVisitor<LatticeAnnotatedTypeFa
             checker.reportError(
                     constructorElement, "inconsistent.constructor.type", constructorAnno, top); //$NON-NLS-1$
 
-            result.malTypedConstructors.add(enclMethod);
+            result.illTypedConstructors.add(enclMethod);
         }
     }
 
@@ -376,10 +376,10 @@ public final class LatticeVisitor extends BaseTypeVisitor<LatticeAnnotatedTypeFa
 
         private LatticeSubchecker checker;
 
-        private Set<AssignmentTree> malTypedAssignments = new HashSet<>();
-        private Set<VariableTree> malTypedVars = new HashSet<>();
-        private Set<ReturnTree> malTypedReturns = new HashSet<>();
-        private Set<MethodTree> malTypedConstructors = new HashSet<>();
+        private Set<AssignmentTree> illTypedAssignments = new HashSet<>();
+        private Set<VariableTree> illTypedVars = new HashSet<>();
+        private Set<ReturnTree> illTypedReturns = new HashSet<>();
+        private Set<MethodTree> illTypedConstructors = new HashSet<>();
 
         private Map<MethodTree, List<Pair<AnnotatedDeclaredType, AnnotatedExecutableType>>> overriddenMethods = new HashMap<>();
 
@@ -389,9 +389,9 @@ public final class LatticeVisitor extends BaseTypeVisitor<LatticeAnnotatedTypeFa
         private Map<String, List<Union<StatementTree, VariableTree, BlockTree>>> instanceInitializers = new HashMap<>();
         private Map<String, List<Union<StatementTree, VariableTree, BlockTree>>> staticInitializers = new HashMap<>();
 
-        private Map<MethodInvocationTree, Set<Integer>> malTypedMethodParams = new HashMap<>();
-        private Set<MethodInvocationTree> malTypedMethodReceivers = new HashSet<>();
-        private Map<NewClassTree, Set<Integer>> malTypedConstructorParams = new HashMap<>();
+        private Map<MethodInvocationTree, Set<Integer>> illTypedMethodParams = new HashMap<>();
+        private Set<MethodInvocationTree> illTypedMethodReceivers = new HashSet<>();
+        private Map<NewClassTree, Set<Integer>> illTypedConstructorParams = new HashMap<>();
 
         private Result(LatticeSubchecker checker) {
             this.checker = checker;
@@ -410,11 +410,11 @@ public final class LatticeVisitor extends BaseTypeVisitor<LatticeAnnotatedTypeFa
         }
 
         public boolean isWellTyped(AssignmentTree tree) {
-            return !malTypedAssignments.contains(tree);
+            return !illTypedAssignments.contains(tree);
         }
 
         public boolean isWellTyped(VariableTree tree) {
-            return !malTypedVars.contains(tree);
+            return !illTypedVars.contains(tree);
         }
 
         public boolean isWellTypedConstructor(MethodTree tree) {
@@ -422,11 +422,11 @@ public final class LatticeVisitor extends BaseTypeVisitor<LatticeAnnotatedTypeFa
                 throw new IllegalArgumentException();
             }
 
-            return !malTypedConstructors.contains(tree);
+            return !illTypedConstructors.contains(tree);
         }
 
         public boolean isWellTyped(ReturnTree tree) {
-            return !malTypedReturns.contains(tree);
+            return !illTypedReturns.contains(tree);
         }
 
         private void addInstanceInvariant(String className, Invariant invariant) {
@@ -445,12 +445,12 @@ public final class LatticeVisitor extends BaseTypeVisitor<LatticeAnnotatedTypeFa
             CollectionUtils.addToListMap(staticInitializers, className, init);
         }
 
-        private void addMalTypedMethodParam(MethodInvocationTree tree, int param) {
-            CollectionUtils.addToSetMap(malTypedMethodParams, tree, param);
+        private void addillTypedMethodParam(MethodInvocationTree tree, int param) {
+            CollectionUtils.addToSetMap(illTypedMethodParams, tree, param);
         }
 
-        private void addMalTypedConstructorParam(NewClassTree tree, int param) {
-            CollectionUtils.addToSetMap(malTypedConstructorParams, tree, param);
+        private void addillTypedConstructorParam(NewClassTree tree, int param) {
+            CollectionUtils.addToSetMap(illTypedConstructorParams, tree, param);
         }
 
         public List<Pair<AnnotatedDeclaredType, AnnotatedExecutableType>> getOverriddenMethods(MethodTree tree) {
@@ -473,23 +473,23 @@ public final class LatticeVisitor extends BaseTypeVisitor<LatticeAnnotatedTypeFa
             return CollectionUtils.getUnmodifiableList(staticInitializers, className);
         }
 
-        public Set<Integer> getMalTypedMethodParams(MethodInvocationTree tree) {
-            return CollectionUtils.getUnmodifiableSet(malTypedMethodParams, tree);
+        public Set<Integer> getIllTypedMethodParams(MethodInvocationTree tree) {
+            return CollectionUtils.getUnmodifiableSet(illTypedMethodParams, tree);
         }
 
-        public Set<MethodInvocationTree> getMalTypedMethodReceivers() {
-            return Collections.unmodifiableSet(malTypedMethodReceivers);
+        public Set<MethodInvocationTree> getIllTypedMethodReceivers() {
+            return Collections.unmodifiableSet(illTypedMethodReceivers);
         }
 
-        public Set<Integer> getMalTypedConstructorParams(NewClassTree tree) {
-            return CollectionUtils.getUnmodifiableSet(malTypedConstructorParams, tree);
+        public Set<Integer> getIllTypedConstructorParams(NewClassTree tree) {
+            return CollectionUtils.getUnmodifiableSet(illTypedConstructorParams, tree);
         }
 
         public void addAll(Result result) {
-            malTypedAssignments.addAll(result.malTypedAssignments);
-            malTypedVars.addAll(result.malTypedVars);
-            malTypedReturns.addAll(result.malTypedReturns);
-            malTypedConstructors.addAll(result.malTypedConstructors);
+            illTypedAssignments.addAll(result.illTypedAssignments);
+            illTypedVars.addAll(result.illTypedVars);
+            illTypedReturns.addAll(result.illTypedReturns);
+            illTypedConstructors.addAll(result.illTypedConstructors);
 
             overriddenMethods.putAll(result.overriddenMethods);
             instanceInvariants.putAll(result.instanceInvariants);
@@ -497,10 +497,10 @@ public final class LatticeVisitor extends BaseTypeVisitor<LatticeAnnotatedTypeFa
             instanceInitializers.putAll(result.instanceInitializers);
             staticInitializers.putAll(result.staticInitializers);
 
-            malTypedMethodParams.putAll(result.malTypedMethodParams);
-            malTypedMethodReceivers.addAll(result.malTypedMethodReceivers);
+            illTypedMethodParams.putAll(result.illTypedMethodParams);
+            illTypedMethodReceivers.addAll(result.illTypedMethodReceivers);
 
-            malTypedConstructorParams.putAll(result.malTypedConstructorParams);
+            illTypedConstructorParams.putAll(result.illTypedConstructorParams);
         }
     }
 
