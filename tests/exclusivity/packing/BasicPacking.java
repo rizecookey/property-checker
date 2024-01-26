@@ -1,6 +1,8 @@
 import edu.kit.kastel.property.util.Packing;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
+import edu.kit.kastel.property.packing.qual.*;
 import org.checkerframework.checker.initialization.qual.*;
+import org.checkerframework.dataflow.qual.*;
 
 class A {
 
@@ -13,11 +15,24 @@ final class B extends A {
     // :: error: initialization.field.uninitialized
     @Unique Object bField;
 
+    @Pure
     void isUnpacked(@Unique @UnderInitialization(Object.class) B this) {}
+
+    @Pure
+    @EnsuresUnderInit(targetValue=A.class)
     void isPackedToA(@Unique @UnderInitialization(A.class) B this) {}
+
+    @Pure
+    @EnsuresUnderInit(targetValue=B.class)
     void isPackedToB(@Unique @UnderInitialization(B.class) B this) {}
+
+    @Pure
     void isFullyPacked(@Unique @Initialized B this) {}
+
+    @Pure
     void isPackedToAtLeastObject(@Unique @UnknownInitialization(Object.class) B this) {}
+
+    @Pure
     void isPackedToPackedToAtLeastA(@Unique @UnknownInitialization(A.class) B this) {}
 
     void correctPacking(@Unique B this) {

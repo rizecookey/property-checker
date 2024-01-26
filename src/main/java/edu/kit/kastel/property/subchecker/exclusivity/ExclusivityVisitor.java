@@ -21,7 +21,13 @@ public final class ExclusivityVisitor extends BaseTypeVisitor<ExclusivityAnnotat
     public ExclusivityVisitor(BaseTypeChecker checker) {
         super(checker);
     }
-    
+
+    @Override
+    public Void visitAnnotation(AnnotationTree tree, Void p) {
+        // do nothing
+        return null;
+    }
+
     @Override
     public Void visitVariable(VariableTree node, Void p) {
         // TODO Not thread-safe :-)

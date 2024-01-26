@@ -1,32 +1,50 @@
 package edu.kit.kastel.property.packing;
 
+import com.sun.source.tree.MethodTree;
 import com.sun.tools.javac.code.Symbol;
 import edu.kit.kastel.property.util.ClassUtils;
 import edu.kit.kastel.property.util.Packing;
 import org.checkerframework.checker.initialization.InitializationAbstractTransfer;
 import org.checkerframework.checker.initialization.qual.FBCBottom;
 import org.checkerframework.checker.initialization.qual.Initialized;
+import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 import org.checkerframework.dataflow.analysis.RegularTransferResult;
 import org.checkerframework.dataflow.analysis.TransferInput;
 import org.checkerframework.dataflow.analysis.TransferResult;
+import org.checkerframework.dataflow.cfg.UnderlyingAST;
 import org.checkerframework.dataflow.cfg.node.*;
 import org.checkerframework.dataflow.expression.ClassName;
 import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.framework.flow.CFValue;
-import org.checkerframework.javacutil.AnnotationBuilder;
-import org.checkerframework.javacutil.AnnotationMirrorSet;
-import org.checkerframework.javacutil.AnnotationUtils;
-import org.checkerframework.javacutil.ElementUtils;
+import org.checkerframework.framework.type.AnnotatedTypeMirror;
+import org.checkerframework.javacutil.*;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.ExecutableElement;
 import java.lang.reflect.Modifier;
+import java.util.List;
 
 public class PackingTransfer extends InitializationAbstractTransfer<CFValue, PackingStore, PackingTransfer> {
 
     public PackingTransfer(PackingAnalysis analysis) {
         super(analysis);
+    }
+
+    @Override
+    public PackingStore initialStore(UnderlyingAST underlyingAST, List<LocalVariableNode> parameters) {
+        UnderlyingAST.CFGMethod method = (UnderlyingAST.CFGMethod) underlyingAST;
+        MethodTree methodDeclTree = method.getMethod();
+        ExecutableElement methodElem = TreeUtils.elementFromDeclaration(methodDeclTree);
+
+        PackingStore initStore = super.initialStore(underlyingAST, parameters);
+        if (methodDeclTree.getReceiverParameter() != null) {
+            AnnotatedTypeMirror thisType = atypeFactory.getAnnotatedType(methodDeclTree.getReceiverParameter());
+            initStore.initializeThisValue(thisType.getAnnotationInHierarchy(
+                    AnnotationBuilder.fromClass(atypeFactory.getElementUtils(), UnderInitialization.class)),
+                    thisType.getUnderlyingType());
+        }
+        return initStore;
     }
 
     @Override
