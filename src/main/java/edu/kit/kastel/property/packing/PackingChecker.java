@@ -1,7 +1,11 @@
 package edu.kit.kastel.property.packing;
 
+import com.sun.source.tree.ClassTree;
+import com.sun.source.tree.Tree;
+import com.sun.source.tree.VariableTree;
 import edu.kit.kastel.property.config.Config;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.ClassUtils;
 import org.checkerframework.checker.initialization.InitializationAnnotatedTypeFactory;
 import org.checkerframework.checker.initialization.InitializationChecker;
 import org.checkerframework.checker.initialization.InitializationVisitor;
@@ -17,9 +21,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.util.Arrays;
-import java.util.NavigableSet;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @SupportedOptions({

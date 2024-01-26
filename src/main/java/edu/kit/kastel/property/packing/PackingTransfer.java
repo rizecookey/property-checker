@@ -1,14 +1,17 @@
 package edu.kit.kastel.property.packing;
 
+import com.sun.tools.javac.code.Symbol;
 import edu.kit.kastel.property.util.ClassUtils;
 import edu.kit.kastel.property.util.Packing;
 import org.checkerframework.checker.initialization.InitializationAbstractTransfer;
+import org.checkerframework.checker.initialization.qual.FBCBottom;
 import org.checkerframework.checker.initialization.qual.Initialized;
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 import org.checkerframework.dataflow.analysis.RegularTransferResult;
 import org.checkerframework.dataflow.analysis.TransferInput;
 import org.checkerframework.dataflow.analysis.TransferResult;
 import org.checkerframework.dataflow.cfg.node.*;
+import org.checkerframework.dataflow.expression.ClassName;
 import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.framework.flow.CFValue;
 import org.checkerframework.javacutil.AnnotationBuilder;
@@ -40,8 +43,9 @@ public class PackingTransfer extends InitializationAbstractTransfer<CFValue, Pac
 
                 JavaExpression objToPack = JavaExpression.fromNode(n.getArgument(0));
 
+                ClassNameNode className = (ClassNameNode) ((FieldAccessNode) n.getArgument(1)).getReceiver();
                 Class<?> clazzArg = ClassUtils.classOrPrimitiveForName(
-                        ((FieldAccessNode) n.getArgument(1)).getReceiver().toString(),
+                        ((Symbol.ClassSymbol) className.getElement()).getQualifiedName().toString(),
                         (PackingFieldAccessSubchecker) atypeFactory.getChecker()
                 );
 
@@ -51,6 +55,12 @@ public class PackingTransfer extends InitializationAbstractTransfer<CFValue, Pac
                     clazzToPackTo = clazzArg;
                 } else /*if (method.getSimpleName().contentEquals("unpack"))*/ {
                     clazzToPackTo = clazzArg.getSuperclass();
+                }
+
+                if (clazzToPackTo == null) {
+                    // This happens when the user tries to unpack from a type with no super type.
+                    store.insertValue(objToPack, AnnotationBuilder.fromClass(atypeFactory.getElementUtils(), FBCBottom.class));
+                    return new RegularTransferResult<>(null, store, true);
                 }
 
                 CFValue oldVal = store.getValue(objToPack);
@@ -64,7 +74,6 @@ public class PackingTransfer extends InitializationAbstractTransfer<CFValue, Pac
                 }
 
                 store.insertValue(objToPack, newAnnotation);
-
                 return new RegularTransferResult<>(null, store, true);
             }
         }

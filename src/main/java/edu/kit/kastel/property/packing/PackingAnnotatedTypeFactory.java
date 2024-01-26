@@ -1,24 +1,37 @@
 package edu.kit.kastel.property.packing;
 
+import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePath;
+import com.sun.tools.javac.code.Type;
+import com.sun.tools.javac.tree.JCTree;
+import edu.kit.kastel.property.util.TypeUtils;
 import org.checkerframework.checker.initialization.*;
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
+import org.checkerframework.dataflow.cfg.node.ClassNameNode;
+import org.checkerframework.dataflow.cfg.node.FieldAccessNode;
+import org.checkerframework.dataflow.cfg.node.ImplicitThisNode;
+import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.dataflow.cfg.visualize.CFGVisualizer;
 import org.checkerframework.framework.flow.CFAbstractAnalysis;
 import org.checkerframework.framework.flow.CFAbstractStore;
+import org.checkerframework.framework.flow.CFAbstractValue;
 import org.checkerframework.framework.flow.CFValue;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
+import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
 import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.framework.util.QualifierKind;
-import org.checkerframework.javacutil.AnnotationUtils;
+import org.checkerframework.javacutil.*;
 
 import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
+import javax.lang.model.util.ElementFilter;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -53,21 +66,38 @@ public class PackingAnnotatedTypeFactory
     }
 
     @Override
-    public List<VariableTree> getUninitializedFields(
-            PackingStore store, TreePath path, boolean isStatic, Collection<? extends AnnotationMirror> receiverAnnotations) {
-        getFieldAccessFactory().setComputingUninitializedFields(true);
-        List<VariableTree> result = super.getUninitializedFields(store, path, isStatic, receiverAnnotations);
-        getFieldAccessFactory().setComputingUninitializedFields(false);
-        return result;
+    public List<VariableElement> getUninitializedFields(
+            PackingStore initStore,
+            CFAbstractStore<?, ?> targetStore,
+            TreePath path, boolean isStatic,
+            Collection<? extends AnnotationMirror> receiverAnnotations) {
+        boolean wasComputingUninitializedFields = getFieldAccessFactory().isComputingUninitializedFields();
+
+        List<VariableElement> uninitializedFields =  super.getUninitializedFields(initStore, targetStore, path, isStatic, receiverAnnotations);
+
+        getFieldAccessFactory().setComputingUninitializedFields(wasComputingUninitializedFields);
+        return uninitializedFields;
     }
 
     @Override
-    public List<VariableTree> getUninitializedFields(
-            PackingStore initStore, CFAbstractStore<?, ?> targetStore, TreePath path, boolean isStatic, Collection<? extends AnnotationMirror> receiverAnnotations) {
+    public List<VariableElement> getUninitializedFields(
+            PackingStore store,
+            TreePath path,
+            boolean isStatic,
+            Collection<? extends AnnotationMirror> receiverAnnotations) {
+        boolean wasComputingUninitializedFields = getFieldAccessFactory().isComputingUninitializedFields();
         getFieldAccessFactory().setComputingUninitializedFields(true);
-        List<VariableTree> result = super.getUninitializedFields(initStore, targetStore, path, isStatic, receiverAnnotations);
-        getFieldAccessFactory().setComputingUninitializedFields(false);
-        return result;
+
+        List<VariableElement> uninitializedFields = super.getUninitializedFields(store, path, isStatic, receiverAnnotations);
+
+        getFieldAccessFactory().setComputingUninitializedFields(wasComputingUninitializedFields);
+        return uninitializedFields;
+    }
+
+    @Override
+    protected List<VariableElement> getPossiblyUninitializedFields(TreePath path) {
+        ClassTree currentClass = TreePathUtil.enclosingClass(path);
+        return ElementUtils.getAllFieldsIn(TypesUtils.getTypeElement(((JCTree) currentClass).type), elements);
     }
 
     @Override

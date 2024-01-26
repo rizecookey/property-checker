@@ -16,10 +16,17 @@
  */
 package edu.kit.kastel.property.util;
 
+import com.sun.source.tree.ClassTree;
+import com.sun.source.tree.Tree;
+import com.sun.source.tree.VariableTree;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.code.Type.ArrayType;
+
+import java.util.ArrayList;
+import java.util.List;
+import javax.lang.model.type.TypeMirror;
 
 public final class TypeUtils {
 
@@ -35,6 +42,32 @@ public final class TypeUtils {
             return ((ArrayType) mirror.getUnderlyingType()).elemtype.asElement().toString() + "[]";
         } else {
             return ((Type) mirror.getUnderlyingType()).asElement().toString();
+        }
+    }
+
+    /**
+     * Returns a list of all fields of the given class and its superclasses.
+     *
+     * @param clazz the class
+     * @return a list of all fields of {@code clazz} and superclasses
+     */
+    public static List<VariableTree> allFieldsInHierarchy(ClassTree clazz) {
+        List<VariableTree> fields = new ArrayList<>();
+        allFieldsInHierarchy(clazz, fields);
+        return fields;
+    }
+
+    private static void allFieldsInHierarchy(ClassTree clazz, List<VariableTree> fields) {
+        for (Tree t : clazz.getMembers()) {
+            if (t.getKind() == Tree.Kind.VARIABLE) {
+                VariableTree vt = (VariableTree) t;
+                fields.add(vt);
+            }
+        }
+
+        Tree superType = clazz.getExtendsClause();
+        if (superType instanceof ClassTree) {
+            allFieldsInHierarchy((ClassTree) clazz.getExtendsClause());
         }
     }
 }

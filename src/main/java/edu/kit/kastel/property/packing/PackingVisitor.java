@@ -3,22 +3,19 @@ package edu.kit.kastel.property.packing;
 import com.sun.source.tree.*;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.tree.JCTree;
-import edu.kit.kastel.property.util.ClassUtils;
 import edu.kit.kastel.property.util.Packing;
 import org.checkerframework.checker.initialization.InitializationAbstractVisitor;
 import org.checkerframework.checker.initialization.InitializationChecker;
 import org.checkerframework.common.basetype.BaseTypeChecker;
-import org.checkerframework.dataflow.cfg.node.FieldAccessNode;
-import org.checkerframework.framework.flow.CFAbstractStore;
+import org.checkerframework.dataflow.cfg.node.ThisNode;
 import org.checkerframework.framework.flow.CFValue;
-import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
 import org.checkerframework.javacutil.*;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.*;
+import javax.lang.model.type.NoType;
 import javax.lang.model.type.TypeMirror;
-import javax.lang.model.util.Types;
 import java.util.List;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
@@ -52,12 +49,21 @@ public class PackingVisitor
 
             if (!objToPack.toString().equals("this")) {
                 checker.reportError(node, "initialization.packing.nonreceiver");
+                return null;
             }
 
             Element typeElement = TreeUtils.elementFromUse(((MemberSelectTree) node.getArguments().get(1)).getExpression());
-            TypeMirror newTypeFrame = types.getDeclaredType((TypeElement) typeElement);
 
-            AnnotationMirror oldAnnotation = atypeFactory.getAnnotatedType(objToPack).getAnnotationInHierarchy(atypeFactory.getInitialized());
+
+            CFValue oldValue = atypeFactory.getStoreBefore(node).getValue((ThisNode) null);
+            AnnotationMirror oldAnnotation;
+            if (oldValue != null) {
+                oldAnnotation = atypeFactory.getQualifierHierarchy().findAnnotationInHierarchy(
+                        oldValue.getAnnotations(), atypeFactory.getUnknownInitialization());
+            } else {
+                oldAnnotation = atypeFactory.getAnnotatedType(objToPack).getAnnotationInHierarchy(atypeFactory.getUnknownInitialization());
+            }
+
             TypeMirror oldTypeFrame;
             if (AnnotationUtils.areSameByName(oldAnnotation, atypeFactory.getUnknownInitialization())
                     || AnnotationUtils.areSameByName(oldAnnotation, atypeFactory.getUnderInitialization())) {
@@ -70,15 +76,19 @@ public class PackingVisitor
                     oldTypeFrame = null;
                 }
             }
-
+            TypeMirror newTypeFrame;
             if (ElementUtils.isMethod(invokedMethod, unpackMethod, env)) {
                 // Type-check unpack statement: new type frame must be supertype of old type frame.
-                if (oldTypeFrame != null && (!types.isSubtype(oldTypeFrame, newTypeFrame) || types.isSameType(oldTypeFrame, newTypeFrame))) {
+                newTypeFrame = ((TypeElement) typeElement).getSuperclass();
+                if (newTypeFrame instanceof NoType) {
+                    checker.reportError(node, "initialization.unpacking.object.class");
+                } else if (oldTypeFrame != null && (!types.isSubtype(oldTypeFrame, newTypeFrame) || types.isSameType(oldTypeFrame, newTypeFrame))) {
                     checker.reportError(node, "initialization.already.unpacked");
                 }
             } else {
                 // Type-check pack statement:
                 // New type frame must be subtype of old type frame.
+                newTypeFrame = types.getDeclaredType((TypeElement) typeElement);
                 if (oldTypeFrame == null || (!types.isSubtype(newTypeFrame, oldTypeFrame) || types.isSameType(oldTypeFrame, newTypeFrame))) {
                     checker.reportError(node, "initialization.already.packed");
                 }
@@ -102,14 +112,6 @@ public class PackingVisitor
     protected void checkFieldsInitializedUpToFrame(
             Tree tree,
             TypeMirror frame) {
-        // Compact canonical record constructors do not generate visible assignments in the source,
-        // but by definition they assign to all the record's fields so we don't need to
-        // check for uninitialized fields in them:
-        if (tree.getKind() == Tree.Kind.METHOD
-                && TreeUtils.isCompactCanonicalRecordConstructor((MethodTree) tree)) {
-            return;
-        }
-
         GenericAnnotatedTypeFactory<?, ?, ?, ?> targetFactory =
                 checker.getTypeFactoryOfSubcheckerOrNull(
                         ((InitializationChecker) checker).getTargetCheckerClass());
@@ -119,8 +121,7 @@ public class PackingVisitor
                         targetFactory.getStoreBefore(tree),
                         getCurrentPath(),
                         false,
-                        List.of()).stream()
-                        .map(TreeUtils::elementFromDeclaration).collect(Collectors.toList());
+                        List.of());
 
         // Remove fields below frame
         uninitializedFields.retainAll(ElementUtils.getAllFieldsIn(TypesUtils.getTypeElement(frame), elements));

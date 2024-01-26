@@ -40,8 +40,18 @@ final class B extends A {
         this.isFullyPacked();
     }
 
-    void packingModify(@Unique B this) {
-        Packing.unpack(this, B.class);
+    void unpackNonReceiver(@Unique B this, @Unique B other) {
+        // :: error: initialization.unpacking.nonreceiver
+        Packing.unpack(other, B.class);
+    }
+
+    void unpackObject(@Unique B this) {
+        // :: error: initialization.unpacking.object.class
+        Packing.unpack(this, Object.class);
+    }
+
+    void incorrectModification(@Unique B this) {
+        Packing.unpack(this, A.class);
 
         this.bField = null;
 
@@ -49,6 +59,14 @@ final class B extends A {
 
         // :: error: initialization.fields.uninitialized
         Packing.pack(this, B.class);
+    }
+
+    void correctModification(@Unique B this) {
+        Packing.unpack(this, A.class);
+
+        this.bField = null;
+
+        Packing.pack(this, A.class);
 
         this.bField = new Object();
         Packing.pack(this, B.class);

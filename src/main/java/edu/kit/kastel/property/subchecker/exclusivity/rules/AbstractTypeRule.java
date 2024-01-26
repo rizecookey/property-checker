@@ -1,7 +1,5 @@
 package edu.kit.kastel.property.subchecker.exclusivity.rules;
 
-import com.sun.source.tree.ExpressionTree;
-import com.sun.source.tree.Tree;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.cfg.node.*;
 import org.checkerframework.dataflow.expression.JavaExpression;
@@ -14,14 +12,12 @@ import org.checkerframework.framework.type.QualifierHierarchy;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 import org.checkerframework.javacutil.AnnotationMirrorSet;
 import org.checkerframework.javacutil.AnnotationUtils;
-import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.TreeUtils;
 
 import javax.lang.model.element.AnnotationMirror;
-import java.lang.annotation.Annotation;
-import java.util.Collections;
 
 abstract class AbstractTypeRule<N extends Node> implements TypeRule {
+
     /*
      * If store is null, type rule shall just check for applicability without actually refining types.
      */

@@ -1,6 +1,5 @@
 package edu.kit.kastel.property.packing;
 
-import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePath;
 import org.checkerframework.checker.initialization.InitializationFieldAccessAbstractAnnotatedTypeFactory;
 import org.checkerframework.common.basetype.BaseTypeChecker;
@@ -8,6 +7,7 @@ import org.checkerframework.framework.flow.CFAbstractAnalysis;
 import org.checkerframework.framework.flow.CFValue;
 
 import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.VariableElement;
 import java.util.Collection;
 import java.util.List;
 
@@ -41,11 +41,14 @@ public class PackingFieldAccessAnnotatedTypeFactory
     }
 
     @Override
-    public List<VariableTree> getUninitializedFields(
+    public List<VariableElement> getUninitializedFields(
             PackingStore store, TreePath path, boolean isStatic, Collection<? extends AnnotationMirror> receiverAnnotations) {
+        boolean wasComputingUninitializedFields = computingUninitializedFields;
         computingUninitializedFields = true;
-        List<VariableTree> result = super.getUninitializedFields(store, path, isStatic, receiverAnnotations);
-        computingUninitializedFields = false;
+
+        List<VariableElement> result = super.getUninitializedFields(store, path, isStatic, receiverAnnotations);
+
+        computingUninitializedFields = wasComputingUninitializedFields;
         return result;
     }
 }
