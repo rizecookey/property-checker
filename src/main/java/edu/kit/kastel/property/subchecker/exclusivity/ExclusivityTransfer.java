@@ -6,6 +6,7 @@ import com.sun.source.tree.MethodTree;
 import com.sun.tools.javac.tree.JCTree;
 import edu.kit.kastel.property.packing.PackingFieldAccessAnnotatedTypeFactory;
 import edu.kit.kastel.property.packing.PackingFieldAccessSubchecker;
+import edu.kit.kastel.property.subchecker.exclusivity.qual.Unique;
 import edu.kit.kastel.property.subchecker.exclusivity.rules.*;
 
 import org.checkerframework.dataflow.analysis.RegularTransferResult;
@@ -21,6 +22,7 @@ import org.checkerframework.framework.flow.CFTransfer;
 import org.checkerframework.framework.flow.CFValue;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.util.AnnotatedTypes;
+import org.checkerframework.javacutil.AnnotationBuilder;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TypesUtils;
@@ -90,11 +92,19 @@ public class ExclusivityTransfer extends CFTransfer {
     public CFStore initialStore(UnderlyingAST underlyingAST, List<LocalVariableNode> parameters) {
         CFStore initStore = super.initialStore(underlyingAST, parameters);
 
+        // Add receiver value
+        UnderlyingAST.CFGMethod method = (UnderlyingAST.CFGMethod) underlyingAST;
+        MethodTree methodDeclTree = method.getMethod();
+        if (methodDeclTree.getReceiverParameter() != null) {
+            AnnotatedTypeMirror thisType = factory.getAnnotatedType(methodDeclTree.getReceiverParameter());
+            initStore.initializeThisValue(thisType.getAnnotationInHierarchy(
+                            AnnotationBuilder.fromClass(factory.getElementUtils(), Unique.class)),
+                    thisType.getUnderlyingType());
+        }
+
         // The default implementation only adds fields declared in this class.
         // To make type-checking of pack statements more precise, we also add all fields declared in superclasses.
         if (underlyingAST.getKind() == UnderlyingAST.Kind.METHOD) {
-            UnderlyingAST.CFGMethod method = (UnderlyingAST.CFGMethod) underlyingAST;
-            MethodTree methodDeclTree = method.getMethod();
             ExecutableElement methodElem = TreeUtils.elementFromDeclaration(methodDeclTree);
             ClassTree classTree = method.getClassTree();
 

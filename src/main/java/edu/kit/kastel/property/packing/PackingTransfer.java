@@ -33,17 +33,18 @@ public class PackingTransfer extends InitializationAbstractTransfer<CFValue, Pac
 
     @Override
     public PackingStore initialStore(UnderlyingAST underlyingAST, List<LocalVariableNode> parameters) {
+        PackingStore initStore = super.initialStore(underlyingAST, parameters);
+
+        // Add receiver value
         UnderlyingAST.CFGMethod method = (UnderlyingAST.CFGMethod) underlyingAST;
         MethodTree methodDeclTree = method.getMethod();
-        ExecutableElement methodElem = TreeUtils.elementFromDeclaration(methodDeclTree);
-
-        PackingStore initStore = super.initialStore(underlyingAST, parameters);
         if (methodDeclTree.getReceiverParameter() != null) {
             AnnotatedTypeMirror thisType = atypeFactory.getAnnotatedType(methodDeclTree.getReceiverParameter());
             initStore.initializeThisValue(thisType.getAnnotationInHierarchy(
                     AnnotationBuilder.fromClass(atypeFactory.getElementUtils(), UnderInitialization.class)),
                     thisType.getUnderlyingType());
         }
+
         return initStore;
     }
 

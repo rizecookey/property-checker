@@ -20,10 +20,12 @@ final class B extends A {
 
     @Pure
     @EnsuresUnderInit(targetValue=A.class)
+    @EnsuresUnique
     void isPackedToA(@Unique @UnderInitialization(A.class) B this) {}
 
     @Pure
     @EnsuresUnderInit(targetValue=B.class)
+    @EnsuresUnique
     void isPackedToB(@Unique @UnderInitialization(B.class) B this) {}
 
     @Pure
