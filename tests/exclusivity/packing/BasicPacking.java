@@ -58,7 +58,7 @@ final class B extends A {
     }
 
     void unpackNonReceiver(@Unique B this, @Unique B other) {
-        // :: error: initialization.unpacking.nonreceiver
+        // :: error: initialization.packing.nonreceiver
         Packing.unpack(other, B.class);
     }
 
