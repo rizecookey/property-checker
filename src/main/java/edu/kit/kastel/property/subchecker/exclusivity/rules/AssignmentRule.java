@@ -1,14 +1,13 @@
 package edu.kit.kastel.property.subchecker.exclusivity.rules;
 
+import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnalysis;
+import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityStore;
+import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityValue;
 import org.checkerframework.dataflow.cfg.node.AssignmentNode;
 import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.dataflow.cfg.node.ValueLiteralNode;
 import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.dataflow.expression.Unknown;
-import org.checkerframework.framework.flow.CFAbstractAnalysis;
-import org.checkerframework.framework.flow.CFStore;
-import org.checkerframework.framework.flow.CFTransfer;
-import org.checkerframework.framework.flow.CFValue;
 import org.checkerframework.javacutil.BugInCF;
 
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
@@ -17,7 +16,7 @@ import javax.lang.model.element.AnnotationMirror;
 
 public abstract class AssignmentRule extends AbstractTypeRule<AssignmentNode> {
 
-    public AssignmentRule(CFStore store, ExclusivityAnnotatedTypeFactory factory, CFAbstractAnalysis<CFValue, CFStore, CFTransfer> analysis) {
+    public AssignmentRule(ExclusivityStore store, ExclusivityAnnotatedTypeFactory factory, ExclusivityAnalysis analysis) {
         super(store, factory, analysis);
     }
 
@@ -54,7 +53,7 @@ public abstract class AssignmentRule extends AbstractTypeRule<AssignmentNode> {
     private void printTypeChange(Node node, AnnotationMirror oldTypeAnno) {
         if (store != null && !(JavaExpression.fromNode(node) instanceof Unknown)) {
             AnnotationMirror newTypeAnno = oldTypeAnno;
-            CFValue value;
+            ExclusivityValue value;
             if (node instanceof ValueLiteralNode) {
                 System.out.printf("[%s ~> %s] ",
                         prettyPrint(oldTypeAnno),

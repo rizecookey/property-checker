@@ -2,17 +2,16 @@ package edu.kit.kastel.property.subchecker.exclusivity.rules;
 
 import com.sun.tools.javac.code.Type;
 
+import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnalysis;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 
+import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityStore;
+import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityValue;
 import org.checkerframework.dataflow.cfg.node.ExplicitThisNode;
 import org.checkerframework.dataflow.cfg.node.MethodInvocationNode;
 import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.dataflow.cfg.node.ThisNode;
 import org.checkerframework.dataflow.expression.FieldAccess;
-import org.checkerframework.framework.flow.CFAbstractAnalysis;
-import org.checkerframework.framework.flow.CFStore;
-import org.checkerframework.framework.flow.CFTransfer;
-import org.checkerframework.framework.flow.CFValue;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 
 import javax.lang.model.element.AnnotationMirror;
@@ -22,7 +21,7 @@ import javax.lang.model.type.TypeMirror;
 import java.util.Set;
 
 public class TMethodInvocation extends AbstractTypeRule<MethodInvocationNode> {
-    public TMethodInvocation(CFStore store, ExclusivityAnnotatedTypeFactory factory, CFAbstractAnalysis<CFValue, CFStore, CFTransfer> analysis) {
+    public TMethodInvocation(ExclusivityStore store, ExclusivityAnnotatedTypeFactory factory, ExclusivityAnalysis analysis) {
         super(store, factory, analysis);
     }
 
@@ -61,7 +60,7 @@ public class TMethodInvocation extends AbstractTypeRule<MethodInvocationNode> {
 
         // Remove possibly invalidated refinements
         if (store != null && analysis != null) {
-            CFValue thisValue = store.getValue((ThisNode) null);
+            ExclusivityValue thisValue = store.getValue((ThisNode) null);
             AnnotationMirror thisType;
             if (thisValue != null) {
                 thisType = factory.getExclusivityAnnotation(thisValue.getAnnotations());

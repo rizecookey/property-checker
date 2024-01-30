@@ -45,6 +45,10 @@ public final class TypeUtils {
         }
     }
 
+    public static boolean sameTree(Tree tree0, Tree tree1) {
+        return tree0.getKind() == tree1.getKind() && tree0.toString().equals(tree1.toString());
+    }
+
     /**
      * Returns a list of all fields of the given class and its superclasses.
      *

@@ -1,17 +1,16 @@
 package edu.kit.kastel.property.subchecker.exclusivity.rules;
 
+import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnalysis;
+import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityStore;
 import org.checkerframework.dataflow.cfg.node.Node;
-import org.checkerframework.framework.flow.CFAbstractAnalysis;
-import org.checkerframework.framework.flow.CFStore;
-import org.checkerframework.framework.flow.CFTransfer;
-import org.checkerframework.framework.flow.CFValue;
 
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 
 import javax.lang.model.element.AnnotationMirror;
 
 public class TRefTransfer extends AssignmentRule {
-    public TRefTransfer(CFStore store, ExclusivityAnnotatedTypeFactory factory, CFAbstractAnalysis<CFValue, CFStore, CFTransfer> analysis) {
+
+    public TRefTransfer(ExclusivityStore store, ExclusivityAnnotatedTypeFactory factory, ExclusivityAnalysis analysis) {
         super(store, factory, analysis);
     }
 

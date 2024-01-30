@@ -11,7 +11,7 @@ import javax.lang.model.type.TypeMirror;
 
 public class PackingAnalysis extends InitializationAbstractAnalysis<CFValue, PackingStore, PackingTransfer> {
 
-    protected PackingAnalysis(
+    public PackingAnalysis(
             BaseTypeChecker checker,
             InitializationParentAnnotatedTypeFactory<CFValue, PackingStore, PackingTransfer, PackingAnalysis> factory) {
         super(checker, factory);

@@ -1,5 +1,7 @@
 package edu.kit.kastel.property.subchecker.exclusivity.rules;
 
+import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnalysis;
+import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityStore;
 import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.framework.flow.CFAbstractAnalysis;
 import org.checkerframework.framework.flow.CFStore;
@@ -11,7 +13,7 @@ import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFa
 import javax.lang.model.element.AnnotationMirror;
 
 public class TRefSplit extends AssignmentRule {
-    public TRefSplit(CFStore store, ExclusivityAnnotatedTypeFactory factory, CFAbstractAnalysis<CFValue, CFStore, CFTransfer> analysis) {
+    public TRefSplit(ExclusivityStore store, ExclusivityAnnotatedTypeFactory factory, ExclusivityAnalysis analysis) {
         super(store, factory, analysis);
     }
 

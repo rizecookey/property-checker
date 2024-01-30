@@ -1,12 +1,11 @@
 package edu.kit.kastel.property.subchecker.exclusivity.rules;
 
+import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnalysis;
+import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityStore;
+import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityValue;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.cfg.node.*;
 import org.checkerframework.dataflow.expression.JavaExpression;
-import org.checkerframework.framework.flow.CFAbstractAnalysis;
-import org.checkerframework.framework.flow.CFStore;
-import org.checkerframework.framework.flow.CFTransfer;
-import org.checkerframework.framework.flow.CFValue;
 import org.checkerframework.framework.type.QualifierHierarchy;
 
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
@@ -21,13 +20,13 @@ abstract class AbstractTypeRule<N extends Node> implements TypeRule {
     /*
      * If store is null, type rule shall just check for applicability without actually refining types.
      */
-    protected final @Nullable CFStore store;
+    protected final @Nullable ExclusivityStore store;
     protected final QualifierHierarchy hierarchy;
     protected final ExclusivityAnnotatedTypeFactory factory;
-    protected @Nullable CFAbstractAnalysis<CFValue, CFStore, CFTransfer>  analysis;
+    protected @Nullable ExclusivityAnalysis analysis;
 
-    public AbstractTypeRule(@Nullable CFStore store, ExclusivityAnnotatedTypeFactory factory,
-                            CFAbstractAnalysis<CFValue, CFStore, CFTransfer> analysis) {
+    public AbstractTypeRule(@Nullable ExclusivityStore store, ExclusivityAnnotatedTypeFactory factory,
+                            ExclusivityAnalysis analysis) {
         this.store = store;
         this.analysis = analysis;
         this.hierarchy = factory.getQualifierHierarchy();
@@ -93,7 +92,7 @@ abstract class AbstractTypeRule<N extends Node> implements TypeRule {
         }
 
         if (store != null && analysis != null) {
-        CFValue abstractValue = analysis.createAbstractValue(
+            ExclusivityValue abstractValue = analysis.createAbstractValue(
                 AnnotationMirrorSet.singleton(refinedType), node.getType());
             store.replaceValue(JavaExpression.fromNode(node),
                     abstractValue);
@@ -140,7 +139,7 @@ abstract class AbstractTypeRule<N extends Node> implements TypeRule {
         } else if (node instanceof ValueLiteralNode) {
             return factory.MAYBE_ALIASED;
         } else {
-            CFValue value = null;
+            ExclusivityValue value = null;
             if (node instanceof FieldAccessNode) {
                 value = store.getValue((FieldAccessNode) node);
             } else if (node instanceof LocalVariableNode) {

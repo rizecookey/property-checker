@@ -1,9 +1,6 @@
 package edu.kit.kastel.property.subchecker.exclusivity;
 
-import com.sun.source.tree.MethodTree;
-import com.sun.source.tree.NewClassTree;
-import com.sun.source.tree.Tree;
-import com.sun.source.tree.VariableTree;
+import com.sun.source.tree.*;
 import com.sun.source.util.TreePath;
 
 import edu.kit.kastel.property.packing.PackingFieldAccessTreeAnnotator;
@@ -11,24 +8,19 @@ import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.dataflow.cfg.node.*;
 import org.checkerframework.dataflow.cfg.visualize.CFGVisualizer;
 import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.dataflow.expression.Unknown;
-import org.checkerframework.framework.flow.CFAbstractAnalysis;
-import org.checkerframework.framework.flow.CFStore;
-import org.checkerframework.framework.flow.CFTransfer;
-import org.checkerframework.framework.flow.CFValue;
+import org.checkerframework.framework.flow.*;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
+import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.LiteralTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
-import org.checkerframework.javacutil.AnnotationBuilder;
-import org.checkerframework.javacutil.AnnotationMirrorSet;
-import org.checkerframework.javacutil.BugInCF;
+import org.checkerframework.javacutil.*;
 
 import javax.lang.model.element.AnnotationMirror;
 
@@ -41,7 +33,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-public final class ExclusivityAnnotatedTypeFactory extends BaseAnnotatedTypeFactory {
+public final class ExclusivityAnnotatedTypeFactory
+        extends GenericAnnotatedTypeFactory<ExclusivityValue, ExclusivityStore, ExclusivityTransfer, ExclusivityAnalysis> {
 
     public final AnnotationMirror EXCL_BOTTOM =
             AnnotationBuilder.fromClass(elements, ExclBottom.class);
@@ -60,13 +53,33 @@ public final class ExclusivityAnnotatedTypeFactory extends BaseAnnotatedTypeFact
     }
 
     @Override
+    public AnnotatedTypeMirror getAnnotatedTypeLhs(Tree lhsTree) {
+        AnnotatedTypeMirror annotatedType = super.getAnnotatedTypeLhs(lhsTree);
+
+        // For method parameters, the lhs type is always @ReadOnly
+        MethodTree containingMethod = analysis.getContainingMethod(lhsTree);
+        if (lhsTree instanceof IdentifierTree && containingMethod != null) {
+            boolean isParam = ((IdentifierTree) lhsTree).getName().toString().equals("this");
+            for (VariableTree param : containingMethod.getParameters()) {
+                isParam |= param.getName().equals(((IdentifierTree) lhsTree).getName());
+            }
+
+            if (isParam) {
+                annotatedType.replaceAnnotation(READ_ONLY);
+            }
+        }
+
+        return annotatedType;
+    }
+
+    @Override
     public AnnotatedTypeMirror.AnnotatedNullType getAnnotatedNullType(Set<? extends AnnotationMirror> annotations) {
         return super.getAnnotatedNullType(annotations);
     }
 
     @Override
-    public CFTransfer createFlowTransferFunction(CFAbstractAnalysis<CFValue, CFStore, CFTransfer> analysis) {
-        return new ExclusivityTransfer(analysis, this);
+    public ExclusivityTransfer createFlowTransferFunction(CFAbstractAnalysis<ExclusivityValue, ExclusivityStore, ExclusivityTransfer> analysis) {
+        return new ExclusivityTransfer((ExclusivityAnalysis) analysis, this);
     }
 
     public AnnotationMirror getExclusivityAnnotation(Collection<? extends AnnotationMirror> qualifiers) {
@@ -144,14 +157,14 @@ public final class ExclusivityAnnotatedTypeFactory extends BaseAnnotatedTypeFact
     }
 
     @Override
-    public @Nullable CFValue getInferredValueFor(Tree tree) {
+    public @Nullable ExclusivityValue getInferredValueFor(Tree tree) {
         if (useIFlowAfter != null) {
             Tree oldUseIFlowAfter = useIFlowAfter;
             // getStoreAfter needs to use the regular information flow
             useRegularIFlow();
-            final CFStore store;
+            final ExclusivityStore store;
             if (oldUseIFlowAfter instanceof VariableTree) {
-                CFStore s = null;
+                ExclusivityStore s = null;
                 for (Node n : flowResult.getNodesForTree(oldUseIFlowAfter)) {
                     if (n instanceof AssignmentNode) {
                         s = flowResult.getStoreAfter(n);
@@ -191,7 +204,7 @@ public final class ExclusivityAnnotatedTypeFactory extends BaseAnnotatedTypeFact
                             return null;  // No refined value available
                         }})
                     .filter(Objects::nonNull)
-                    .reduce(CFValue::leastUpperBound)
+                    .reduce(ExclusivityValue::leastUpperBound)
                     .orElse(null);
         } else {
             return super.getInferredValueFor(tree);
@@ -205,7 +218,7 @@ public final class ExclusivityAnnotatedTypeFactory extends BaseAnnotatedTypeFact
     
     @SuppressWarnings("nls")
     @Override
-    protected @Nullable CFGVisualizer<CFValue, CFStore, CFTransfer> createCFGVisualizer() {
+    protected @Nullable CFGVisualizer<ExclusivityValue, ExclusivityStore, ExclusivityTransfer> createCFGVisualizer() {
         if (checker.hasOption("flowdotdir")) {
             try {
                 Files.createDirectories(Path.of(checker.getOption("flowdotdir")));

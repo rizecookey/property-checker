@@ -16,10 +16,7 @@ import org.checkerframework.dataflow.cfg.UnderlyingAST;
 import org.checkerframework.dataflow.cfg.node.*;
 import org.checkerframework.dataflow.expression.FieldAccess;
 import org.checkerframework.dataflow.expression.ThisReference;
-import org.checkerframework.framework.flow.CFAbstractAnalysis;
-import org.checkerframework.framework.flow.CFStore;
-import org.checkerframework.framework.flow.CFTransfer;
-import org.checkerframework.framework.flow.CFValue;
+import org.checkerframework.framework.flow.*;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.util.AnnotatedTypes;
 import org.checkerframework.javacutil.AnnotationBuilder;
@@ -33,64 +30,71 @@ import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
 import java.util.List;
 
-public class ExclusivityTransfer extends CFTransfer {
+public class ExclusivityTransfer extends CFAbstractTransfer<ExclusivityValue, ExclusivityStore, ExclusivityTransfer> {
+
     private final ExclusivityAnnotatedTypeFactory factory;
 
-    public ExclusivityTransfer(CFAbstractAnalysis<CFValue, CFStore, CFTransfer> analysis,
+    public ExclusivityTransfer(ExclusivityAnalysis analysis,
                                ExclusivityAnnotatedTypeFactory factory) {
         super(analysis);
         assert factory == analysis.getTypeFactory();
         this.factory = factory;
     }
 
+    public ExclusivityAnalysis getAnalysis() {
+        return (ExclusivityAnalysis) analysis;
+    }
+
     @Override
-    public TransferResult<CFValue, CFStore> visitAssignment(
-            AssignmentNode node, TransferInput<CFValue, CFStore> in) {
-        CFStore store = in.getRegularStore();
+    public TransferResult<ExclusivityValue, ExclusivityStore> visitAssignment(
+            AssignmentNode node, TransferInput<ExclusivityValue, ExclusivityStore> in) {
+        ExclusivityStore store = in.getRegularStore();
 
         if (node.getExpression() instanceof MethodInvocationNode) {
-            new TMethodInvocationHelper(store, factory, analysis)
+            new TMethodInvocationHelper(store, factory, getAnalysis())
                     .applyOrInvalidate(node.getTarget(), node.getExpression());
         } else {
-            new TAssign(store, factory, analysis).applyOrInvalidate(node.getTarget(), node.getExpression());
+            new TAssign(store, factory, getAnalysis()).applyOrInvalidate(node.getTarget(), node.getExpression());
         }
 
         return new RegularTransferResult<>(null, in.getRegularStore());
     }
 
     @Override
-    public TransferResult<CFValue, CFStore> visitMethodInvocation(
-            MethodInvocationNode n, TransferInput<CFValue, CFStore> in
+    public TransferResult<ExclusivityValue, ExclusivityStore> visitMethodInvocation(
+            MethodInvocationNode n, TransferInput<ExclusivityValue, ExclusivityStore> in
     ) {
-        CFStore store = in.getRegularStore();
+        ExclusivityStore store = in.getRegularStore();
 
         try {
-            new TMethodInvocation(store, factory, analysis).apply(n);
+            new TMethodInvocation(store, factory, getAnalysis()).apply(n);
         } catch (RuleNotApplicable e) {
-            new TInvalidate(store, factory, analysis).apply(n);
+            new TInvalidate(store, factory, getAnalysis()).apply(n);
         }
 
         return new RegularTransferResult<>(null, store);
     }
 
     @Override
-    public TransferResult<CFValue, CFStore> visitReturn(
-            ReturnNode node, TransferInput<CFValue, CFStore> in) {
-        CFStore store = in.getRegularStore();
+    public TransferResult<ExclusivityValue, ExclusivityStore> visitReturn(
+            ReturnNode node, TransferInput<ExclusivityValue, ExclusivityStore> in) {
+        ExclusivityStore store = in.getRegularStore();
 
         MethodTree methodTree = (MethodTree) factory.getEnclosingClassOrMethod(node.getTree());
         assert methodTree != null;
         AnnotationMirror returnTypeAnno = factory.getExclusivityAnnotation(
                 factory.getAnnotatedType(methodTree).getReturnType());
 
-        new TAssign(store, factory, analysis).applyOrInvalidate(returnTypeAnno, node.getResult());
+
+
+        new TAssign(store, factory, getAnalysis()).applyOrInvalidate(returnTypeAnno, node.getResult());
 
         return new RegularTransferResult<>(null, store);
     }
 
     @Override
-    public CFStore initialStore(UnderlyingAST underlyingAST, List<LocalVariableNode> parameters) {
-        CFStore initStore = super.initialStore(underlyingAST, parameters);
+    public ExclusivityStore initialStore(UnderlyingAST underlyingAST, List<LocalVariableNode> parameters) {
+        ExclusivityStore initStore = super.initialStore(underlyingAST, parameters);
 
         // Add receiver value
         UnderlyingAST.CFGMethod method = (UnderlyingAST.CFGMethod) underlyingAST;
@@ -146,7 +150,7 @@ public class ExclusivityTransfer extends CFTransfer {
                             adaptedType.addAnnotations(factory.getQualifierHierarchy().getTopAnnotations());
                         }
 
-                        CFValue value = analysis.createAbstractValue(adaptedType);
+                        ExclusivityValue value = analysis.createAbstractValue(adaptedType);
 
                         initStore.insertValue(fieldAccess, value);
                     }
