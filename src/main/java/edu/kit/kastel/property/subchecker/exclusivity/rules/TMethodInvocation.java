@@ -2,6 +2,8 @@ package edu.kit.kastel.property.subchecker.exclusivity.rules;
 
 import com.sun.tools.javac.code.Type;
 
+import edu.kit.kastel.property.packing.PackingFieldAccessAnnotatedTypeFactory;
+import edu.kit.kastel.property.packing.PackingFieldAccessSubchecker;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnalysis;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 
@@ -12,6 +14,7 @@ import org.checkerframework.dataflow.cfg.node.MethodInvocationNode;
 import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.dataflow.cfg.node.ThisNode;
 import org.checkerframework.dataflow.expression.FieldAccess;
+import org.checkerframework.framework.flow.CFValue;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 
 import javax.lang.model.element.AnnotationMirror;
@@ -80,12 +83,25 @@ public class TMethodInvocation extends AbstractTypeRule<MethodInvocationNode> {
                         currentMethodReceiverType.getAnnotations());
             }
 
-            if ((receiver instanceof ThisNode && hierarchy.isSubtypeQualifiersOnly(receiverTypeAnno, factory.MAYBE_ALIASED))
-                    || !hierarchy.isSubtypeQualifiersOnly(thisType, factory.UNIQUE)) {
+            // Clear field values if they were possibly changed
+            if (!factory.isSideEffectFree(node.getTarget().getMethod())
+                    && (receiver instanceof ThisNode && hierarchy.isSubtypeQualifiersOnly(receiverTypeAnno, factory.MAYBE_ALIASED))) {
+                PackingFieldAccessAnnotatedTypeFactory packingFactory =
+                        factory.getChecker().getTypeFactoryOfSubcheckerOrNull(PackingFieldAccessSubchecker.class);
+
+                CFValue receiverOutputPackingValue = packingFactory.getStoreAfter(node).getValue((ThisNode) null);
+                AnnotatedTypeMirror receiverOutputPackingType = AnnotatedTypeMirror.createType(receiverType, packingFactory, false);
+                if (receiverOutputPackingValue != null) {
+                    receiverOutputPackingType.addAnnotations(receiverOutputPackingValue.getAnnotations());
+                }
+
                 for (FieldAccess field : Set.copyOf(store.getFieldValues().keySet())) {
+                    TypeMirror fieldOwnerType = field.getField().getEnclosingElement().asType();
+
                     if (!hierarchy.isSubtypeQualifiersOnly(
                             factory.getExclusivityAnnotation(store.getValue(field).getAnnotations()),
-                            factory.EXCL_BOTTOM)) {
+                            factory.EXCL_BOTTOM)
+                            && (receiverOutputPackingValue == null || !packingFactory.isInitializedForFrame(receiverOutputPackingType, fieldOwnerType))) {
                         store.clearValue(field);
                         System.out.printf("Clearing refinement for %s after %s\n",
                                 field, node);

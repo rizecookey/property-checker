@@ -51,4 +51,20 @@ public class PackingFieldAccessAnnotatedTypeFactory
         computingUninitializedFields = wasComputingUninitializedFields;
         return result;
     }
+
+    public AnnotationMirror getInitialized() {
+        return INITIALIZED;
+    }
+
+    public AnnotationMirror getUnknownInitialization() {
+        return UNKNOWN_INITIALIZATION;
+    }
+
+    public AnnotationMirror getUnderInitialization() {
+        return UNDER_INITALIZATION;
+    }
+
+    public AnnotationMirror getFBCBottom() {
+        return FBCBOTTOM;
+    }
 }

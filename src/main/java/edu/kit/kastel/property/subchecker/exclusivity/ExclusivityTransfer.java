@@ -1,6 +1,7 @@
 package edu.kit.kastel.property.subchecker.exclusivity;
 
 import com.sun.source.tree.ClassTree;
+import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.MethodTree;
 
 import com.sun.tools.javac.tree.JCTree;
@@ -65,12 +66,16 @@ public class ExclusivityTransfer extends CFAbstractTransfer<ExclusivityValue, Ex
             MethodInvocationNode n, TransferInput<ExclusivityValue, ExclusivityStore> in
     ) {
         ExclusivityStore store = in.getRegularStore();
+        ExecutableElement method = n.getTarget().getMethod();
+        ExpressionTree invocationTree = n.getTree();
 
         try {
             new TMethodInvocation(store, factory, getAnalysis()).apply(n);
         } catch (RuleNotApplicable e) {
             new TInvalidate(store, factory, getAnalysis()).apply(n);
         }
+
+        processPostconditions(n, store, method, invocationTree);
 
         return new RegularTransferResult<>(null, store);
     }
