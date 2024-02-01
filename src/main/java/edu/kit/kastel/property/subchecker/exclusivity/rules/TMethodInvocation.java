@@ -1,5 +1,6 @@
 package edu.kit.kastel.property.subchecker.exclusivity.rules;
 
+import com.sun.source.tree.MethodTree;
 import com.sun.tools.javac.code.Type;
 
 import edu.kit.kastel.property.packing.PackingFieldAccessAnnotatedTypeFactory;
@@ -69,7 +70,7 @@ public class TMethodInvocation extends AbstractTypeRule<MethodInvocationNode> {
                 thisType = factory.getExclusivityAnnotation(thisValue.getAnnotations());
             } else {
                 AnnotatedTypeMirror.AnnotatedDeclaredType currentMethodReceiverType =
-                        factory.getAnnotatedType(factory.getContainingMethod(node))
+                        factory.getAnnotatedType((MethodTree) factory.getEnclosingClassOrMethod(node.getTree()))
                                 .getReceiverType();
 
                 if (currentMethodReceiverType == null) {

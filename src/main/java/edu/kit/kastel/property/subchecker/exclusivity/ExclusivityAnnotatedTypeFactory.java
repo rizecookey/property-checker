@@ -55,12 +55,11 @@ public final class ExclusivityAnnotatedTypeFactory
     @Override
     public AnnotatedTypeMirror getAnnotatedTypeLhs(Tree lhsTree) {
         AnnotatedTypeMirror annotatedType = super.getAnnotatedTypeLhs(lhsTree);
-
+        Tree containingMethod = getEnclosingClassOrMethod(lhsTree);
         // For method parameters, the lhs type is always @ReadOnly
-        MethodTree containingMethod = analysis.getContainingMethod(lhsTree);
-        if (lhsTree instanceof IdentifierTree && containingMethod != null) {
+        if (lhsTree instanceof IdentifierTree && containingMethod instanceof MethodTree) {
             boolean isParam = ((IdentifierTree) lhsTree).getName().toString().equals("this");
-            for (VariableTree param : containingMethod.getParameters()) {
+            for (VariableTree param : ((MethodTree) containingMethod).getParameters()) {
                 isParam |= param.getName().equals(((IdentifierTree) lhsTree).getName());
             }
 
@@ -123,24 +122,6 @@ public final class ExclusivityAnnotatedTypeFactory
 
     public void useRegularIFlow() {
         this.useIFlowAfter = null;
-    }
-
-    /**
-     * Recursively traverse parents in nodes tree path until containing method is found.
-     * This is an alternative for `analysis.getContainingMethod(node)` which seems buggy in some cases.
-     *
-     * TODO: Open issue about analysis.getContainingMethod in checker framework
-     * TODO: This class is not a good place for this method
-     *
-     * @param node A method invocation node
-     * @return The method containing the node
-     */
-    public MethodTree getContainingMethod(MethodInvocationNode node) {
-        TreePath tp = node.getTreePath();
-        while (tp.getLeaf().getKind() != Tree.Kind.METHOD) {
-            tp = tp.getParentPath();
-        }
-        return (MethodTree) tp.getLeaf();
     }
 
     private class ExclusivityTreeAnnotator extends TreeAnnotator {

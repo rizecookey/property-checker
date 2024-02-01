@@ -16,6 +16,7 @@ final class B extends A {
     @Unique Object bField;
 
     @Pure
+    @EnsuresUnique
     void isUnpacked(@Unique @UnderInitialization(Object.class) B this) {}
 
     @Pure
@@ -29,12 +30,15 @@ final class B extends A {
     void isPackedToB(@Unique @UnderInitialization(B.class) B this) {}
 
     @Pure
+    @EnsuresUnique
     void isFullyPacked(@Unique @Initialized B this) {}
 
     @Pure
+    @EnsuresUnique
     void isPackedToAtLeastObject(@Unique @UnknownInitialization(Object.class) B this) {}
 
     @Pure
+    @EnsuresUnique
     void isPackedToPackedToAtLeastA(@Unique @UnknownInitialization(A.class) B this) {}
 
     void correctPacking(@Unique B this) {

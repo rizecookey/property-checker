@@ -10,6 +10,7 @@ import edu.kit.kastel.property.packing.PackingFieldAccessSubchecker;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.Unique;
 import edu.kit.kastel.property.subchecker.exclusivity.rules.*;
 
+import edu.kit.kastel.property.util.Packing;
 import org.checkerframework.dataflow.analysis.RegularTransferResult;
 import org.checkerframework.dataflow.analysis.TransferInput;
 import org.checkerframework.dataflow.analysis.TransferResult;
@@ -66,8 +67,15 @@ public class ExclusivityTransfer extends CFAbstractTransfer<ExclusivityValue, Ex
             MethodInvocationNode n, TransferInput<ExclusivityValue, ExclusivityStore> in
     ) {
         ExclusivityStore store = in.getRegularStore();
-        ExecutableElement method = n.getTarget().getMethod();
         ExpressionTree invocationTree = n.getTree();
+        MethodAccessNode target = n.getTarget();
+        ExecutableElement method = target.getMethod();
+        Node receiver = target.getReceiver();
+
+        if (receiver instanceof ClassNameNode && ((ClassNameNode) receiver).getElement().toString().equals(Packing.class.getName())) {
+            // Packing statements don't change the store
+            return new RegularTransferResult<>(null, store, false);
+        }
 
         try {
             new TMethodInvocation(store, factory, getAnalysis()).apply(n);
@@ -77,7 +85,7 @@ public class ExclusivityTransfer extends CFAbstractTransfer<ExclusivityValue, Ex
 
         processPostconditions(n, store, method, invocationTree);
 
-        return new RegularTransferResult<>(null, store);
+        return new RegularTransferResult<>(null, store, true);
     }
 
     @Override

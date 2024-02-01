@@ -44,7 +44,7 @@ public class PackingStore extends InitializationAbstractStore<CFValue, PackingSt
 
     @Override
     public boolean isFieldInitialized(Element f) {
-        // We don't use the fbc committment mechanism.
+        // We don't use the fbc commitment mechanism.
         return false;
     }
 }
