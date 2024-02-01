@@ -16,32 +16,21 @@ final class B extends A {
     @Unique Object bField;
 
     @Pure
-    @EnsuresUnique
     void isUnpacked(@Unique @UnderInitialization(Object.class) B this) {}
 
     @Pure
-    @EnsuresUnderInit(targetValue=A.class)
-    @EnsuresUnique
     void isPackedToA(@Unique @UnderInitialization(A.class) B this) {}
 
     @Pure
-    @EnsuresUnderInit(targetValue=B.class)
-    @EnsuresUnique
     void isPackedToB(@Unique @UnderInitialization(B.class) B this) {}
 
     @Pure
-    @EnsuresInitialized
-    @EnsuresUnique
     void isFullyPacked(@Unique @Initialized B this) {}
 
     @Pure
-    @EnsuresUnknownInit(targetValue=Object.class)
-    @EnsuresUnique
     void isPackedToAtLeastObject(@Unique @UnknownInitialization(Object.class) B this) {}
 
     @Pure
-    @EnsuresUnknownInit(targetValue=A.class)
-    @EnsuresUnique
     void isPackedToPackedToAtLeastA(@Unique @UnknownInitialization(A.class) B this) {}
 
     void correctPacking(@Unique B this) {
@@ -64,6 +53,11 @@ final class B extends A {
         bField = new Object();
         Packing.pack(this, B.class);
         this.isFullyPacked();
+    }
+
+    // :: error: contracts.postcondition.not.satisfied
+    void returnTypeIncompatible(@Unique B this) {
+        Packing.unpack(this, B.class);
     }
 
     void unpackNonReceiver(@Unique B this, @Unique B other) {

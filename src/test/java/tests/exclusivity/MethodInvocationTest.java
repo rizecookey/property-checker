@@ -5,6 +5,7 @@ import org.checkerframework.framework.test.CheckerFrameworkPerDirectoryTest;
 import org.junit.runners.Parameterized.Parameters;
 
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
+import tests.property.PropertyCheckerTest;
 
 import java.io.File;
 import java.util.List;
@@ -17,16 +18,12 @@ import java.util.List;
  * errors and warnings; see
  * https://github.com/typetools/checker-framework/blob/master/checker/tests/README .
  */
-public class MethodInvocationTest extends CheckerFrameworkPerDirectoryTest {
+public class MethodInvocationTest extends PropertyCheckerTest {
     public MethodInvocationTest(List<File> testFiles) {
         super(
                 testFiles,
-                PropertyChecker.class,
-                "exclusivity/methodinvocation",
-                "-Anomsgtext",
-                "-Astubs=stubs/",
-                "-Aflowdotdir=../flowdot",
-                "-nowarn");
+                null,
+                "tests/exclusivity/methodinvocation");
     }
 
     @Parameters

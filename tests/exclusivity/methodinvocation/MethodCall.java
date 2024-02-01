@@ -1,14 +1,21 @@
+import edu.kit.kastel.property.util.Packing;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
+import edu.kit.kastel.property.packing.qual.*;
+import org.checkerframework.checker.initialization.qual.*;
+import org.checkerframework.dataflow.qual.*;
 
 class MethodCall {
     @ReadOnly Foo field;
 
     void mthRO(@ReadOnly MethodCall this) {}
 
+    @EnsuresUnknownInit(targetValue=Object.class)
     void mthUnique(@Unique MethodCall this) {}
 
+    @EnsuresUnknownInit(targetValue=Object.class)
     void mthMA(@MaybeAliased MethodCall this) {}
 
+    @EnsuresUnknownInit(targetValue=Object.class)
     void mthParam(@MaybeAliased MethodCall this, @MaybeAliased Foo arg) {}
 
     @Unique Foo

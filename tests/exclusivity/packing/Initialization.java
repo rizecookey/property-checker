@@ -8,14 +8,13 @@ class NonFinalClass {
     @Unique Object unique;
 
     NonFinalClass() {
+        this.unique = new Object();
         // :: error: method.invocation.invalid
         this.foo();
     }
 
     NonFinalClass(int dummy) {
         this.unique = new Object();
-        // :: error: method.invocation.invalid
-        this.foo();
 
         Packing.pack(this, NonFinalClass.class);
         // :: error: method.invocation.invalid
@@ -33,14 +32,13 @@ final class FinalClass {
     @Unique Object unique;
 
     FinalClass() {
+        this.unique = new Object();
         // :: error: method.invocation.invalid
         this.foo();
     }
 
     FinalClass(int dummy) {
         this.unique = new Object();
-        // :: error: method.invocation.invalid
-        this.foo();
 
         Packing.pack(this, FinalClass.class);
         this.foo();

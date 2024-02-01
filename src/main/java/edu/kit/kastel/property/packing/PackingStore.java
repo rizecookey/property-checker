@@ -43,6 +43,15 @@ public class PackingStore extends InitializationAbstractStore<CFValue, PackingSt
     }
 
     @Override
+    public void clearValue(JavaExpression expr) {
+        if (expr instanceof ThisReference) {
+            thisValue = null;
+        } else {
+            super.clearValue(expr);
+        }
+    }
+
+    @Override
     public boolean isFieldInitialized(Element f) {
         // We don't use the fbc commitment mechanism.
         return false;

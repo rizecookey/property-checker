@@ -52,6 +52,8 @@ public final class ExclusivityVisitor extends BaseTypeVisitor<ExclusivityAnnotat
         ExpressionTree lhs = node.getVariable();
 
         if (lhs instanceof MemberSelectTree) {
+            // Field access
+
             MemberSelectTree lhsField = (MemberSelectTree) lhs;
             try {
                 IdentifierTree ident = (IdentifierTree) lhsField.getExpression();
@@ -70,8 +72,8 @@ public final class ExclusivityVisitor extends BaseTypeVisitor<ExclusivityAnnotat
             }
             return p;
         } else {
-            // local variable
-            return super.visitAssignment(node, p);
+            // Local variable. Everything is checked by the transfer rules; nothing to do here.
+            return p;
         }
     }
 

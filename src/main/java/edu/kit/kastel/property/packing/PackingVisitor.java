@@ -8,6 +8,7 @@ import org.checkerframework.checker.initialization.InitializationAbstractVisitor
 import org.checkerframework.checker.initialization.InitializationChecker;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.dataflow.cfg.node.ThisNode;
+import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.framework.flow.CFValue;
 import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
 import org.checkerframework.javacutil.*;
@@ -137,6 +138,18 @@ public class PackingVisitor
             }
             checker.reportError(tree, "initialization.fields.uninitialized", fieldsString);
         }
+    }
+
+    @Override
+    protected void checkPostcondition(MethodTree methodTree, AnnotationMirror annotation, JavaExpression expression) {
+        todo: collect fields covered by contract
+        super.checkPostcondition(methodTree, annotation, expression);
+    }
+
+    @Override
+    public Void visitMethod(MethodTree tree, Void p) {
+        return super.visitMethod(tree, p);
+        todo: check fields not covered by contract for default
     }
 
     @Override

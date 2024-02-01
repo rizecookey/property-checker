@@ -64,26 +64,6 @@ public class TMethodInvocation extends AbstractTypeRule<MethodInvocationNode> {
 
         // Remove possibly invalidated refinements
         if (store != null && analysis != null) {
-            ExclusivityValue thisValue = store.getValue((ThisNode) null);
-            AnnotationMirror thisType;
-            if (thisValue != null) {
-                thisType = factory.getExclusivityAnnotation(thisValue.getAnnotations());
-            } else {
-                AnnotatedTypeMirror.AnnotatedDeclaredType currentMethodReceiverType =
-                        factory.getAnnotatedType((MethodTree) factory.getEnclosingClassOrMethod(node.getTree()))
-                                .getReceiverType();
-
-                if (currentMethodReceiverType == null) {
-                    System.err.printf(
-                            "warning: ignoring call in method without explicit 'this' parameter declaration: %s\n",
-                            analysis.getContainingMethod(node.getTree()));
-                    return;
-                }
-
-                thisType = factory.getExclusivityAnnotation(
-                        currentMethodReceiverType.getAnnotations());
-            }
-
             // Clear field values if they were possibly changed
             if (!factory.isSideEffectFree(node.getTarget().getMethod())
                     && (receiver instanceof ThisNode && hierarchy.isSubtypeQualifiersOnly(receiverTypeAnno, factory.MAYBE_ALIASED))) {
