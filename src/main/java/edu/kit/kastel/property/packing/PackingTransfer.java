@@ -1,5 +1,6 @@
 package edu.kit.kastel.property.packing;
 
+import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.tools.javac.code.Symbol;
 import edu.kit.kastel.property.util.ClassUtils;
@@ -98,5 +99,11 @@ public class PackingTransfer extends InitializationAbstractTransfer<CFValue, Pac
         }
 
         return super.visitMethodInvocation(n, in);
+    }
+
+    @Override
+    protected void processPostconditions(Node invocationNode, PackingStore store, ExecutableElement executableElement, ExpressionTree invocationTree) {
+        TODO: handle output packing types
+        super.processPostconditions(invocationNode, store, executableElement, invocationTree);
     }
 }

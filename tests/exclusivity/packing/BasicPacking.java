@@ -30,14 +30,17 @@ final class B extends A {
     void isPackedToB(@Unique @UnderInitialization(B.class) B this) {}
 
     @Pure
+    @EnsuresInitialized
     @EnsuresUnique
     void isFullyPacked(@Unique @Initialized B this) {}
 
     @Pure
+    @EnsuresUnknownInit(targetValue=Object.class)
     @EnsuresUnique
     void isPackedToAtLeastObject(@Unique @UnknownInitialization(Object.class) B this) {}
 
     @Pure
+    @EnsuresUnknownInit(targetValue=A.class)
     @EnsuresUnique
     void isPackedToPackedToAtLeastA(@Unique @UnknownInitialization(A.class) B this) {}
 
@@ -57,6 +60,8 @@ final class B extends A {
         this.isPackedToAtLeastObject();
         Packing.pack(this, A.class);
         this.isPackedToPackedToAtLeastA();
+
+        bField = new Object();
         Packing.pack(this, B.class);
         this.isFullyPacked();
     }

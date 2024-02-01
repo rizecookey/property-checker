@@ -43,10 +43,18 @@ public final class ExclusivityVisitor extends BaseTypeVisitor<ExclusivityAnnotat
 
     @Override
     public Void visitAssignment(AssignmentTree node, Void p) {
-        try {
-            MemberSelectTree lhs = (MemberSelectTree) node.getVariable();
+        // TODO Not thread-safe :-)
+        atypeFactory.useIFlowAfter(node);
+        validateTypeOf(node.getExpression());
+        validateTypeOf(node.getVariable());
+        atypeFactory.useRegularIFlow();
+
+        ExpressionTree lhs = node.getVariable();
+
+        if (lhs instanceof MemberSelectTree) {
+            MemberSelectTree lhsField = (MemberSelectTree) lhs;
             try {
-                IdentifierTree ident = (IdentifierTree) lhs.getExpression();
+                IdentifierTree ident = (IdentifierTree) lhsField.getExpression();
                 // Field access is only allowed to fields of this, not other objects
                 if (!ident.getName().contentEquals("this")) {
                     checker.reportError(node, "assignment.invalid-lhs");
@@ -60,16 +68,11 @@ public final class ExclusivityVisitor extends BaseTypeVisitor<ExclusivityAnnotat
                 // No field access to arbitrary expressions is allowed
                 checker.reportError(node, "assignment.invalid-lhs");
             }
-        } catch (ClassCastException ignored) {}
-
-        // TODO Not thread-safe :-)
-        atypeFactory.useIFlowAfter(node);
-        validateTypeOf(node.getExpression());
-        validateTypeOf(node.getVariable());
-        atypeFactory.useRegularIFlow();
-
-        //return super.visitAssignment(node, p);
-        return p;
+            return p;
+        } else {
+            // local variable
+            return super.visitAssignment(node, p);
+        }
     }
 
     @Override

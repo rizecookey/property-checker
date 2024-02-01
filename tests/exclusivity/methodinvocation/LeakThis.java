@@ -1,10 +1,14 @@
+import edu.kit.kastel.property.util.Packing;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
+import edu.kit.kastel.property.packing.qual.*;
+import org.checkerframework.checker.initialization.qual.*;
+import org.checkerframework.dataflow.qual.*;
 
 class LeakThis {
 
     @ReadOnly LeakThis readOnly;
-    @Unique LeakThis unique;
     @MaybeAliased LeakThis aliased;
+    @Unique LeakThis unique;
 
     // :: error: initialization.fields.uninitialized
     LeakThis() {
