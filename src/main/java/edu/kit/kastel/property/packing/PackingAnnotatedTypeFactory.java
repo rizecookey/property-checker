@@ -4,25 +4,22 @@ import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePath;
-import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.tree.JCTree;
-import edu.kit.kastel.property.util.TypeUtils;
+import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityStore;
+import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityValue;
 import org.checkerframework.checker.initialization.*;
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
-import org.checkerframework.dataflow.cfg.node.ClassNameNode;
-import org.checkerframework.dataflow.cfg.node.FieldAccessNode;
-import org.checkerframework.dataflow.cfg.node.ImplicitThisNode;
-import org.checkerframework.dataflow.cfg.node.Node;
-import org.checkerframework.dataflow.cfg.visualize.CFGVisualizer;
+import org.checkerframework.dataflow.cfg.node.*;
+import org.checkerframework.dataflow.expression.JavaExpression;
+import org.checkerframework.dataflow.expression.Unknown;
 import org.checkerframework.framework.flow.CFAbstractAnalysis;
 import org.checkerframework.framework.flow.CFAbstractStore;
-import org.checkerframework.framework.flow.CFAbstractValue;
 import org.checkerframework.framework.flow.CFValue;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
-import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
 import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.framework.util.QualifierKind;
 import org.checkerframework.javacutil.*;
@@ -30,10 +27,7 @@ import org.checkerframework.javacutil.*;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
-import javax.lang.model.util.ElementFilter;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 public class PackingAnnotatedTypeFactory
         extends InitializationAbstractAnnotatedTypeFactory<CFValue, PackingStore, PackingTransfer, PackingAnalysis> {
@@ -106,6 +100,47 @@ public class PackingAnnotatedTypeFactory
         // TODO: For now, the packing checker only changes a reference's type for explicit (un-)pack statements.
         // When implementing implicit (un-)packing, remove this override.
         return;
+    }
+
+    @Override
+    public @Nullable CFValue getInferredValueFor(Tree tree) {
+        final PackingStore store = flowResult.getStoreBefore(tree);
+        Set<Node> nodes = flowResult.getNodesForTree(tree);
+
+        if (store == null || nodes == null) {
+            return null;
+        }
+
+        return nodes.stream()
+                .map(node -> {
+                    JavaExpression expr;
+                    if (node instanceof ValueLiteralNode
+                            || node instanceof BinaryOperationNode
+                            || node instanceof UnaryOperationNode) {
+                        return analysis.createAbstractValue(AnnotationMirrorSet.singleton(INITIALIZED), node.getType());
+                    } else if (!((expr = JavaExpression.fromNode(node)) instanceof Unknown)) {
+                        return store.getValue(expr);
+                    } else if (node instanceof MethodInvocationNode) {
+                        return store.getValue((MethodInvocationNode) node);
+                    } else if (node instanceof FieldAccessNode) {
+                        return store.getValue((FieldAccessNode) node);
+                    } else if (node instanceof ArrayAccessNode) {
+                        return store.getValue((ArrayAccessNode) node);
+                    } else if (node instanceof LocalVariableNode) {
+                        return store.getValue((LocalVariableNode) node);
+                    } else if (node instanceof ThisNode) {
+                        return store.getValue((ThisNode) node);
+                    } else {
+                        return null;  // No refined value available
+                    }})
+                .filter(Objects::nonNull)
+                .reduce(CFValue::leastUpperBound)
+                .orElse(null);
+    }
+
+    @Override
+    protected void applyInferredAnnotations(AnnotatedTypeMirror type, CFValue inferred) {
+        type.replaceAnnotations(inferred.getAnnotations());
     }
 
     protected AnnotationMirror getInitialized() {

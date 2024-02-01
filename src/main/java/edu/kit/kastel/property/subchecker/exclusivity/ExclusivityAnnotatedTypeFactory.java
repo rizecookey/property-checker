@@ -1,7 +1,6 @@
 package edu.kit.kastel.property.subchecker.exclusivity;
 
 import com.sun.source.tree.*;
-import com.sun.source.util.TreePath;
 
 import edu.kit.kastel.property.packing.PackingFieldAccessTreeAnnotator;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
@@ -44,8 +43,8 @@ public final class ExclusivityAnnotatedTypeFactory
             AnnotationBuilder.fromClass(elements, ReadOnly.class);
     public final AnnotationMirror MAYBE_ALIASED =
             AnnotationBuilder.fromClass(elements, MaybeAliased.class);
-    @Nullable
-    private Tree useIFlowAfter;
+
+    private @Nullable Tree useIFlowAfter;
 
     public ExclusivityAnnotatedTypeFactory(BaseTypeChecker checker) {
         super(checker);
@@ -73,7 +72,9 @@ public final class ExclusivityAnnotatedTypeFactory
 
     @Override
     public AnnotatedTypeMirror.AnnotatedNullType getAnnotatedNullType(Set<? extends AnnotationMirror> annotations) {
-        return super.getAnnotatedNullType(annotations);
+        AnnotatedTypeMirror.AnnotatedNullType result = super.getAnnotatedNullType(annotations);
+        result.replaceAnnotation(MAYBE_ALIASED);
+        return result;
     }
 
     @Override
@@ -190,6 +191,11 @@ public final class ExclusivityAnnotatedTypeFactory
         } else {
             return super.getInferredValueFor(tree);
         }
+    }
+
+    @Override
+    protected void applyInferredAnnotations(AnnotatedTypeMirror type, ExclusivityValue inferred) {
+        type.replaceAnnotations(inferred.getAnnotations());
     }
 
     @Override
