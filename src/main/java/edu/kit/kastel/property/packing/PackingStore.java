@@ -2,10 +2,7 @@ package edu.kit.kastel.property.packing;
 
 import org.checkerframework.checker.initialization.InitializationAbstractStore;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.dataflow.expression.ClassName;
-import org.checkerframework.dataflow.expression.FieldAccess;
-import org.checkerframework.dataflow.expression.JavaExpression;
-import org.checkerframework.dataflow.expression.ThisReference;
+import org.checkerframework.dataflow.expression.*;
 import org.checkerframework.framework.flow.CFValue;
 
 import javax.lang.model.element.Element;
@@ -40,6 +37,14 @@ public class PackingStore extends InitializationAbstractStore<CFValue, PackingSt
                 addInitializedField(fa.getField());
             }
         }
+    }
+
+    @Override
+    public @Nullable CFValue getValue(JavaExpression expr) {
+        if (expr instanceof ThisReference || (expr instanceof LocalVariable && expr.toString().equals("this"))) {
+            return thisValue;
+        }
+        return super.getValue(expr);
     }
 
     @Override

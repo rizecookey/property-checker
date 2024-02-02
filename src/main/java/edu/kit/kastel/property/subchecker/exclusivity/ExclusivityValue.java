@@ -15,7 +15,7 @@ public class ExclusivityValue extends CFAbstractValue<ExclusivityValue> {
      * @param annotations    the annotations in this abstract value
      * @param underlyingType the underlying (Java) type in this abstract value
      */
-    protected ExclusivityValue(ExclusivityAnalysis analysis, AnnotationMirrorSet annotations, TypeMirror underlyingType) {
+    public ExclusivityValue(ExclusivityAnalysis analysis, AnnotationMirrorSet annotations, TypeMirror underlyingType) {
         super(analysis, annotations, underlyingType);
     }
 }

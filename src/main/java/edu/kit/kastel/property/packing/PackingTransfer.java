@@ -29,8 +29,11 @@ import org.checkerframework.framework.util.StringToJavaExpression;
 import org.checkerframework.javacutil.*;
 
 import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.VariableElement;
+import javax.lang.model.type.NoType;
+import javax.lang.model.type.TypeKind;
 import java.lang.reflect.Modifier;
 import java.util.List;
 import java.util.Set;
@@ -48,7 +51,7 @@ public class PackingTransfer extends InitializationAbstractTransfer<CFValue, Pac
         // Add receiver value
         UnderlyingAST.CFGMethod method = (UnderlyingAST.CFGMethod) underlyingAST;
         MethodTree methodDeclTree = method.getMethod();
-        if (methodDeclTree.getReceiverParameter() != null) {
+        if (!TreeUtils.isConstructor(methodDeclTree) && methodDeclTree.getReceiverParameter() != null) {
             AnnotatedTypeMirror thisType = atypeFactory.getAnnotatedType(methodDeclTree.getReceiverParameter());
             initStore.initializeThisValue(thisType.getAnnotationInHierarchy(
                     AnnotationBuilder.fromClass(atypeFactory.getElementUtils(), UnderInitialization.class)),
@@ -123,18 +126,30 @@ public class PackingTransfer extends InitializationAbstractTransfer<CFValue, Pac
                                     (MethodInvocationNode) invocationNode,
                                     analysis.getTypeFactory().getChecker());
 
-            // Set receiver output type to input type by default.
             Node receiver = ((MethodInvocationNode) invocationNode).getTarget().getReceiver();
-
             AnnotatedTypeFactory.ParameterizedExecutableType method =
                     analysis.getTypeFactory().methodFromUse((MethodInvocationTree) invocationNode.getTree());
-            AnnotatedTypeMirror receiverType = method.executableType.getReceiverType();
-            if (receiverType != null) {
-                CFValue receiverDefaultValue = new CFValue(
-                        analysis,
-                        receiverType.getAnnotations(),
-                        receiverType.getUnderlyingType());
-                store.replaceValue(JavaExpression.fromNode(receiver), receiverDefaultValue);
+
+            if (executableElement.getKind().equals(ElementKind.CONSTRUCTOR)) {
+                // For this() and super() calls, set receiver output type to constructor type
+                AnnotatedTypeMirror receiverType = atypeFactory.getAnnotatedType(executableElement).getReturnType();
+                if (receiverType != null) {
+                    CFValue receiverDefaultValue = new CFValue(
+                            analysis,
+                            receiverType.getAnnotations(),
+                            receiverType.getUnderlyingType());
+                    store.replaceValue(JavaExpression.fromNode(receiver), receiverDefaultValue);
+                }
+            } else {
+                // For normal method calls, set receiver output type to input type by default.
+                AnnotatedTypeMirror receiverType = method.executableType.getReceiverType();
+                if (receiverType != null) {
+                    CFValue receiverDefaultValue = new CFValue(
+                            analysis,
+                            receiverType.getAnnotations(),
+                            receiverType.getUnderlyingType());
+                    store.replaceValue(JavaExpression.fromNode(receiver), receiverDefaultValue);
+                }
             }
 
             // Set parameter output types to input type by default.

@@ -2,8 +2,10 @@ package edu.kit.kastel.property.subchecker.exclusivity;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.expression.JavaExpression;
+import org.checkerframework.dataflow.expression.LocalVariable;
 import org.checkerframework.dataflow.expression.ThisReference;
 import org.checkerframework.framework.flow.CFAbstractStore;
+import org.checkerframework.framework.flow.CFValue;
 
 public class ExclusivityStore extends CFAbstractStore<ExclusivityValue, ExclusivityStore> {
 
@@ -27,6 +29,14 @@ public class ExclusivityStore extends CFAbstractStore<ExclusivityValue, Exclusiv
                 value,
                 (old, newValue) -> newValue,
                 permitNondeterministic);
+    }
+
+    @Override
+    public @Nullable ExclusivityValue getValue(JavaExpression expr) {
+        if (expr instanceof ThisReference || (expr instanceof LocalVariable && expr.toString().equals("this"))) {
+            return thisValue;
+        }
+        return super.getValue(expr);
     }
 
     @Override

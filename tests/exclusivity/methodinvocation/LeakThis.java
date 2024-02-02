@@ -10,26 +10,28 @@ class LeakThis {
     @UnknownInitialization(Object.class) @MaybeAliased LeakThis aliased;
     @UnknownInitialization(Object.class) @Unique LeakThis unique;
 
-    LeakThis() {
+    @UnknownInitialization(LeakThis.class) LeakThis() {
         this.readOnly = this;
         this.mthReadOnly();
         // :: error: initialization.fields.uninitialized
         Packing.pack(this, LeakThis.class);
     }
 
-    LeakThis(boolean dummy) {
-        // :: error: exclusivity.type.invalidated
+    // :: error: initialization.constructor.return.type.incompatible
+    @UnknownInitialization(LeakThis.class) LeakThis(boolean dummy) {
         this.unique = this;
         // :: error: exclusivity.type.invalidated
         this.mthUnique();
+        // :: error: exclusivity.packing.aliased :: error: initialization.fields.uninitialized
+        Packing.pack(this, LeakThis.class);
     }
 
-    // :: error: initialization.fields.uninitialized
-    LeakThis(int dummy) {
-        // :: error: exclusivity.type.invalidated
+    // :: error: initialization.constructor.return.type.incompatible
+    @UnknownInitialization(LeakThis.class) LeakThis(int dummy) {
         this.aliased = this;
-        // :: error: exclusivity.type.invalidated
         this.mthAliased();
+        // :: error: initialization.fields.uninitialized :: error: exclusivity.packing.aliased
+        Packing.pack(this, LeakThis.class);
     }
 
     void mthReadOnly(@UnknownInitialization(Object.class) @ReadOnly LeakThis this) {
@@ -40,9 +42,9 @@ class LeakThis {
     void mthAliased(@UnknownInitialization(Object.class) @MaybeAliased LeakThis this) {
         this.aliased = this;
     }
-    
+
+    // :: error: contracts.postcondition.not.satisfied
     void mthUnique(@UnknownInitialization(Object.class) @Unique LeakThis this) {
-        // :: error: exclusivity.type.invalidated
         this.unique = this;
     }
     

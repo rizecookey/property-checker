@@ -46,24 +46,33 @@ public final class ExclusivityAnnotatedTypeFactory
 
     private @Nullable Tree useIFlowAfter;
 
+    private boolean useInputTypeLhs;
+
     public ExclusivityAnnotatedTypeFactory(BaseTypeChecker checker) {
         super(checker);
         postInit();
     }
 
+    public void setUseInputTypeLhs(boolean useInputTypeLhs) {
+        this.useInputTypeLhs = useInputTypeLhs;
+    }
+
     @Override
     public AnnotatedTypeMirror getAnnotatedTypeLhs(Tree lhsTree) {
         AnnotatedTypeMirror annotatedType = super.getAnnotatedTypeLhs(lhsTree);
-        Tree containingMethod = getEnclosingClassOrMethod(lhsTree);
-        // For method parameters, the lhs type is always @ReadOnly
-        if (lhsTree instanceof IdentifierTree && containingMethod instanceof MethodTree) {
-            boolean isParam = ((IdentifierTree) lhsTree).getName().toString().equals("this");
-            for (VariableTree param : ((MethodTree) containingMethod).getParameters()) {
-                isParam |= param.getName().equals(((IdentifierTree) lhsTree).getName());
-            }
 
-            if (isParam) {
-                annotatedType.replaceAnnotation(READ_ONLY);
+        if (!useInputTypeLhs) {
+            Tree containingMethod = getEnclosingClassOrMethod(lhsTree);
+            // For method parameters, the lhs type is always @ReadOnly
+            if (lhsTree instanceof IdentifierTree && containingMethod instanceof MethodTree) {
+                boolean isParam = ((IdentifierTree) lhsTree).getName().toString().equals("this");
+                for (VariableTree param : ((MethodTree) containingMethod).getParameters()) {
+                    isParam |= param.getName().equals(((IdentifierTree) lhsTree).getName());
+                }
+
+                if (isParam) {
+                    annotatedType.replaceAnnotation(READ_ONLY);
+                }
             }
         }
 

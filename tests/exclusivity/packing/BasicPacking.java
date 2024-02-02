@@ -44,13 +44,14 @@ final class B extends A {
         this.isFullyPacked();
     }
 
-    void correctPackingCovariant(@UnknownInitialization(A.class) @Unique B this) {
+    // :: error: contracts.postcondition.not.satisfied
+    void unpackingCovariant(@UnknownInitialization(A.class) @Unique B this) {
+        // :: error: initialization.unpacking.unknown
         Packing.unpack(this, A.class);
-        this.isPackedToAtLeastObject();
-        Packing.pack(this, A.class);
-        this.isPackedToPackedToAtLeastA();
+    }
 
-        bField = new Object();
+    void correctPackingCovariant(@UnknownInitialization(A.class) @Unique B this) {
+        this.bField = new Object();
         Packing.pack(this, B.class);
         this.isFullyPacked();
     }
@@ -60,9 +61,16 @@ final class B extends A {
         Packing.unpack(this, B.class);
     }
 
+    // :: error: contracts.postcondition.not.satisfied
     void unpackNonReceiver(@Unique B this, @Unique B other) {
         // :: error: initialization.packing.nonreceiver
         Packing.unpack(other, B.class);
+    }
+
+    // :: error: contracts.postcondition.not.satisfied
+    void unpackAliased(@MaybeAliased B this) {
+        // :: error: exclusivity.packing.aliased
+        Packing.unpack(this, B.class);
     }
 
     void unpackObject(@Unique B this) {
@@ -108,5 +116,6 @@ final class B extends A {
         Packing.pack(this, B.class);
         // :: error: initialization.already.packed
         Packing.pack(this, A.class);
+        Packing.pack(this, B.class);
     }
 }

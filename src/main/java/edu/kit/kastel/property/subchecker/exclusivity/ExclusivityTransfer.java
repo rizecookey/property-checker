@@ -110,7 +110,7 @@ public class ExclusivityTransfer extends CFAbstractTransfer<ExclusivityValue, Ex
         // Add receiver value
         UnderlyingAST.CFGMethod method = (UnderlyingAST.CFGMethod) underlyingAST;
         MethodTree methodDeclTree = method.getMethod();
-        if (methodDeclTree.getReceiverParameter() != null) {
+        if (!TreeUtils.isConstructor(methodDeclTree) && methodDeclTree.getReceiverParameter() != null) {
             AnnotatedTypeMirror thisType = factory.getAnnotatedType(methodDeclTree.getReceiverParameter());
             initStore.initializeThisValue(thisType.getAnnotationInHierarchy(
                             AnnotationBuilder.fromClass(factory.getElementUtils(), Unique.class)),

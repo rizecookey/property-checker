@@ -17,6 +17,7 @@ import org.checkerframework.dataflow.cfg.node.ThisNode;
 import org.checkerframework.dataflow.expression.FieldAccess;
 import org.checkerframework.framework.flow.CFValue;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
+import org.checkerframework.javacutil.AnnotationUtils;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.VariableElement;
@@ -76,17 +77,41 @@ public class TMethodInvocation extends AbstractTypeRule<MethodInvocationNode> {
                     receiverOutputPackingType.addAnnotations(receiverOutputPackingValue.getAnnotations());
                 }
 
+                AnnotatedTypeMirror receiverInputPackingType = packingFactory.getReceiverType(node.getTree());
+
                 for (FieldAccess field : Set.copyOf(store.getFieldValues().keySet())) {
                     TypeMirror fieldOwnerType = field.getField().getEnclosingElement().asType();
 
-                    if (!hierarchy.isSubtypeQualifiersOnly(
+                    // Don't clear invalidated values
+                    if (hierarchy.isSubtypeQualifiersOnly(
                             factory.getExclusivityAnnotation(store.getValue(field).getAnnotations()),
-                            factory.EXCL_BOTTOM)
-                            && (receiverOutputPackingValue == null || !packingFactory.isInitializedForFrame(receiverOutputPackingType, fieldOwnerType))) {
-                        store.clearValue(field);
-                        System.out.printf("Clearing refinement for %s after %s\n",
-                                field, node);
+                            factory.EXCL_BOTTOM)) {
+                        continue;
                     }
+
+                    // Don't clear params in frame of UnknownInit input type
+                    if (AnnotationUtils.areSameByName(receiverTypeAnno, packingFactory.getUnknownInitialization()) &&
+                            packingFactory.isInitializedForFrame(receiverInputPackingType, fieldOwnerType)) {
+                        continue;
+                    }
+
+                    // For remaining params in frame of output type, add declared type to store
+                    if (receiverOutputPackingValue != null && packingFactory.isInitializedForFrame(receiverOutputPackingType, fieldOwnerType)) {
+                        AnnotatedTypeMirror adaptedType = factory.getAnnotatedType(field.getField());
+                        store.replaceValue(
+                                field,
+                                new ExclusivityValue(analysis,
+                                        adaptedType.getAnnotations(),
+                                        adaptedType.getUnderlyingType()));
+                        System.out.printf("Resetting refinement to declared type for %s after %s\n",
+                                field, node);
+                        continue;
+                    }
+
+                    // For remaining params, clear value
+                    store.clearValue(field);
+                    System.out.printf("Clearing refinement for %s after %s\n",
+                            field, node);
                 }
             }
         }

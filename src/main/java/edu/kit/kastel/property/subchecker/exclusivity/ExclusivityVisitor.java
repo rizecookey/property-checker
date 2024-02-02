@@ -4,9 +4,11 @@ import com.sun.source.tree.*;
 
 import java.util.Set;
 
+import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.ExecutableElement;
 
+import edu.kit.kastel.property.util.Packing;
 import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.BaseTypeVisitor;
@@ -16,10 +18,18 @@ import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedPrimitiveType;
+import org.checkerframework.javacutil.ElementUtils;
+import org.checkerframework.javacutil.TreeUtils;
 
 public final class ExclusivityVisitor extends BaseTypeVisitor<ExclusivityAnnotatedTypeFactory> {
+
+    private final ExecutableElement packMethod;
+    private final ExecutableElement unpackMethod;
+
     public ExclusivityVisitor(BaseTypeChecker checker) {
         super(checker);
+        packMethod = TreeUtils.getMethod(Packing.class, "pack", 2, atypeFactory.getProcessingEnv());
+        unpackMethod = TreeUtils.getMethod(Packing.class, "unpack", 2, atypeFactory.getProcessingEnv());
     }
 
     @Override
@@ -79,6 +89,19 @@ public final class ExclusivityVisitor extends BaseTypeVisitor<ExclusivityAnnotat
 
     @Override
     public Void visitMethodInvocation(MethodInvocationTree node, Void p) {
+        ExecutableElement invokedMethod = TreeUtils.elementFromUse(node);
+        ProcessingEnvironment env = atypeFactory.getProcessingEnv();
+
+        if (ElementUtils.isMethod(invokedMethod, packMethod, env) || ElementUtils.isMethod(invokedMethod, unpackMethod, env)) {
+            ExpressionTree objToPack = node.getArguments().get(0);
+            if (!qualHierarchy.isSubtypeQualifiersOnly(
+                    atypeFactory.getExclusivityAnnotation(atypeFactory.getAnnotatedType(objToPack)),
+                    atypeFactory.UNIQUE)) {
+                checker.reportError(node, "exclusivity.packing.aliased");
+            }
+            return null;
+        }
+
         atypeFactory.useIFlowAfter(node);
         validateTypeOf(node);
         ExpressionTree recv = node.getMethodSelect();

@@ -83,17 +83,6 @@ class Primitives {
         this.s = "4" + s;
     }
 
-    void assignReadOnlyThis(@ReadOnly Primitives this) {
-        // :: error: assignment.this-not-writable
-        this.unique = new Foo();
-        // :: error: assignment.this-not-writable
-        this.aliased = new Foo();
-        // :: error: assignment.this-not-writable
-        this.i = 42;
-        // :: error: assignment.this-not-writable
-        this.s = "42";
-    }
-
     @Unique Foo copyUniqueFieldReference() {
         // :: error: exclusivity.type.invalidated
         return this.unique;

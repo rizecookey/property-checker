@@ -1,24 +1,32 @@
 package edu.kit.kastel.property.packing;
 
 import com.sun.source.tree.*;
+import com.sun.tools.javac.code.TargetType;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.tree.JCTree;
+import com.sun.tools.javac.tree.TreeInfo;
+import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityStore;
+import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityValue;
 import edu.kit.kastel.property.util.Packing;
+import edu.kit.kastel.property.util.TypeUtils;
+import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
 import org.checkerframework.checker.initialization.InitializationAbstractVisitor;
 import org.checkerframework.checker.initialization.InitializationChecker;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.dataflow.cfg.node.ThisNode;
 import org.checkerframework.dataflow.expression.JavaExpression;
+import org.checkerframework.dataflow.expression.ThisReference;
 import org.checkerframework.framework.flow.CFValue;
+import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
 import org.checkerframework.javacutil.*;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.*;
+import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.NoType;
 import javax.lang.model.type.TypeMirror;
-import java.util.List;
-import java.util.StringJoiner;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class PackingVisitor
@@ -55,7 +63,6 @@ public class PackingVisitor
 
             Element typeElement = TreeUtils.elementFromUse(((MemberSelectTree) node.getArguments().get(1)).getExpression());
 
-
             CFValue oldValue = atypeFactory.getStoreBefore(node).getValue((ThisNode) null);
             AnnotationMirror oldAnnotation;
             if (oldValue != null) {
@@ -85,6 +92,11 @@ public class PackingVisitor
                     checker.reportError(node, "initialization.unpacking.object.class");
                 } else if (oldTypeFrame != null && (!types.isSubtype(oldTypeFrame, newTypeFrame) || types.isSameType(oldTypeFrame, newTypeFrame))) {
                     checker.reportError(node, "initialization.already.unpacked");
+                }
+
+                // Type-check unpack statement: cannot unpack UnknownInitialization
+                if (AnnotationUtils.areSameByName(oldAnnotation, atypeFactory.getUnknownInitialization())) {
+                    checker.reportError(node, "initialization.unpacking.unknown");
                 }
             } else {
                 // Type-check pack statement:
@@ -140,16 +152,138 @@ public class PackingVisitor
         }
     }
 
+    private Set<JavaExpression> paramsInContract = new HashSet<>();
+
     @Override
     protected void checkPostcondition(MethodTree methodTree, AnnotationMirror annotation, JavaExpression expression) {
-        todo: collect fields covered by contract
+        paramsInContract.add(expression);
         super.checkPostcondition(methodTree, annotation, expression);
     }
 
     @Override
     public Void visitMethod(MethodTree tree, Void p) {
-        return super.visitMethod(tree, p);
-        todo: check fields not covered by contract for default
+        super.visitMethod(tree, p);
+
+        // check that params not covered by explicit contract fulfill their input type
+        VariableTree receiver = tree.getReceiverParameter();
+        if (receiver != null) {
+            checkDefaultContract(receiver, tree, atypeFactory.getRegularExitStore(tree));
+        }
+        for (VariableTree param : tree.getParameters()) {
+            checkDefaultContract(param, tree, atypeFactory.getRegularExitStore(tree));
+        }
+
+        // Constructor receivers need special treatment: we can't get at the receiver from the method tree;
+        // instead, we compare the this value in the constructor's exit store to the declared
+        // constructor type.
+        // Implicit default constructors are instead treated by ::checkConstructorResult
+        if (TreeUtils.isConstructor(tree) && ! TreeUtils.isSynthetic(tree)) {
+            CFValue thisValue = atypeFactory.getRegularExitStore(tree).getValue((ThisNode) null);
+            Type classType = ((JCTree.JCMethodDecl) tree).sym.owner.type;
+            AnnotationMirror declared;
+            // Default declared type if no explicit annotation is given
+            if (classType.isFinal()) {
+                declared = atypeFactory.getInitialized();
+            } else {
+                declared =
+                        atypeFactory.createUnderInitializationAnnotation(((JCTree.JCMethodDecl) tree).sym.owner.type);
+            }
+            for (AnnotationMirror anno : getConstructorAnnotations(tree)) {
+                if (atypeFactory.isSupportedQualifier(anno)) {
+                    declared = anno;
+                    break;
+                }
+            }
+            AnnotationMirror top = qualHierarchy.getTopAnnotations().first();
+
+            if (thisValue == null) {
+                if (!AnnotationUtils.areSame(top, declared)) {
+                    checker.reportError(tree, "initialization.constructor.return.type.incompatible", tree);
+                }
+            } else {
+                AnnotationMirror actual = qualHierarchy.findAnnotationInHierarchy(
+                        thisValue.getAnnotations(), atypeFactory.getUnknownInitialization());
+                if (!qualHierarchy.isSubtypeQualifiersOnly(actual, declared)) {
+                    checker.reportError(tree, "initialization.constructor.return.type.incompatible", tree);
+                }
+            }
+        }
+
+        return p;
+    }
+
+    private AnnotationMirrorSet getConstructorAnnotations(MethodTree tree) {
+        if (TreeUtils.isConstructor(tree)) {
+            com.sun.tools.javac.code.Symbol meth =
+                    (com.sun.tools.javac.code.Symbol) TreeUtils.elementFromDeclaration(tree);
+            return new AnnotationMirrorSet(
+                    meth.getRawTypeAttributes().stream().filter(anno -> anno.position.type.equals(TargetType.METHOD_RETURN))
+                            .collect(Collectors.toList()));
+        }
+        return AnnotationMirrorSet.emptySet();
+    }
+
+    @Override
+    protected void checkConstructorResult(AnnotatedTypeMirror.AnnotatedExecutableType constructorType, ExecutableElement constructorElement) {
+        // Explicit constructurs are treated the same as any other method by visitMethod;
+        // so there's nothing to do here.
+        // For default constructors, we use the superclass implementation check that every fields is initialized.
+        if (TreeUtils.isSynthetic(methodTree)) {
+            super.checkConstructorResult(constructorType, constructorElement);
+        }
+    }
+
+    private void checkDefaultContract(VariableTree param, MethodTree methodTree, PackingStore exitStore) {
+        JavaExpression paramExpr;
+        if (param.getName().contentEquals("this")) {
+            paramExpr = new ThisReference(((JCTree) param).type);
+        } else {
+            paramExpr = JavaExpression.fromVariableTree(param);
+        }
+        if (!paramsInContract.contains(paramExpr)) {
+            Element paramElem = TreeUtils.elementFromDeclaration(param);
+
+            AnnotatedTypeMirror currentType = atypeFactory.getAnnotatedType(param);
+            if (exitStore != null) {
+                CFValue valueAfterMethod = exitStore.getValue(paramExpr);
+                if (valueAfterMethod != null) {
+                    currentType.replaceAnnotations(valueAfterMethod.getAnnotations());
+                }
+            }
+
+            AnnotatedTypeMirror declType = atypeFactory.getAnnotatedTypeLhs(param);
+
+            if (!typeHierarchy.isSubtype(currentType, declType)) {
+                checker.reportError(
+                        methodTree,
+                        "contracts.postcondition.not.satisfied",
+                        methodTree.getName(),
+                        contractExpressionAndType(paramElem.toString(), currentType.getAnnotationInHierarchy(atypeFactory.getInitialized())),
+                        contractExpressionAndType(paramElem.toString(), declType.getAnnotationInHierarchy(atypeFactory.getInitialized())));
+            }
+        }
+    }
+
+    @Override
+    protected boolean commonAssignmentCheck(Tree varTree, ExpressionTree valueExp, @CompilerMessageKey String errorKey, Object... extraArgs) {
+        // field write of the form x.f = y
+        if (TreeUtils.isFieldAccess(varTree)) {
+            // cast is safe: a field access can only be an IdentifierTree or MemberSelectTree
+            ExpressionTree lhs = (ExpressionTree) varTree;
+            ExpressionTree y = valueExp;
+            VariableElement el = TreeUtils.variableElementFromUse(lhs);
+            AnnotatedTypeMirror xType = atypeFactory.getReceiverType(lhs);
+            AnnotatedTypeMirror yType = atypeFactory.getAnnotatedType(y);
+            // the special FBC rules do not apply if there is an explicit
+            // UnknownInitialization annotation
+            AnnotationMirrorSet fieldAnnotations =
+                    atypeFactory.getAnnotatedType(el).getAnnotations();
+            if (atypeFactory.isInitializedForFrame(xType, TreeInfo.symbol((JCTree) varTree).owner.type)) {
+                checker.reportError(varTree, "initialization.write.committed.field", varTree);
+                return false;
+            }
+        }
+        return super.commonAssignmentCheck(varTree, valueExp, errorKey, extraArgs);
     }
 
     @Override
