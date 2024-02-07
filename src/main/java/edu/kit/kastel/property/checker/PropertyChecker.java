@@ -45,6 +45,7 @@ public final class PropertyChecker extends PackingChecker {
     private ExclusivityChecker exclusivityChecker;
     private PackingFieldAccessSubchecker fieldAccessChecker;
     private List<LatticeSubchecker> latticeSubcheckers;
+    private List<BaseTypeChecker> packingTargetCheckers;
 
     private Map<String, PriorityQueue<LatticeVisitor.Result>> results = new HashMap<>();
 
@@ -55,16 +56,15 @@ public final class PropertyChecker extends PackingChecker {
         return true;
     }
 
-    //TODO just implement packing for excl to start with
-
     @Override
-    public Class<? extends BaseTypeChecker> getTargetCheckerClass() {
-        return ExclusivityChecker.class;
-    }
+    public List<BaseTypeChecker> getTargetCheckers() {
+        if (packingTargetCheckers == null) {
+            packingTargetCheckers = new ArrayList<>();
+            packingTargetCheckers.add(getExclusivityChecker());
+            packingTargetCheckers.addAll(getLatticeSubcheckers());
+        }
 
-    @Override
-    protected Set<Class<? extends BaseTypeChecker>> getImmediateSubcheckerClasses() {
-        return super.getImmediateSubcheckerClasses();
+        return packingTargetCheckers;
     }
 
     @Override
@@ -75,8 +75,6 @@ public final class PropertyChecker extends PackingChecker {
         checkers.addAll(getLatticeSubcheckers());
         return checkers;
     }
-
-
 
     @Override
     public <T extends BaseTypeChecker> @Nullable T getSubchecker(Class<T> checkerClass) {

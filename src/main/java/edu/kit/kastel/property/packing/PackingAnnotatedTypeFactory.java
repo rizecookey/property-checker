@@ -1,25 +1,22 @@
 package edu.kit.kastel.property.packing;
 
 import com.sun.source.tree.ClassTree;
-import com.sun.source.tree.MethodTree;
-import com.sun.source.tree.NewClassTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.util.TreePath;
 import com.sun.tools.javac.tree.JCTree;
 import org.checkerframework.checker.initialization.*;
-import org.checkerframework.checker.initialization.qual.Initialized;
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.dataflow.cfg.node.*;
-import org.checkerframework.dataflow.expression.JavaExpression;
-import org.checkerframework.dataflow.expression.Unknown;
+import org.checkerframework.dataflow.expression.*;
 import org.checkerframework.framework.flow.CFAbstractAnalysis;
 import org.checkerframework.framework.flow.CFAbstractStore;
+import org.checkerframework.framework.flow.CFAbstractValue;
 import org.checkerframework.framework.flow.CFValue;
-import org.checkerframework.framework.qual.TypeUseLocation;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
+import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
 import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.LiteralTreeAnnotator;
@@ -29,7 +26,6 @@ import org.checkerframework.framework.type.typeannotator.ListTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.PropagationTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
 import org.checkerframework.framework.util.QualifierKind;
-import org.checkerframework.framework.util.defaults.QualifierDefaults;
 import org.checkerframework.javacutil.*;
 
 import javax.lang.model.element.AnnotationMirror;
@@ -47,9 +43,7 @@ public class PackingAnnotatedTypeFactory
 
     @Override
     protected @Nullable PackingFieldAccessAnnotatedTypeFactory getFieldAccessFactory() {
-        PackingChecker checker = getChecker();
-        BaseTypeChecker targetChecker = checker.getSubchecker(checker.getTargetCheckerClass());
-        return targetChecker.getTypeFactoryOfSubcheckerOrNull(PackingFieldAccessSubchecker.class);
+        return getTypeFactoryOfSubcheckerOrNull(PackingFieldAccessSubchecker.class);
     }
 
     @Override
@@ -75,9 +69,49 @@ public class PackingAnnotatedTypeFactory
             Collection<? extends AnnotationMirror> receiverAnnotations) {
         boolean wasComputingUninitializedFields = getFieldAccessFactory().isComputingUninitializedFields();
 
-        List<VariableElement> uninitializedFields =  super.getUninitializedFields(initStore, targetStore, path, isStatic, receiverAnnotations);
+        List<VariableElement> uninitializedFields =  getUninitializedFieldsForTarget(initStore, targetStore, path, isStatic, receiverAnnotations);
 
         getFieldAccessFactory().setComputingUninitializedFields(wasComputingUninitializedFields);
+        return uninitializedFields;
+    }
+
+    private List<VariableElement> getUninitializedFieldsForTarget(
+            PackingStore initStore,
+            CFAbstractStore<?, ?> targetStore,
+            TreePath path,
+            boolean isStatic,
+            Collection<? extends AnnotationMirror> receiverAnnotations) {
+        List<VariableElement> uninitializedFields =
+                getUninitializedFields(initStore, path, isStatic, receiverAnnotations);
+        ClassTree currentClass = TreePathUtil.enclosingClass(path);
+
+        PackingClientAnnotatedTypeFactory factory = ((PackingClientStore) targetStore).getFactory();
+
+        if (factory == null) {
+            throw new BugInCF(
+                    "Did not find target type factory for checker "
+                            + ((InitializationChecker) checker).getTargetCheckerClass());
+        }
+
+        // Remove primitives
+        if (!((InitializationChecker) checker).checkPrimitives()) {
+            uninitializedFields.removeIf(var -> getAnnotatedType(var).getKind().isPrimitive());
+        }
+
+        // Filter out fields which are initialized according to subchecker
+        uninitializedFields.removeIf(
+                field -> {
+                    JavaExpression receiver;
+                    if (ElementUtils.isStatic(field)) {
+                        receiver = new ClassName(((JCTree) currentClass).type);
+                    } else {
+                        receiver = new ThisReference(((JCTree) currentClass).type);
+                    }
+                    FieldAccess fa = new FieldAccess(receiver, field);
+                    CFAbstractValue<?> value = targetStore.getFieldValue(fa);
+                    return isInitialized(factory, value, field);
+                });
+
         return uninitializedFields;
     }
 

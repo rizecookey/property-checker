@@ -5,10 +5,7 @@ import com.sun.tools.javac.code.TargetType;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.tree.TreeInfo;
-import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityStore;
-import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityValue;
 import edu.kit.kastel.property.util.Packing;
-import edu.kit.kastel.property.util.TypeUtils;
 import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
 import org.checkerframework.checker.initialization.InitializationAbstractVisitor;
 import org.checkerframework.checker.initialization.InitializationChecker;
@@ -16,6 +13,7 @@ import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.dataflow.cfg.node.ThisNode;
 import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.dataflow.expression.ThisReference;
+import org.checkerframework.framework.flow.CFAbstractStore;
 import org.checkerframework.framework.flow.CFValue;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
@@ -23,7 +21,6 @@ import org.checkerframework.javacutil.*;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.*;
-import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.NoType;
 import javax.lang.model.type.TypeMirror;
 import java.util.*;
@@ -46,6 +43,10 @@ public class PackingVisitor
         // Don't load the factory reflexively based on checker class name.
         // Instead, always use the PackingAnnotatedTypeFactory.
         return new PackingAnnotatedTypeFactory(checker);
+    }
+
+    public PackingChecker getChecker() {
+        return (PackingChecker) checker;
     }
 
     @Override
@@ -125,30 +126,31 @@ public class PackingVisitor
     protected void checkFieldsInitializedUpToFrame(
             Tree tree,
             TypeMirror frame) {
-        GenericAnnotatedTypeFactory<?, ?, ?, ?> targetFactory =
-                checker.getTypeFactoryOfSubcheckerOrNull(
-                        ((InitializationChecker) checker).getTargetCheckerClass());
-        List<VariableElement> uninitializedFields =
-                atypeFactory.getUninitializedFields(
-                        atypeFactory.getStoreBefore(tree),
-                        targetFactory.getStoreBefore(tree),
-                        getCurrentPath(),
-                        false,
-                        List.of());
+        for (BaseTypeChecker targetChecker : getChecker().getTargetCheckers()) {
+            GenericAnnotatedTypeFactory<?, ?, ?, ?> targetFactory = targetChecker.getTypeFactory();
 
-        // Remove fields below frame
-        uninitializedFields.retainAll(ElementUtils.getAllFieldsIn(TypesUtils.getTypeElement(frame), elements));
+            List<VariableElement> uninitializedFields =
+                    atypeFactory.getUninitializedFields(
+                            atypeFactory.getStoreBefore(tree),
+                            targetFactory.getStoreBefore(tree),
+                            getCurrentPath(),
+                            false,
+                            List.of());
 
-        // Remove fields with a relevant @SuppressWarnings annotation
-        uninitializedFields.removeIf(
-                f -> checker.shouldSuppressWarnings(f, "initialization.field.uninitialized"));
+            // Remove fields below frame
+            uninitializedFields.retainAll(ElementUtils.getAllFieldsIn(TypesUtils.getTypeElement(frame), elements));
 
-        if (!uninitializedFields.isEmpty()) {
-            StringJoiner fieldsString = new StringJoiner(", ");
-            for (VariableElement f : uninitializedFields) {
-                fieldsString.add(f.getSimpleName());
+            // Remove fields with a relevant @SuppressWarnings annotation
+            uninitializedFields.removeIf(
+                    f -> checker.shouldSuppressWarnings(f, "initialization.field.uninitialized"));
+
+            if (!uninitializedFields.isEmpty()) {
+                StringJoiner fieldsString = new StringJoiner(", ");
+                for (VariableElement f : uninitializedFields) {
+                    fieldsString.add(f.getSimpleName());
+                }
+                checker.reportError(tree, "initialization.fields.uninitialized", fieldsString);
             }
-            checker.reportError(tree, "initialization.fields.uninitialized", fieldsString);
         }
     }
 
@@ -292,9 +294,66 @@ public class PackingVisitor
         // TODO: For now, the packing checker only changes a reference's type for explicit (un-)pack statements.
         // When implementing implicit (un-)packing, change this override.
 
-        // Still call the super class for static initializers and default constructors to avoid false negatives.
+        // Still check for static initializers and default constructors to avoid false negatives.
         if (staticFields || TreeUtils.isSynthetic((MethodTree) tree)) {
-            super.checkFieldsInitialized(tree, staticFields, initExitStore, receiverAnnotations);
+            // If the store is null, then the constructor cannot terminate successfully
+            if (initExitStore == null) {
+                return;
+            }
+
+            // Compact canonical record constructors do not generate visible assignments in the source,
+            // but by definition they assign to all the record's fields so we don't need to
+            // check for uninitialized fields in them:
+            if (tree.getKind() == Tree.Kind.METHOD
+                    && TreeUtils.isCompactCanonicalRecordConstructor((MethodTree) tree)) {
+                return;
+            }
+
+            for (BaseTypeChecker targetChecker : getChecker().getTargetCheckers()) {
+                GenericAnnotatedTypeFactory<?, ?, ?, ?> targetFactory = targetChecker.getTypeFactory();
+                // The target checker's store corresponding to initExitStore
+                CFAbstractStore<?, ?> targetExitStore = targetFactory.getRegularExitStore(tree);
+                List<VariableElement> uninitializedFields =
+                        atypeFactory.getUninitializedFields(
+                                initExitStore,
+                                targetExitStore,
+                                getCurrentPath(),
+                                staticFields,
+                                receiverAnnotations);
+                uninitializedFields.removeAll(initializedFields);
+
+                // If we are checking initialization of a class's static fields or of a default constructor,
+                // we issue an error for every uninitialized field at the respective field declaration.
+                // If we are checking a non-default constructor, we issue a single error at the constructor
+                // declaration.
+                boolean errorAtField = staticFields || TreeUtils.isSynthetic((MethodTree) tree);
+
+                String errorMsg =
+                        (staticFields
+                                ? "initialization.static.field.uninitialized"
+                                : errorAtField
+                                ? "initialization.field.uninitialized"
+                                : "initialization.fields.uninitialized");
+
+                // Remove fields with a relevant @SuppressWarnings annotation
+                uninitializedFields.removeIf(f -> checker.shouldSuppressWarnings(f, errorMsg));
+
+                if (!uninitializedFields.isEmpty()) {
+                    if (errorAtField) {
+                        // Issue each error at the relevant field
+                        for (VariableElement f : uninitializedFields) {
+                            checker.reportError(f, errorMsg, f.getSimpleName());
+                        }
+                    } else {
+                        // Issue all the errors at the relevant constructor
+                        StringJoiner fieldsString = new StringJoiner(", ");
+                        for (VariableElement f : uninitializedFields) {
+                            fieldsString.add(f.getSimpleName());
+                        }
+                        checker.reportError(tree, errorMsg, fieldsString);
+                    }
+                }
+            }
         }
     }
 }

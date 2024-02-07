@@ -35,6 +35,18 @@ public abstract class PackingChecker extends InitializationChecker {
     private URLClassLoader projectClassLoader;
 
     @Override
+    public final Class<? extends BaseTypeChecker> getTargetCheckerClass() {
+        List<BaseTypeChecker> targets = getTargetCheckers();
+        if (targets.size() == 1) {
+            return targets.get(0).getClass();
+        }
+
+        throw new UnsupportedOperationException("This packing checker has multiple targets!");
+    }
+
+    public abstract List<BaseTypeChecker> getTargetCheckers();
+
+    @Override
     public NavigableSet<String> getSuppressWarningsPrefixes() {
         NavigableSet<String> result = super.getSuppressWarningsPrefixes();
         result.add("packing");

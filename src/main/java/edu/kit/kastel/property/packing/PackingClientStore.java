@@ -33,6 +33,10 @@ public abstract class PackingClientStore<V extends CFAbstractValue<V>, S extends
                 permitNondeterministic);
     }
 
+    PackingClientAnnotatedTypeFactory getFactory() {
+        return (PackingClientAnnotatedTypeFactory) analysis.getTypeFactory();
+    }
+
     @Override
     public @Nullable V getValue(JavaExpression expr) {
         if (expr instanceof ThisReference || (expr instanceof LocalVariable && expr.toString().equals("this"))) {
