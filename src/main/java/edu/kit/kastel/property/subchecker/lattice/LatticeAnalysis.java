@@ -16,21 +16,15 @@
  */
 package edu.kit.kastel.property.subchecker.lattice;
 
-import java.util.List;
-import java.util.Set;
-
-import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
 
+import edu.kit.kastel.property.packing.PackingClientAnalysis;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
-import org.checkerframework.framework.flow.CFAbstractAnalysis;
 import org.checkerframework.framework.flow.CFAbstractValue;
 import org.checkerframework.javacutil.AnnotationMirrorSet;
-import org.checkerframework.javacutil.Pair;
 
-public final class LatticeAnalysis extends CFAbstractAnalysis<LatticeValue, LatticeStore, LatticeTransfer> {
+public final class LatticeAnalysis extends PackingClientAnalysis<LatticeValue, LatticeStore, LatticeTransfer> {
 
     public LatticeAnalysis(
             BaseTypeChecker checker,

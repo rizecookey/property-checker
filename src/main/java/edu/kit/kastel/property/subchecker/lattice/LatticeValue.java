@@ -16,16 +16,13 @@
  */
 package edu.kit.kastel.property.subchecker.lattice;
 
-import java.util.Set;
-
-import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.type.TypeMirror;
 
+import edu.kit.kastel.property.packing.PackingClientValue;
 import org.checkerframework.framework.flow.CFAbstractAnalysis;
-import org.checkerframework.framework.flow.CFAbstractValue;
 import org.checkerframework.javacutil.AnnotationMirrorSet;
 
-public final class LatticeValue extends CFAbstractValue<LatticeValue> {
+public final class LatticeValue extends PackingClientValue<LatticeValue> {
 
 	protected LatticeValue(
 			CFAbstractAnalysis<LatticeValue, ?, ?> analysis,
