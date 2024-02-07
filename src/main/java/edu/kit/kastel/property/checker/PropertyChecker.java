@@ -17,30 +17,18 @@
 package edu.kit.kastel.property.checker;
 
 import java.io.File;
-import java.io.IOException;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.util.*;
-import java.util.stream.Collectors;
-
-import javax.tools.JavaCompiler;
-import javax.tools.JavaFileObject;
-import javax.tools.StandardJavaFileManager;
-import javax.tools.ToolProvider;
 
 import edu.kit.kastel.property.packing.PackingChecker;
+import edu.kit.kastel.property.packing.PackingFieldAccessSubchecker;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
-import org.apache.commons.io.FileUtils;
-import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.source.SupportedOptions;
-import org.checkerframework.javacutil.BugInCF;
-import org.checkerframework.javacutil.InternalUtils;
 
 import edu.kit.kastel.property.config.Config;
 import edu.kit.kastel.property.subchecker.lattice.LatticeSubchecker;
 import edu.kit.kastel.property.subchecker.lattice.LatticeVisitor;
-import org.checkerframework.org.plumelib.util.ArrayMap;
 
 @SupportedOptions({
     Config.LATTICES_FILE_OPTION,
@@ -54,6 +42,10 @@ import org.checkerframework.org.plumelib.util.ArrayMap;
 })
 public final class PropertyChecker extends PackingChecker {
 
+    private ExclusivityChecker exclusivityChecker;
+    private PackingFieldAccessSubchecker fieldAccessChecker;
+    private List<LatticeSubchecker> latticeSubcheckers;
+
     private Map<String, PriorityQueue<LatticeVisitor.Result>> results = new HashMap<>();
 
     public PropertyChecker() { }
@@ -63,7 +55,6 @@ public final class PropertyChecker extends PackingChecker {
         return true;
     }
 
-
     //TODO just implement packing for excl to start with
 
     @Override
@@ -71,16 +62,32 @@ public final class PropertyChecker extends PackingChecker {
         return ExclusivityChecker.class;
     }
 
-    /*@Override
+    @Override
+    protected Set<Class<? extends BaseTypeChecker>> getImmediateSubcheckerClasses() {
+        return super.getImmediateSubcheckerClasses();
+    }
+
+    @Override
     public List<BaseTypeChecker> getSubcheckers() {
         List<BaseTypeChecker> checkers = new ArrayList<>();
+        checkers.add(getFieldAccessChecker());
         checkers.add(getExclusivityChecker());
         checkers.addAll(getLatticeSubcheckers());
         return checkers;
-    }*/
+    }
 
-    private ExclusivityChecker exclusivityChecker;
-    private List<LatticeSubchecker> latticeSubcheckers;
+
+
+    @Override
+    public <T extends BaseTypeChecker> @Nullable T getSubchecker(Class<T> checkerClass) {
+        for (BaseTypeChecker checker : getSubcheckers()) {
+            if (checker.getClass() == checkerClass) {
+                return (T) checker;
+            }
+        }
+
+        return null;
+    }
 
     public ExclusivityChecker getExclusivityChecker() {
         if (exclusivityChecker == null) {
@@ -88,6 +95,14 @@ public final class PropertyChecker extends PackingChecker {
         }
 
         return exclusivityChecker;
+    }
+
+    public PackingFieldAccessSubchecker getFieldAccessChecker() {
+        if (fieldAccessChecker == null) {
+            fieldAccessChecker = new PackingFieldAccessSubchecker(this);
+        }
+
+        return fieldAccessChecker;
     }
 
     public List<LatticeSubchecker> getLatticeSubcheckers() {

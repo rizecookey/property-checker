@@ -17,10 +17,11 @@ import java.util.List;
  * https://github.com/typetools/checker-framework/blob/master/checker/tests/README .
  */
 public class PackingTest extends PropertyCheckerTest {
+
     public PackingTest(List<File> testFiles) {
         super(
                 testFiles,
-                null,
+                "tests/exclusivity/lattice_nullness",
                 "tests/exclusivity/packing");
     }
 

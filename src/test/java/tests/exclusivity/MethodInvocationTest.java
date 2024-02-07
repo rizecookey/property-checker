@@ -22,7 +22,7 @@ public class MethodInvocationTest extends PropertyCheckerTest {
     public MethodInvocationTest(List<File> testFiles) {
         super(
                 testFiles,
-                null,
+                "tests/exclusivity/lattice_nullness",
                 "tests/exclusivity/methodinvocation");
     }
 

@@ -2,8 +2,11 @@ package edu.kit.kastel.property.subchecker.exclusivity;
 
 import edu.kit.kastel.property.checker.PropertyChecker;
 import edu.kit.kastel.property.packing.PackingFieldAccessSubchecker;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
+import org.checkerframework.framework.source.SourceChecker;
 
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -20,10 +23,22 @@ public class ExclusivityChecker extends BaseTypeChecker {
     public ExclusivityChecker() { }
 
     @Override
-    protected Set<Class<? extends BaseTypeChecker>> getImmediateSubcheckerClasses() {
-        Set<Class<? extends BaseTypeChecker>> checkers = super.getImmediateSubcheckerClasses();
-        checkers.add(PackingFieldAccessSubchecker.class);
-        return checkers;
+    public @Nullable PropertyChecker getParentChecker() {
+        return (PropertyChecker) super.getParentChecker();
+    }
+
+    @Override
+    public List<BaseTypeChecker> getSubcheckers() {
+        return List.of(); //List.of(getParentChecker().getFieldAccessChecker());
+    }
+
+    @Override
+    public <T extends BaseTypeChecker> @Nullable T getSubchecker(Class<T> checkerClass) {
+        if (checkerClass == PackingFieldAccessSubchecker.class) {
+            return (T) getParentChecker().getFieldAccessChecker();
+        }
+
+        return null;
     }
 
     @Override

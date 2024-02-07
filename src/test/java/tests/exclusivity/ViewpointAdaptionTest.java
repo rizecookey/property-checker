@@ -5,6 +5,7 @@ import org.checkerframework.framework.test.CheckerFrameworkPerDirectoryTest;
 import org.junit.runners.Parameterized.Parameters;
 
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
+import tests.property.PropertyCheckerTest;
 
 import java.io.File;
 import java.util.List;
@@ -17,15 +18,13 @@ import java.util.List;
  * errors and warnings; see
  * https://github.com/typetools/checker-framework/blob/master/checker/tests/README .
  */
-public class ViewpointAdaptionTest extends CheckerFrameworkPerDirectoryTest {
+public class ViewpointAdaptionTest extends PropertyCheckerTest {
+
     public ViewpointAdaptionTest(List<File> testFiles) {
         super(
                 testFiles,
-                PropertyChecker.class,
-                "exclusivity/viewpointadaption",
-                "-Anomsgtext",
-                "-Astubs=stubs/",
-                "-nowarn");
+                "tests/exclusivity/lattice_nullness",
+                "tests/exclusivity/viewpointadaption");
     }
 
     @Parameters

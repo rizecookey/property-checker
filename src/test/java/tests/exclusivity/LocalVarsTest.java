@@ -23,7 +23,7 @@ public class LocalVarsTest extends PropertyCheckerTest {
     public LocalVarsTest(List<File> testFiles) {
         super(
                 testFiles,
-                null,
+                "tests/exclusivity/lattice_nullness",
                 "tests/exclusivity/localvars");
     }
 

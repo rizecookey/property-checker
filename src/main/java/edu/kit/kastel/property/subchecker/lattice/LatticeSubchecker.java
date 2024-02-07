@@ -22,10 +22,10 @@ import java.util.*;
 
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 
 import edu.kit.kastel.property.checker.PropertyChecker;
-import edu.kit.kastel.property.config.Config;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
 
 public final class LatticeSubchecker extends BaseTypeChecker {
@@ -82,6 +82,11 @@ public final class LatticeSubchecker extends BaseTypeChecker {
     @Override
     public List<BaseTypeChecker> getSubcheckers() {
         return List.of(parent.getExclusivityChecker());
+    }
+
+    @Override
+    public <T extends BaseTypeChecker> @Nullable T getSubchecker(Class<T> checkerClass) {
+        return getParentChecker().getSubchecker(checkerClass);
     }
 
     @Override

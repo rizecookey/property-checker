@@ -23,7 +23,7 @@ public class FieldsTest extends PropertyCheckerTest {
     public FieldsTest(List<File> testFiles) {
         super(
                 testFiles,
-                null,
+                "tests/exclusivity/lattice_nullness",
                 "tests/exclusivity/fields");
     }
 
