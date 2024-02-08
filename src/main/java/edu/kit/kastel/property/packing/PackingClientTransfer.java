@@ -25,9 +25,9 @@ import java.util.List;
 import java.util.Set;
 
 public abstract class PackingClientTransfer<
-        V extends CFAbstractValue<V>,
-        S extends CFAbstractStore<V, S>,
-        T extends CFAbstractTransfer<V, S, T>>
+        V extends PackingClientValue<V>,
+        S extends PackingClientStore<V, S>,
+        T extends PackingClientTransfer<V, S, T>>
         extends CFAbstractTransfer<V, S, T> {
 
     protected PackingClientTransfer(CFAbstractAnalysis<V, S, T> analysis) {
@@ -42,6 +42,8 @@ public abstract class PackingClientTransfer<
         return (PackingClientAnalysis) analysis;
     }
 
+    protected abstract V initialThisValue(MethodTree methodDeclTree);
+
     @Override
     public S initialStore(UnderlyingAST underlyingAST, List<LocalVariableNode> parameters) {
         S initStore = super.initialStore(underlyingAST, parameters);
@@ -50,17 +52,15 @@ public abstract class PackingClientTransfer<
         // Add receiver value
         UnderlyingAST.CFGMethod method = (UnderlyingAST.CFGMethod) underlyingAST;
         MethodTree methodDeclTree = method.getMethod();
-        if (!TreeUtils.isConstructor(methodDeclTree) && methodDeclTree.getReceiverParameter() != null) {
-            AnnotatedTypeMirror thisType = factory.getAnnotatedType(methodDeclTree.getReceiverParameter());
-            initStore.initializeThisValue(thisType.getAnnotationInHierarchy(
-                            AnnotationBuilder.fromClass(factory.getElementUtils(), Unique.class)),
-                    thisType.getUnderlyingType());
+        V initialThisValue = null;
+        if (TreeUtils.isConstructor(methodDeclTree) || methodDeclTree.getReceiverParameter() != null) {
+            initialThisValue = initialThisValue(methodDeclTree);
+            initStore.initializeThisValue(initialThisValue);
         }
 
         // The default implementation only adds fields declared in this class.
         // To make type-checking of pack statements more precise, we also add all fields declared in superclasses.
         if (underlyingAST.getKind() == UnderlyingAST.Kind.METHOD) {
-            ExecutableElement methodElem = TreeUtils.elementFromDeclaration(methodDeclTree);
             ClassTree classTree = method.getClassTree();
 
             if (!ElementUtils.isStatic(TreeUtils.elementFromDeclaration(methodDeclTree))) {
@@ -69,6 +69,9 @@ public abstract class PackingClientTransfer<
                         factory.getElementUtils());
                 AnnotatedTypeMirror receiverType =
                         factory.getSelfType(methodDeclTree.getBody());
+                if (initialThisValue != null) {
+                    receiverType.replaceAnnotations(initStore.getValue((ThisNode) null).getAnnotations());
+                }
 
                 PackingFieldAccessAnnotatedTypeFactory packingFactory =
                         factory.getChecker().getTypeFactoryOfSubcheckerOrNull(PackingFieldAccessSubchecker.class);

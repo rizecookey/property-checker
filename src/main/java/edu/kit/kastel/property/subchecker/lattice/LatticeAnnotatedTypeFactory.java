@@ -33,24 +33,17 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.VariableElement;
 import javax.lang.model.util.Elements;
 
 import edu.kit.kastel.property.packing.PackingClientAnnotatedTypeFactory;
 import edu.kit.kastel.property.packing.PackingFieldAccessTreeAnnotator;
 import org.apache.commons.lang3.StringUtils;
-import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.common.basetype.BaseTypeChecker;
-import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.ElementQualifierHierarchy;
-import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
 import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
-import org.checkerframework.framework.type.treeannotator.LiteralTreeAnnotator;
-import org.checkerframework.framework.type.treeannotator.PropagationTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
 import org.checkerframework.framework.util.DefaultQualifierKindHierarchy;
-import org.checkerframework.framework.util.QualifierKind;
 import org.checkerframework.framework.util.QualifierKindHierarchy;
 import org.checkerframework.framework.util.dependenttypes.DependentTypesHelper;
 import org.checkerframework.javacutil.AnnotationUtils;

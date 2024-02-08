@@ -1,27 +1,31 @@
 import edu.kit.kastel.property.util.Packing;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
+import edu.kit.kastel.property.subchecker.lattice.qual.*;
 import edu.kit.kastel.property.packing.qual.*;
 import org.checkerframework.checker.initialization.qual.*;
 import org.checkerframework.dataflow.qual.*;
 
 final class Constructor {
 
-    @ReadOnly Object readOnly;
+    @ReadOnly @NullTop Object readOnly;
     @MaybeAliased Object aliased;
     @Unique Object unique;
 
-    // :: error: initialization.constructor.return.type.incompatible
+    // :: error: initialization.constructor.return.type.incompatible :: error: inconsistent.constructor.type
     public Constructor() { }
 
-    // :: error: initialization.constructor.return.type.incompatible
+    // :: error: initialization.constructor.return.type.incompatible :: error: inconsistent.constructor.type
     public @UnknownInitialization(Constructor.class) Constructor(short dummy) {
     }
 
+    // :: error: inconsistent.constructor.type
     public @UnknownInitialization(Object.class) Constructor(long dummy) {
     }
 
+    // :: error: inconsistent.constructor.type
     public Constructor(int dummy) {
-        unique = new Object();
+        aliased = new Obj();
+        unique = new Obj();
         Packing.pack(this, Constructor.class);
     }
 
@@ -41,32 +45,36 @@ class Superclass {
 
     @Unique Object superField;
 
-    Superclass() {
-        this.superField = new Object();
+    // Avoid inconsistent constructor type from LatticeSubchecker by declaring constructor as NullTop
+    @NullTop Superclass() {
+        this.superField = new Obj();
         Packing.pack(this, Superclass.class);
     }
 
-    @UnderInitialization(Object.class) Superclass(int dummy) { }
+    // Avoid inconsistent constructor type from LatticeSubchecker by declaring constructor as NullTop
+    @NullTop @UnderInitialization(Object.class) Superclass(int dummy) { }
 }
 
 class Subclass extends Superclass {
 
     @Unique Object subField;
 
-    Subclass() {
+    // Avoid inconsistent constructor type from LatticeSubchecker by declaring constructor as NullTop
+    @NullTop Subclass() {
         super();
         this.isPackedToSuperclass();
-        this.subField = new Object();
+        this.subField = new Obj();
         Packing.pack(this, Subclass.class);
     }
 
-    Subclass(int dummy) {
+    // Avoid inconsistent constructor type from LatticeSubchecker by declaring constructor as NullTop
+    @NullTop Subclass(int dummy) {
         super(dummy);
         // :: error: method.invocation.invalid
         this.isPackedToSuperclass();
-        this.subField = new Object();
+        this.subField = new Obj();
         Packing.pack(this, Subclass.class);
     }
 
-    void isPackedToSuperclass(@UnderInitialization(Superclass.class) @Unique Subclass this) {}
+    void isPackedToSuperclass(@UnderInitialization(Superclass.class) @Unique @NullTop Subclass this) {}
 }

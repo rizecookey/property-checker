@@ -1,16 +1,17 @@
 import edu.kit.kastel.property.util.Packing;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
+import edu.kit.kastel.property.subchecker.lattice.qual.*;
 import edu.kit.kastel.property.packing.qual.*;
 import org.checkerframework.checker.initialization.qual.*;
 import org.checkerframework.dataflow.qual.*;
 
 class LeakThis {
 
-    @UnknownInitialization(Object.class) @ReadOnly LeakThis readOnly;
+    @UnknownInitialization(Object.class) @ReadOnly @NullTop LeakThis readOnly;
     @UnknownInitialization(Object.class) @MaybeAliased LeakThis aliased;
     @UnknownInitialization(Object.class) @Unique LeakThis unique;
 
-    @UnknownInitialization(LeakThis.class) LeakThis() {
+    @UnknownInitialization(LeakThis.class) @NullTop LeakThis() {
         this.readOnly = this;
         this.mthReadOnly();
         // :: error: initialization.fields.uninitialized
@@ -18,7 +19,7 @@ class LeakThis {
     }
 
     // :: error: initialization.constructor.return.type.incompatible :: error: exclusivity.type.invalidated
-    @UnknownInitialization(LeakThis.class) LeakThis(boolean dummy) {
+    @UnknownInitialization(LeakThis.class) @NullTop LeakThis(boolean dummy) {
         this.unique = this;
         // :: error: exclusivity.type.invalidated
         this.mthUnique();
@@ -27,14 +28,14 @@ class LeakThis {
     }
 
     // :: error: initialization.constructor.return.type.incompatible
-    @UnknownInitialization(LeakThis.class) @MaybeAliased LeakThis(int dummy) {
+    @UnknownInitialization(LeakThis.class) @MaybeAliased @NullTop LeakThis(int dummy) {
         this.aliased = this;
         this.mthAliased();
         // :: error: initialization.fields.uninitialized :: error: exclusivity.packing.aliased
         Packing.pack(this, LeakThis.class);
     }
 
-    void mthReadOnly(@UnknownInitialization(Object.class) @ReadOnly LeakThis this) {
+    void mthReadOnly(@UnknownInitialization(Object.class) @ReadOnly @NullTop LeakThis this) {
         // :: error: assignment.this-not-writable
         this.readOnly = this;
     }

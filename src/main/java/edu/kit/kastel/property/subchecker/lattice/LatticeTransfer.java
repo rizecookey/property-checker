@@ -16,14 +16,68 @@
  */
 package edu.kit.kastel.property.subchecker.lattice;
 
+import com.sun.source.tree.MethodTree;
 import edu.kit.kastel.property.packing.PackingClientTransfer;
+import edu.kit.kastel.property.util.Packing;
+import org.checkerframework.dataflow.analysis.RegularTransferResult;
 import org.checkerframework.dataflow.analysis.TransferInput;
 import org.checkerframework.dataflow.analysis.TransferResult;
+import org.checkerframework.dataflow.cfg.node.ClassNameNode;
+import org.checkerframework.dataflow.cfg.node.MethodAccessNode;
 import org.checkerframework.dataflow.cfg.node.MethodInvocationNode;
+import org.checkerframework.dataflow.cfg.node.Node;
+import org.checkerframework.framework.type.AnnotatedTypeMirror;
+import org.checkerframework.javacutil.AnnotationBuilder;
+import org.checkerframework.javacutil.TreeUtils;
+
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.type.TypeKind;
+import javax.lang.model.type.TypeMirror;
 
 public final class LatticeTransfer extends PackingClientTransfer<LatticeValue, LatticeStore, LatticeTransfer> {
 
+    private final LatticeAnnotatedTypeFactory factory;
+
     public LatticeTransfer(LatticeAnalysis analysis) {
         super(analysis);
+        this.factory = analysis.getTypeFactory();
+    }
+
+    @Override
+    public TransferResult<LatticeValue, LatticeStore> visitMethodInvocation(MethodInvocationNode node, TransferInput<LatticeValue, LatticeStore> in) {
+        TypeMirror receiverType;
+        LatticeStore store = in.getRegularStore();
+        MethodAccessNode target = node.getTarget();
+        ExecutableElement method = target.getMethod();
+        Node receiver = target.getReceiver();
+        receiverType = method.getReceiverType();
+
+        if (receiver instanceof ClassNameNode && ((ClassNameNode) receiver).getElement().toString().equals(Packing.class.getName())) {
+            // Packing statements don't change the store
+            return new RegularTransferResult<>(null, store, false);
+        }
+
+        if (receiverType == null || receiverType.getKind().equals(TypeKind.NONE)) {
+            //TODO in LatticeStore::updateForMethodCall. See also TMethodInvocation
+            System.err.printf("warning: ignoring call to method without explicit 'this' parameter declaration: %s\n", node.getTarget());
+            return new RegularTransferResult<>(null, store, true);
+        }
+
+        return super.visitMethodInvocation(node, in);
+    }
+
+    @Override
+    protected LatticeValue initialThisValue(MethodTree methodDeclTree) {
+        if (!TreeUtils.isConstructor(methodDeclTree)) {
+            AnnotatedTypeMirror thisType = factory.getAnnotatedType(methodDeclTree.getReceiverParameter());
+            return analysis.createSingleAnnotationValue(
+                    thisType.getAnnotationInHierarchy(factory.getTop()),
+                    thisType.getUnderlyingType());
+        } else {
+            AnnotatedTypeMirror thisType = factory.getSelfType(methodDeclTree.getBody());
+            return analysis.createSingleAnnotationValue(
+                    factory.getTop(),
+                    thisType.getUnderlyingType());
+        }
     }
 }

@@ -1,6 +1,6 @@
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
 
-@SuppressWarnings("initialization")
+@SuppressWarnings({"initialization","lattice"})
 class Primitives {
     Foo foo;
     @Unique Foo unique;

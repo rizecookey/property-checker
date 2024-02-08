@@ -6,7 +6,7 @@ import org.checkerframework.javacutil.AnnotationMirrorSet;
 
 import javax.lang.model.type.TypeMirror;
 
-public abstract class PackingClientValue<V extends CFAbstractValue<V>> extends CFAbstractValue<V> {
+public abstract class PackingClientValue<V extends PackingClientValue<V>> extends CFAbstractValue<V> {
 
 
     protected PackingClientValue(CFAbstractAnalysis<V, ?, ?> analysis, AnnotationMirrorSet annotations, TypeMirror underlyingType) {

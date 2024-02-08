@@ -5,12 +5,10 @@ import edu.kit.kastel.property.packing.qual.*;
 import org.checkerframework.checker.initialization.qual.*;
 import org.checkerframework.dataflow.qual.*;
 
-class Foo {
-
-    int i;
+public class Obj {
 
     // :: error: inconsistent.constructor.type
-    @NonNull Foo() {
-        Packing.pack(this, Foo.class);
+    public @NonNull Obj() {
+        Packing.pack(this, Obj.class);
     }
 }

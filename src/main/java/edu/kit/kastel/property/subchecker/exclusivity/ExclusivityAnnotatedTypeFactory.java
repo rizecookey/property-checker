@@ -6,8 +6,12 @@ import edu.kit.kastel.property.packing.PackingClientAnnotatedTypeFactory;
 import edu.kit.kastel.property.packing.PackingFieldAccessTreeAnnotator;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.dataflow.cfg.node.*;
+import org.checkerframework.dataflow.expression.JavaExpression;
+import org.checkerframework.dataflow.expression.Unknown;
 import org.checkerframework.framework.flow.*;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
@@ -18,10 +22,7 @@ import org.checkerframework.javacutil.*;
 
 import javax.lang.model.element.AnnotationMirror;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public final class ExclusivityAnnotatedTypeFactory
         extends PackingClientAnnotatedTypeFactory<ExclusivityValue, ExclusivityStore, ExclusivityTransfer, ExclusivityAnalysis> {
@@ -34,6 +35,8 @@ public final class ExclusivityAnnotatedTypeFactory
             AnnotationBuilder.fromClass(elements, ReadOnly.class);
     public final AnnotationMirror MAYBE_ALIASED =
             AnnotationBuilder.fromClass(elements, MaybeAliased.class);
+
+    private @Nullable Tree useIFlowAfter;
 
     public ExclusivityAnnotatedTypeFactory(BaseTypeChecker checker) {
         super(checker);
@@ -62,6 +65,69 @@ public final class ExclusivityAnnotatedTypeFactory
             }
         }
         return null;
+    }
+
+    public void useIFlowAfter(@NonNull Tree useIFlowAfter) {
+        this.useIFlowAfter = useIFlowAfter;
+    }
+
+    public void useRegularIFlow() {
+        this.useIFlowAfter = null;
+    }
+
+    @Override
+    public @Nullable ExclusivityValue getInferredValueFor(Tree tree) {
+        if (useIFlowAfter != null) {
+            Tree oldUseIFlowAfter = useIFlowAfter;
+            // getStoreAfter needs to use the regular information flow
+            useRegularIFlow();
+            final ExclusivityStore store;
+            if (oldUseIFlowAfter instanceof VariableTree) {
+                ExclusivityStore s = null;
+                for (Node n : flowResult.getNodesForTree(oldUseIFlowAfter)) {
+                    if (n instanceof AssignmentNode) {
+                        s = flowResult.getStoreAfter(n);
+                        break;
+                    }
+                }
+                store = s;
+            } else {
+                store = flowResult.getStoreAfter(oldUseIFlowAfter);
+            }
+            Set<Node> nodes = flowResult.getNodesForTree(tree);
+            useIFlowAfter(oldUseIFlowAfter);
+            if (store == null || nodes == null) {
+                return null;
+            }
+
+            return nodes.stream()
+                    .map(node -> {
+                        JavaExpression expr;
+                        if (node instanceof ValueLiteralNode
+                                || node instanceof BinaryOperationNode
+                                || node instanceof UnaryOperationNode) {
+                            return analysis.createAbstractValue(AnnotationMirrorSet.singleton(getDefaultPrimitiveQualifier()), node.getType());
+                        } else if (!((expr = JavaExpression.fromNode(node)) instanceof Unknown)) {
+                            return store.getValue(expr);
+                        } else if (node instanceof MethodInvocationNode) {
+                            return store.getValue((MethodInvocationNode) node);
+                        } else if (node instanceof FieldAccessNode) {
+                            return store.getValue((FieldAccessNode) node);
+                        } else if (node instanceof ArrayAccessNode) {
+                            return store.getValue((ArrayAccessNode) node);
+                        } else if (node instanceof LocalVariableNode) {
+                            return store.getValue((LocalVariableNode) node);
+                        } else if (node instanceof ThisNode) {
+                            return store.getValue((ThisNode) node);
+                        } else {
+                            return null;  // No refined value available
+                        }})
+                    .filter(Objects::nonNull)
+                    .reduce(ExclusivityValue::leastUpperBound)
+                    .orElse(null);
+        } else {
+            return super.getInferredValueFor(tree);
+        }
     }
 
     public AnnotationMirror getExclusivityAnnotation(AnnotatedTypeMirror annotatedTypeMirror) {

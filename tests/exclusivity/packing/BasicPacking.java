@@ -5,15 +5,6 @@ import edu.kit.kastel.property.packing.qual.*;
 import org.checkerframework.checker.initialization.qual.*;
 import org.checkerframework.dataflow.qual.*;
 
-class Obj {
-
-    // :: error: inconsistent.constructor.type
-    @NonNull Obj() {
-
-        Packing.pack(this, Obj.class);
-    }
-}
-
 class A {
 
     @Unique Object aField;

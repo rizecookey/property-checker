@@ -6,9 +6,8 @@ import org.checkerframework.dataflow.expression.LocalVariable;
 import org.checkerframework.dataflow.expression.ThisReference;
 import org.checkerframework.framework.flow.CFAbstractAnalysis;
 import org.checkerframework.framework.flow.CFAbstractStore;
-import org.checkerframework.framework.flow.CFAbstractValue;
 
-public abstract class PackingClientStore<V extends CFAbstractValue<V>, S extends CFAbstractStore<V, S>>
+public abstract class PackingClientStore<V extends PackingClientValue<V>, S extends PackingClientStore<V, S>>
         extends CFAbstractStore<V, S> {
 
     protected PackingClientStore(CFAbstractAnalysis<V, S, ?> analysis, boolean sequentialSemantics) {
@@ -43,6 +42,10 @@ public abstract class PackingClientStore<V extends CFAbstractValue<V>, S extends
             return thisValue;
         }
         return super.getValue(expr);
+    }
+
+    protected void initializeThisValue(V value) {
+        thisValue = value;
     }
 
     @Override

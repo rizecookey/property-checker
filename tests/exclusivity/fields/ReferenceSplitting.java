@@ -1,14 +1,19 @@
+import edu.kit.kastel.property.util.Packing;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
+import edu.kit.kastel.property.subchecker.lattice.qual.*;
+import edu.kit.kastel.property.packing.qual.*;
+import org.checkerframework.checker.initialization.qual.*;
+import org.checkerframework.dataflow.qual.*;
 
-// Test reference splitting rules for the Exclusivity Checker.
+// :: error: inconsistent.constructor.type
 class ReferenceSplitting {
 
     // :: error: initialization.field.uninitialized
     @Unique Foo field;
 
     void refTransfer() {
-        @ReadOnly Foo x;
-        @Unique Foo a;
+        @ReadOnly @NullTop Foo x;
+        @Unique @NullTop Foo a;
 
         x = new Foo();  // x is refined to @ExclMut
         a = x;          // x is updated to @ReadOnly

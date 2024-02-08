@@ -1,9 +1,6 @@
 package edu.kit.kastel.property.packing;
 
 import com.sun.source.tree.*;
-import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityStore;
-import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityTransfer;
-import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityValue;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
@@ -11,10 +8,7 @@ import org.checkerframework.dataflow.cfg.node.*;
 import org.checkerframework.dataflow.cfg.visualize.CFGVisualizer;
 import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.dataflow.expression.Unknown;
-import org.checkerframework.framework.flow.CFAbstractAnalysis;
-import org.checkerframework.framework.flow.CFAbstractStore;
-import org.checkerframework.framework.flow.CFAbstractTransfer;
-import org.checkerframework.framework.flow.CFAbstractValue;
+import org.checkerframework.framework.flow.CFValue;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
@@ -22,6 +16,7 @@ import org.checkerframework.framework.type.treeannotator.LiteralTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.PropagationTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
 import org.checkerframework.javacutil.AnnotationMirrorSet;
+import org.checkerframework.javacutil.TreeUtils;
 
 import javax.lang.model.element.AnnotationMirror;
 import java.io.IOException;
@@ -33,14 +28,13 @@ import java.util.Objects;
 import java.util.Set;
 
 public abstract class PackingClientAnnotatedTypeFactory<
-        Value extends CFAbstractValue<Value>,
-        Store extends CFAbstractStore<Value, Store>,
-        TransferFunction extends CFAbstractTransfer<Value, Store, TransferFunction>,
-        FlowAnalysis extends CFAbstractAnalysis<Value, Store, TransferFunction>>
+        Value extends PackingClientValue<Value>,
+        Store extends PackingClientStore<Value, Store>,
+        TransferFunction extends PackingClientTransfer<Value, Store, TransferFunction>,
+        FlowAnalysis extends PackingClientAnalysis<Value, Store, TransferFunction>>
         extends GenericAnnotatedTypeFactory<Value, Store, TransferFunction, FlowAnalysis> {
 
     private boolean useInputTypeLhs;
-    private @Nullable Tree useIFlowAfter;
 
     protected PackingClientAnnotatedTypeFactory(BaseTypeChecker checker, boolean useFlow) {
         super(checker, useFlow);
@@ -94,14 +88,6 @@ public abstract class PackingClientAnnotatedTypeFactory<
         return new ListTreeAnnotator(treeAnnotators);
     }
 
-    public void useIFlowAfter(@NonNull Tree useIFlowAfter) {
-        this.useIFlowAfter = useIFlowAfter;
-    }
-
-    public void useRegularIFlow() {
-        this.useIFlowAfter = null;
-    }
-
     public abstract AnnotationMirror getDefaultPrimitiveQualifier();
 
     @Override
@@ -112,58 +98,62 @@ public abstract class PackingClientAnnotatedTypeFactory<
     }
 
     @Override
-    public @Nullable Value getInferredValueFor(Tree tree) {
-        if (useIFlowAfter != null) {
-            Tree oldUseIFlowAfter = useIFlowAfter;
-            // getStoreAfter needs to use the regular information flow
-            useRegularIFlow();
-            final Store store;
-            if (oldUseIFlowAfter instanceof VariableTree) {
-                Store s = null;
-                for (Node n : flowResult.getNodesForTree(oldUseIFlowAfter)) {
-                    if (n instanceof AssignmentNode) {
-                        s = flowResult.getStoreAfter(n);
-                        break;
-                    }
-                }
-                store = s;
-            } else {
-                store = flowResult.getStoreAfter(oldUseIFlowAfter);
-            }
-            Set<Node> nodes = flowResult.getNodesForTree(tree);
-            useIFlowAfter(oldUseIFlowAfter);
-            if (store == null || nodes == null) {
-                return null;
-            }
-
-            return nodes.stream()
-                    .map(node -> {
-                        JavaExpression expr;
-                        if (node instanceof ValueLiteralNode
-                                || node instanceof BinaryOperationNode
-                                || node instanceof UnaryOperationNode) {
-                            return analysis.createAbstractValue(AnnotationMirrorSet.singleton(getDefaultPrimitiveQualifier()), node.getType());
-                        } else if (!((expr = JavaExpression.fromNode(node)) instanceof Unknown)) {
-                            return store.getValue(expr);
-                        } else if (node instanceof MethodInvocationNode) {
-                            return store.getValue((MethodInvocationNode) node);
-                        } else if (node instanceof FieldAccessNode) {
-                            return store.getValue((FieldAccessNode) node);
-                        } else if (node instanceof ArrayAccessNode) {
-                            return store.getValue((ArrayAccessNode) node);
-                        } else if (node instanceof LocalVariableNode) {
-                            return store.getValue((LocalVariableNode) node);
-                        } else if (node instanceof ThisNode) {
-                            return store.getValue((ThisNode) node);
-                        } else {
-                            return null;  // No refined value available
-                        }})
-                    .filter(Objects::nonNull)
-                    .reduce(Value::leastUpperBound)
-                    .orElse(null);
-        } else {
-            return super.getInferredValueFor(tree);
+    public AnnotatedTypeMirror.AnnotatedDeclaredType getSelfType(Tree tree) {
+        if (TreeUtils.isClassTree(tree)) {
+            return getAnnotatedType(TreeUtils.elementFromDeclaration((ClassTree) tree));
         }
+
+        Tree enclosingTree = getEnclosingClassOrMethod(tree);
+        if (enclosingTree == null) {
+            // tree is inside an annotation, where "this" is not allowed. So, no self type exists.
+            return null;
+        } else if (enclosingTree.getKind() == Tree.Kind.METHOD) {
+            MethodTree enclosingMethod = (MethodTree) enclosingTree;
+            if (TreeUtils.isConstructor(enclosingMethod)) {
+                return (AnnotatedTypeMirror.AnnotatedDeclaredType) getAnnotatedType(enclosingMethod).getReturnType();
+            } else {
+                return getAnnotatedType(enclosingMethod).getReceiverType();
+            }
+        } else if (TreeUtils.isClassTree(enclosingTree)) {
+            return (AnnotatedTypeMirror.AnnotatedDeclaredType) getAnnotatedType(enclosingTree);
+        }
+        return null;
+    }
+
+    @Override
+    public @Nullable Value getInferredValueFor(Tree tree) {
+        final Store store = flowResult.getStoreBefore(tree);
+        Set<Node> nodes = flowResult.getNodesForTree(tree);
+
+        if (store == null || nodes == null) {
+            return null;
+        }
+
+        return nodes.stream()
+                .map(node -> {
+                    JavaExpression expr;
+                    if (node instanceof ValueLiteralNode
+                            || node instanceof BinaryOperationNode
+                            || node instanceof UnaryOperationNode) {
+                        return analysis.createAbstractValue(AnnotationMirrorSet.singleton(getDefaultPrimitiveQualifier()), node.getType());
+                    } else if (!((expr = JavaExpression.fromNode(node)) instanceof Unknown)) {
+                        return store.getValue(expr);
+                    } else if (node instanceof MethodInvocationNode) {
+                        return store.getValue((MethodInvocationNode) node);
+                    } else if (node instanceof FieldAccessNode) {
+                        return store.getValue((FieldAccessNode) node);
+                    } else if (node instanceof ArrayAccessNode) {
+                        return store.getValue((ArrayAccessNode) node);
+                    } else if (node instanceof LocalVariableNode) {
+                        return store.getValue((LocalVariableNode) node);
+                    } else if (node instanceof ThisNode) {
+                        return store.getValue((ThisNode) node);
+                    } else {
+                        return null;  // No refined value available
+                    }})
+                .filter(Objects::nonNull)
+                .reduce(Value::leastUpperBound)
+                .orElse(null);
     }
 
     @Override

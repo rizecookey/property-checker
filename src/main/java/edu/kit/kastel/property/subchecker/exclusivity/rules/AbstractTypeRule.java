@@ -124,7 +124,7 @@ abstract class AbstractTypeRule<N extends Node> implements TypeRule {
         return hierarchy.isSubtypeQualifiersOnly(refinedType, declaredType);
     }
 
-    private AnnotationMirror getDeclaredTypeAnnotation(Node node) {
+    protected AnnotationMirror getDeclaredTypeAnnotation(Node node) {
         return factory.getExclusivityAnnotation(
                 // TODO Do we need to get declared types for nodes not supported by getAnnotatedTypeLhs?
                 factory.getAnnotatedTypeLhs(node.getTree()).getAnnotations());

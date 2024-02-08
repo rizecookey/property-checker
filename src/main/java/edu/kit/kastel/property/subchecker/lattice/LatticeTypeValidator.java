@@ -87,7 +87,7 @@ public final class LatticeTypeValidator extends BaseTypeValidator {
         return true;
     }
 
-    public boolean isExclusivitySafe(AnnotatedTypeMirror type, AnnotatedTypeMirror exclType, Tree tree) {
+    public boolean dependsOnlyOnAbstractState(AnnotatedTypeMirror type, AnnotatedTypeMirror exclType, Tree tree) {
         LatticeAnnotatedTypeFactory factory = getPropertyAnnotatedTypeFactory();
         ExclusivityAnnotatedTypeFactory exclFactory = getLatticeSubchecker().getExclusivityFactory();
         AnnotationMirror annotation = type.getAnnotationInHierarchy(factory.getTop());
@@ -100,6 +100,8 @@ public final class LatticeTypeValidator extends BaseTypeValidator {
             reportInvalidType(type, tree);
             return false;
         }
+
+        //TODO Abstract state!
         
         return true;
     }

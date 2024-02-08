@@ -1,37 +1,42 @@
+import edu.kit.kastel.property.util.Packing;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
+import edu.kit.kastel.property.subchecker.lattice.qual.*;
+import edu.kit.kastel.property.packing.qual.*;
+import org.checkerframework.checker.initialization.qual.*;
+import org.checkerframework.dataflow.qual.*;
 
-// Test reference splitting rules for the Exclusivity Checker.
+// :: error: inconsistent.constructor.type
 class ReferenceSplitting {
 
     void split() {
-        @ReadOnly Foo x;
-        @MaybeAliased Foo a;
-        @MaybeAliased Foo b;
+        @ReadOnly @NullTop Foo x;
+        @MaybeAliased @NullTop Foo a;
+        @MaybeAliased @NullTop Foo b;
         x = new Foo();      // x is refined to @Unique
         a = x;              // x is updated to @MaybeAliased
         b = x;
     }
 
     void split0() {
-        @ReadOnly Foo x = new Foo();
-        @MaybeAliased Foo a = x;
-        @MaybeAliased Foo b = x;
+        @ReadOnly @NullTop Foo x = new Foo();
+        @MaybeAliased @NullTop Foo a = x;
+        @MaybeAliased @NullTop Foo b = x;
     }
 
     void split1() {
-        @ReadOnly Foo x;
+        @ReadOnly @NullTop Foo x;
         x = new Foo();
-        @MaybeAliased Foo a;
+        @MaybeAliased @NullTop Foo a;
         a = x;
-        @MaybeAliased Foo b;
+        @MaybeAliased @NullTop Foo b;
         b = x;
     }
 
     void refTransfer() {
-        @ReadOnly Foo x;
-        @Unique Foo a;
-        @MaybeAliased Foo b;
-        @MaybeAliased Foo c;
+        @ReadOnly @NullTop Foo x;
+        @Unique @NullTop Foo a;
+        @MaybeAliased @NullTop Foo b;
+        @MaybeAliased @NullTop Foo c;
 
         x = new Foo();  // x is refined to @Unique
         a = x;          // x is updated to @ReadOnly

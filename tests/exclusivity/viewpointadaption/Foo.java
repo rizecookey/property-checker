@@ -1,26 +1,34 @@
+import edu.kit.kastel.property.util.Packing;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
+import edu.kit.kastel.property.subchecker.lattice.qual.*;
+import edu.kit.kastel.property.packing.qual.*;
+import org.checkerframework.checker.initialization.qual.*;
+import org.checkerframework.dataflow.qual.*;
 
+// :: error: inconsistent.constructor.type
 class Bar {
 
-    public void change(@Unique Bar this) {}
+    public void change(@Unique @NullTop Bar this) {}
 }
 
+// :: error: inconsistent.constructor.type
 class Foo {
-    @ReadOnly Bar readOnly;
+    @ReadOnly @NullTop Bar readOnly;
+    // :: error: initialization.field.uninitialized
     @MaybeAliased Bar aliased;
     // :: error: initialization.field.uninitialized
     @Unique Bar unique;
 
-    public void foo(@ReadOnly Foo this) {
+    public void foo(@ReadOnly @NullTop Foo this) {
         // :: error: exclusivity.type.invalidated
         this.unique.change();
     }
 
-    public @ReadOnly Bar getReadOnly(@ReadOnly Foo this) {
+    public @ReadOnly @NullTop Bar getReadOnly(@ReadOnly @NullTop Foo this) {
         return readOnly;
     }
 
-    public @ReadOnly Bar getReadOnlyFake(@ReadOnly Foo this) {
+    public @ReadOnly @NullTop Bar getReadOnlyFake(@ReadOnly @NullTop Foo this) {
         // :: error: exclusivity.type.invalidated
         this.unique.change();
         // :: error: exclusivity.type.invalidated
@@ -30,12 +38,12 @@ class Foo {
         return readOnly;
     }
 
-    public @Unique Bar getUniqueFromReadOnly(@ReadOnly Foo this) {
+    public @Unique @NullTop Bar getUniqueFromReadOnly(@ReadOnly @NullTop Foo this) {
         // :: error: exclusivity.type.invalidated
         return unique;
     }
 
-    public @MaybeAliased Bar getAliasedFromReadOnly(@ReadOnly Foo this) {
+    public @MaybeAliased Bar getAliasedFromReadOnly(@ReadOnly @NullTop Foo this) {
         return aliased;
     }
 

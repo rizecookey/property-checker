@@ -51,4 +51,9 @@ public final class LatticeAnalysis extends PackingClientAnalysis<LatticeValue, L
 	public LatticeStore createCopiedStore(LatticeStore s) {
 		return new LatticeStore(s);
 	}
+
+    @Override
+    public LatticeAnnotatedTypeFactory getTypeFactory() {
+        return (LatticeAnnotatedTypeFactory) super.getTypeFactory();
+    }
 }

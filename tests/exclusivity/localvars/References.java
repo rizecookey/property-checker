@@ -1,6 +1,6 @@
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
 
-// Test reference splitting rules for the Exclusivity Checker.
+// :: error: inconsistent.constructor.type
 class References {
 
     void refNew() {

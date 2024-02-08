@@ -129,6 +129,11 @@ public final class LatticeVisitor extends BaseTypeVisitor<LatticeAnnotatedTypeFa
         call(() -> super.visitVariable(node, p), () -> result.illTypedVars.add(node));
 
         AnnotatedTypeMirror varType = atypeFactory.getAnnotatedTypeLhs(node);
+        AnnotatedTypeMirror exclType = atypeFactory.getTypeFactoryOfSubchecker(ExclusivityChecker.class).getAnnotatedType(node);
+
+        if (!getTypeValidator().dependsOnlyOnAbstractState(varType, exclType, node)) {
+            checker.reportError(node, "type.invalid.abstract.state");
+        }
 
         if (enclMethod == null) {
             if (node.getModifiers().getFlags().contains(Modifier.STATIC)) {
@@ -168,6 +173,13 @@ public final class LatticeVisitor extends BaseTypeVisitor<LatticeAnnotatedTypeFa
         MethodTree prevEnclMethod = enclMethod;
         enclMethod = node;
 
+        AnnotatedTypeMirror returnType = atypeFactory.getMethodReturnType(node);
+        AnnotatedTypeMirror exclReturnType = atypeFactory.getTypeFactoryOfSubchecker(ExclusivityChecker.class).getMethodReturnType(node);
+
+        if (!(returnType == null || returnType.getKind() == TypeKind.VOID) && !getTypeValidator().dependsOnlyOnAbstractState(returnType, exclReturnType, node)) {
+            checker.reportError(node, "return.type.invalid.abstract.state");
+        }
+
         ExecutableElement methodElement = TreeUtils.elementFromDeclaration(node);
         Map<AnnotatedDeclaredType, ExecutableElement> overriddenMethods =
                 AnnotatedTypes.overriddenMethods(elements, atypeFactory, methodElement);
@@ -204,42 +216,6 @@ public final class LatticeVisitor extends BaseTypeVisitor<LatticeAnnotatedTypeFa
         enclInstanceInitBlock = prevEnclInstanceInitBlock;
 
         return null;
-    }
-    @Override
-    public boolean validateTypeOf(Tree tree) {
-        ExclusivityAnnotatedTypeFactory exclFactory = getLatticeSubchecker().getExclusivityFactory();
-        
-        AnnotatedTypeMirror type;
-        AnnotatedTypeMirror exclType;
-
-        switch (tree.getKind()) {
-            case PRIMITIVE_TYPE:
-            case PARAMETERIZED_TYPE:
-            case TYPE_PARAMETER:
-            case ARRAY_TYPE:
-            case UNBOUNDED_WILDCARD:
-            case EXTENDS_WILDCARD:
-            case SUPER_WILDCARD:
-            case ANNOTATED_TYPE:
-                type = atypeFactory.getAnnotatedTypeFromTypeTree(tree);
-                exclType = exclFactory.getAnnotatedTypeFromTypeTree(tree);
-                break;
-            case METHOD:
-                type = atypeFactory.getMethodReturnType((MethodTree) tree);
-                exclType = exclFactory.getMethodReturnType((MethodTree) tree);
-                if (type == null || type.getKind() == TypeKind.VOID) {
-                    // Nothing to do for void methods.
-                    // Note that for a constructor the AnnotatedExecutableType does
-                    // not use void as return type.
-                    return true;
-                }
-                break;
-            default:
-                type = atypeFactory.getAnnotatedType(tree);
-                exclType = exclFactory.getAnnotatedType(tree);
-        }
-        
-        return getTypeValidator().isExclusivitySafe(type, exclType, tree) && validateType(tree, type);
     }
 
     public Name getEnclClassName() {
