@@ -80,22 +80,8 @@ public final class ExclusivityAnnotatedTypeFactory
         if (dependentTypesHelper.hasDependentAnnotations()) {
             treeAnnotators.add(dependentTypesHelper.createDependentTypesTreeAnnotator());
         }
-        treeAnnotators.add(new ExclusivityTreeAnnotator(this));
         treeAnnotators.add(new PackingFieldAccessTreeAnnotator(this));
         return new ListTreeAnnotator(treeAnnotators);
-    }
-
-    private class ExclusivityTreeAnnotator extends TreeAnnotator {
-        protected ExclusivityTreeAnnotator(AnnotatedTypeFactory aTypeFactory) {
-            super(aTypeFactory);
-        }
-
-        @Override
-        public Void visitNewClass(NewClassTree node, AnnotatedTypeMirror annotatedTypeMirror) {
-            // new C() is always @ExclMut
-            annotatedTypeMirror.replaceAnnotation(UNIQUE);
-            return super.visitNewClass(node, annotatedTypeMirror);
-        }
     }
 
     @Override

@@ -10,6 +10,7 @@ import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFa
 
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityStore;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityValue;
+import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 import org.checkerframework.dataflow.cfg.node.ExplicitThisNode;
 import org.checkerframework.dataflow.cfg.node.MethodInvocationNode;
 import org.checkerframework.dataflow.cfg.node.Node;
@@ -69,7 +70,7 @@ public class TMethodInvocation extends AbstractTypeRule<MethodInvocationNode> {
             if (!factory.isSideEffectFree(node.getTarget().getMethod())
                     && (receiver instanceof ThisNode && hierarchy.isSubtypeQualifiersOnly(receiverTypeAnno, factory.MAYBE_ALIASED))) {
                 PackingFieldAccessAnnotatedTypeFactory packingFactory =
-                        factory.getChecker().getTypeFactoryOfSubcheckerOrNull(PackingFieldAccessSubchecker.class);
+                        factory.getTypeFactoryOfSubcheckerOrNull(PackingFieldAccessSubchecker.class);
 
                 CFValue receiverOutputPackingValue = packingFactory.getStoreAfter(node).getValue((ThisNode) null);
                 AnnotatedTypeMirror receiverOutputPackingType = AnnotatedTypeMirror.createType(receiverType, packingFactory, false);
@@ -90,7 +91,7 @@ public class TMethodInvocation extends AbstractTypeRule<MethodInvocationNode> {
                     }
 
                     // Don't clear params in frame of UnknownInit input type
-                    if (AnnotationUtils.areSameByName(receiverTypeAnno, packingFactory.getUnknownInitialization()) &&
+                    if (receiverInputPackingType.hasAnnotation(UnknownInitialization.class) &&
                             packingFactory.isInitializedForFrame(receiverInputPackingType, fieldOwnerType)) {
                         continue;
                     }

@@ -84,4 +84,6 @@ public class ExclusivityTransfer extends PackingClientTransfer<ExclusivityValue,
 
         return new RegularTransferResult<>(null, store);
     }
+
+    //TODO handle constructors
 }

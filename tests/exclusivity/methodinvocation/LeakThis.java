@@ -17,7 +17,7 @@ class LeakThis {
         Packing.pack(this, LeakThis.class);
     }
 
-    // :: error: initialization.constructor.return.type.incompatible
+    // :: error: initialization.constructor.return.type.incompatible :: error: exclusivity.type.invalidated
     @UnknownInitialization(LeakThis.class) LeakThis(boolean dummy) {
         this.unique = this;
         // :: error: exclusivity.type.invalidated
@@ -27,7 +27,7 @@ class LeakThis {
     }
 
     // :: error: initialization.constructor.return.type.incompatible
-    @UnknownInitialization(LeakThis.class) LeakThis(int dummy) {
+    @UnknownInitialization(LeakThis.class) @MaybeAliased LeakThis(int dummy) {
         this.aliased = this;
         this.mthAliased();
         // :: error: initialization.fields.uninitialized :: error: exclusivity.packing.aliased

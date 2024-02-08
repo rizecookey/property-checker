@@ -1,9 +1,6 @@
 package edu.kit.kastel.property.packing;
 
-import com.sun.source.tree.IdentifierTree;
-import com.sun.source.tree.MethodTree;
-import com.sun.source.tree.Tree;
-import com.sun.source.tree.VariableTree;
+import com.sun.source.tree.*;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityStore;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityTransfer;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityValue;
@@ -77,6 +74,12 @@ public abstract class PackingClientAnnotatedTypeFactory<
         }
 
         return annotatedType;
+    }
+
+    @Override
+    public AnnotationMirrorSet getExplicitNewClassAnnos(NewClassTree newClassTree) {
+        // Return empty set so that the type visitor adds the annotation from the return type.
+        return AnnotationMirrorSet.emptySet();
     }
 
     @Override

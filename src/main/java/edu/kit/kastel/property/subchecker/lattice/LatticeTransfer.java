@@ -17,6 +17,9 @@
 package edu.kit.kastel.property.subchecker.lattice;
 
 import edu.kit.kastel.property.packing.PackingClientTransfer;
+import org.checkerframework.dataflow.analysis.TransferInput;
+import org.checkerframework.dataflow.analysis.TransferResult;
+import org.checkerframework.dataflow.cfg.node.MethodInvocationNode;
 
 public final class LatticeTransfer extends PackingClientTransfer<LatticeValue, LatticeStore, LatticeTransfer> {
 

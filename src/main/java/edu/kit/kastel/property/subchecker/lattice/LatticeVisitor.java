@@ -25,12 +25,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.Name;
 import javax.lang.model.type.TypeKind;
 
+import com.sun.source.tree.*;
+import edu.kit.kastel.property.util.Packing;
 import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
 import org.checkerframework.checker.initialization.InitializationVisitor;
 import org.checkerframework.common.basetype.BaseTypeChecker;
@@ -41,22 +44,11 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclared
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
 import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.framework.util.AnnotatedTypes;
+import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
 
-import com.sun.source.tree.AssignmentTree;
-import com.sun.source.tree.BlockTree;
-import com.sun.source.tree.ClassTree;
-import com.sun.source.tree.ExpressionTree;
-import com.sun.source.tree.LiteralTree;
-import com.sun.source.tree.MethodInvocationTree;
-import com.sun.source.tree.MethodTree;
-import com.sun.source.tree.NewClassTree;
-import com.sun.source.tree.ReturnTree;
-import com.sun.source.tree.StatementTree;
-import com.sun.source.tree.Tree;
 import com.sun.source.tree.Tree.Kind;
-import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePath;
 import com.sun.tools.javac.tree.JCTree.JCClassDecl;
 import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
@@ -74,6 +66,9 @@ import edu.kit.kastel.property.util.Union;
 
 public final class LatticeVisitor extends BaseTypeVisitor<LatticeAnnotatedTypeFactory> {
 
+    private final ExecutableElement packMethod;
+    private final ExecutableElement unpackMethod;
+
     private Result result;
 
     private ClassTree enclClass = null;
@@ -83,6 +78,8 @@ public final class LatticeVisitor extends BaseTypeVisitor<LatticeAnnotatedTypeFa
 
     protected LatticeVisitor(BaseTypeChecker checker, LatticeAnnotatedTypeFactory typeFactory) {
         super(checker);
+        packMethod = TreeUtils.getMethod(Packing.class, "pack", 2, atypeFactory.getProcessingEnv());
+        unpackMethod = TreeUtils.getMethod(Packing.class, "unpack", 2, atypeFactory.getProcessingEnv());
 
         result = new Result(getLatticeSubchecker());
     }
@@ -99,9 +96,26 @@ public final class LatticeVisitor extends BaseTypeVisitor<LatticeAnnotatedTypeFa
     }
 
     @Override
+    public Void visitAnnotation(AnnotationTree tree, Void p) {
+        // do nothing
+        return p;
+    }
+
+    @Override
     public Void visitReturn(ReturnTree node, Void p) {
         call(() -> super.visitReturn(node, p), () -> result.illTypedReturns.add(node));
         return null;
+    }
+
+    @Override
+    public Void visitMethodInvocation(MethodInvocationTree tree, Void p) {
+        ExecutableElement invokedMethod = TreeUtils.elementFromUse(tree);
+        ProcessingEnvironment env = atypeFactory.getProcessingEnv();
+        if (ElementUtils.isMethod(invokedMethod, packMethod, env) || ElementUtils.isMethod(invokedMethod, unpackMethod, env)) {
+            // Don't type-check arguments of packing calls.
+            return p;
+        }
+        return super.visitMethodInvocation(tree, p);
     }
 
     @Override

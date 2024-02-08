@@ -1,19 +1,39 @@
 import edu.kit.kastel.property.util.Packing;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
+import edu.kit.kastel.property.subchecker.lattice.qual.*;
 import edu.kit.kastel.property.packing.qual.*;
 import org.checkerframework.checker.initialization.qual.*;
 import org.checkerframework.dataflow.qual.*;
 
+class Obj {
+
+    // :: error: inconsistent.constructor.type
+    @NonNull Obj() {
+
+        Packing.pack(this, Obj.class);
+    }
+}
+
 class A {
 
-    // :: error: initialization.field.uninitialized
     @Unique Object aField;
+
+    // Avoid inconsistent constructor type from LatticeSubchecker by declaring constructor as NullTop
+    @NullTop A() {
+        aField = new Obj();
+        Packing.pack(this, A.class);
+    }
 }
 
 final class B extends A {
 
-    // :: error: initialization.field.uninitialized
     @Unique Object bField;
+
+    // Avoid inconsistent constructor type from LatticeSubchecker by declaring constructor as NullTop
+    @NullTop B() {
+        bField = new Obj();
+        Packing.pack(this, B.class);
+    }
 
     @Pure
     void isUnpacked(@Unique @UnderInitialization(Object.class) B this) {}
@@ -51,7 +71,7 @@ final class B extends A {
     }
 
     void correctPackingCovariant(@UnknownInitialization(A.class) @Unique B this) {
-        this.bField = new Object();
+        this.bField = new Obj();
         Packing.pack(this, B.class);
         this.isFullyPacked();
     }
@@ -96,7 +116,7 @@ final class B extends A {
 
         Packing.pack(this, A.class);
 
-        this.bField = new Object();
+        this.bField = new Obj();
         Packing.pack(this, B.class);
     }
 

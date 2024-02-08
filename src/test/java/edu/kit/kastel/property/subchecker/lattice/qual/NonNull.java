@@ -16,9 +16,7 @@
  */
 package edu.kit.kastel.property.subchecker.lattice.qual;
 
-import org.checkerframework.framework.qual.DefaultQualifierInHierarchy;
-import org.checkerframework.framework.qual.RelevantJavaTypes;
-import org.checkerframework.framework.qual.SubtypeOf;
+import org.checkerframework.framework.qual.*;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

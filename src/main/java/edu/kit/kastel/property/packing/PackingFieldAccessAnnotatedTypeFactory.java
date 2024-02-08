@@ -22,10 +22,7 @@ import org.checkerframework.framework.type.typeannotator.ListTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.PropagationTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
 import org.checkerframework.framework.util.defaults.QualifierDefaults;
-import org.checkerframework.javacutil.AnnotationBuilder;
-import org.checkerframework.javacutil.ElementUtils;
-import org.checkerframework.javacutil.TreeUtils;
-import org.checkerframework.javacutil.TypesUtils;
+import org.checkerframework.javacutil.*;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
@@ -98,6 +95,12 @@ public class PackingFieldAccessAnnotatedTypeFactory
 
         computingUninitializedFields = wasComputingUninitializedFields;
         return result;
+    }
+
+    @Override
+    public AnnotationMirrorSet getExplicitNewClassAnnos(NewClassTree newClassTree) {
+        // Return empty set so that the type visitor adds the annotation from the return type.
+        return AnnotationMirrorSet.emptySet();
     }
 
     public AnnotationMirror getInitialized() {

@@ -1,6 +1,7 @@
 package edu.kit.kastel.property.packing;
 
 import com.sun.source.tree.ClassTree;
+import com.sun.source.tree.NewClassTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.util.TreePath;
 import com.sun.tools.javac.tree.JCTree;
@@ -134,6 +135,12 @@ public class PackingAnnotatedTypeFactory
     protected List<VariableElement> getPossiblyUninitializedFields(TreePath path) {
         ClassTree currentClass = TreePathUtil.enclosingClass(path);
         return ElementUtils.getAllFieldsIn(TypesUtils.getTypeElement(((JCTree) currentClass).type), elements);
+    }
+
+    @Override
+    public AnnotationMirrorSet getExplicitNewClassAnnos(NewClassTree newClassTree) {
+        // Return empty set so that the type visitor adds the annotation from the return type.
+        return AnnotationMirrorSet.emptySet();
     }
 
     @Override
