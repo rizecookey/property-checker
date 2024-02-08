@@ -78,7 +78,7 @@ public abstract class PackingClientTransfer<
 
                 for (VariableElement field : allFields) {
                     if (!ElementUtils.isStatic(field)) {
-                        FieldAccess fieldAccess = new FieldAccess(new ThisReference(methodElem.getReceiverType()), field);
+                        FieldAccess fieldAccess = new FieldAccess(new ThisReference(receiverType.getUnderlyingType()), field);
                         TypeMirror fieldOwnerType = field.getEnclosingElement().asType();
                         AnnotatedTypeMirror declaredType = factory.getAnnotatedType(field);
 
