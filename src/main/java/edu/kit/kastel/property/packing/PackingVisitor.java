@@ -32,6 +32,8 @@ public class PackingVisitor
     private final ExecutableElement packMethod;
     private final ExecutableElement unpackMethod;
 
+    private Set<JavaExpression> paramsInContract = new HashSet<>();
+
     public PackingVisitor(BaseTypeChecker checker) {
         super(checker);
         packMethod = TreeUtils.getMethod(Packing.class, "pack", 2, atypeFactory.getProcessingEnv());
@@ -154,8 +156,6 @@ public class PackingVisitor
         }
     }
 
-    private Set<JavaExpression> paramsInContract = new HashSet<>();
-
     @Override
     protected void checkPostcondition(MethodTree methodTree, AnnotationMirror annotation, JavaExpression expression) {
         paramsInContract.add(expression);
@@ -229,7 +229,7 @@ public class PackingVisitor
     protected void checkConstructorResult(AnnotatedTypeMirror.AnnotatedExecutableType constructorType, ExecutableElement constructorElement) {
         // Explicit constructurs are treated the same as any other method by visitMethod;
         // so there's nothing to do here.
-        // For default constructors, we use the superclass implementation check that every fields is initialized.
+        // For default constructors, we use the superclass implementation check that every field is initialized.
         if (TreeUtils.isSynthetic(methodTree)) {
             super.checkConstructorResult(constructorType, constructorElement);
         }

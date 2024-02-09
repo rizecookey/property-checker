@@ -8,6 +8,8 @@ import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.ExecutableElement;
 
+import com.sun.tools.javac.code.Type;
+import edu.kit.kastel.property.packing.PackingClientVisitor;
 import edu.kit.kastel.property.util.Packing;
 import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
 import org.checkerframework.common.basetype.BaseTypeChecker;
@@ -21,7 +23,7 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedPrimitiv
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
 
-public final class ExclusivityVisitor extends BaseTypeVisitor<ExclusivityAnnotatedTypeFactory> {
+public final class ExclusivityVisitor extends PackingClientVisitor<ExclusivityAnnotatedTypeFactory> {
 
     private final ExecutableElement packMethod;
     private final ExecutableElement unpackMethod;
@@ -154,25 +156,19 @@ public final class ExclusivityVisitor extends BaseTypeVisitor<ExclusivityAnnotat
     protected TypeValidator createTypeValidator() {
         return new ExclusivityValidator(checker, this, atypeFactory);
     }
-    
-    @SuppressWarnings("nls")
+
     @Override
-    protected void checkConstructorResult(
-            AnnotatedExecutableType constructorType, ExecutableElement constructorElement) {
-        // A constructor result can be refined to any type (see TRefNew),
-        // so we return a warning if the user unnecessarily overwrites the default.
-        QualifierHierarchy qualifierHierarchy = atypeFactory.getQualifierHierarchy();
-        Set<AnnotationMirror> constructorAnnotations =
-                constructorType.getReturnType().getAnnotations();
-        
-        AnnotationMirror constructorAnno =
-                qualifierHierarchy.findAnnotationInHierarchy(constructorAnnotations, atypeFactory.UNIQUE);
-        if (!qualifierHierarchy.isSubtypeQualifiersOnly(atypeFactory.UNIQUE, constructorAnno)) {
-            checker.reportWarning(
-                    constructorElement, "unnecessary.constructor.type", constructorAnno, atypeFactory.UNIQUE);
-        }
+    protected AnnotationMirror defaultConstructorQualifier(Type classType) {
+        return atypeFactory.UNIQUE;
     }
-    
+
+    @Override
+    protected void checkImplicitConstructorResult(
+            AnnotatedExecutableType constructorType, ExecutableElement constructorElement) {
+        // For implicit default constructors, the default type @Unique is always correct and exact, so there's
+        // nothing to do here.
+    }
+
     @Override
     protected boolean commonAssignmentCheck(
             AnnotatedTypeMirror varType,

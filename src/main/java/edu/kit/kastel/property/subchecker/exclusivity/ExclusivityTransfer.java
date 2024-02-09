@@ -77,12 +77,6 @@ public class ExclusivityTransfer extends PackingClientTransfer<ExclusivityValue,
         MethodAccessNode target = n.getTarget();
         ExecutableElement method = target.getMethod();
         Node receiver = target.getReceiver();
-        JavaExpression receiverExpr = JavaExpression.fromNode(receiver);
-
-        ExclusivityValue oldReceiverValue = null;
-        if (CFAbstractStore.canInsertJavaExpression(receiverExpr)) {
-            oldReceiverValue = store.getValue(receiverExpr);
-        }
 
         if (receiver instanceof ClassNameNode && ((ClassNameNode) receiver).getElement().toString().equals(Packing.class.getName())) {
             // Packing statements don't change the store
@@ -96,15 +90,6 @@ public class ExclusivityTransfer extends PackingClientTransfer<ExclusivityValue,
         }
 
         processPostconditions(n, store, method, invocationTree);
-
-        // Set receiver type to old type if input type is @ReadOnly.
-        // This is independent of the output type since any typing @ReadOnly -> @T where @T != @ReadOnly is necessarily ill-typed
-        AnnotatedTypeFactory.ParameterizedExecutableType methodType =
-                analysis.getTypeFactory().methodFromUse((MethodInvocationTree) n.getTree());
-        AnnotatedTypeMirror receiverType = methodType.executableType.getReceiverType();
-        if (oldReceiverValue != null && receiverType != null && receiverType.hasAnnotation(ReadOnly.class)) {
-            store.insertOrRefine(receiverExpr, factory.getExclusivityAnnotation(oldReceiverValue.getAnnotations()));
-        }
 
         return new RegularTransferResult<>(null, store, true);
     }

@@ -35,6 +35,7 @@ class Foo {
         this.aliased.change();
         // :: error: exclusivity.type.invalidated
         this.readOnly.change();
+        // :: error: exclusivity.type.invalidated
         return readOnly;
     }
 

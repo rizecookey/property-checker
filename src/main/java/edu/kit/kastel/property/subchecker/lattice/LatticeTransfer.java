@@ -16,6 +16,7 @@
  */
 package edu.kit.kastel.property.subchecker.lattice;
 
+import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.MethodTree;
 import edu.kit.kastel.property.packing.PackingClientTransfer;
 import edu.kit.kastel.property.util.Packing;
@@ -64,6 +65,11 @@ public final class LatticeTransfer extends PackingClientTransfer<LatticeValue, L
         }
 
         return super.visitMethodInvocation(node, in);
+    }
+
+    @Override
+    protected void processPostconditions(Node invocationNode, LatticeStore store, ExecutableElement executableElement, ExpressionTree invocationTree) {
+        super.processPostconditions(invocationNode, store, executableElement, invocationTree);
     }
 
     @Override

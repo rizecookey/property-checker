@@ -6,7 +6,12 @@ import org.checkerframework.checker.initialization.qual.*;
 import org.checkerframework.dataflow.qual.*;
 
 final class MethodCall {
+
     @ReadOnly @NullTop Foo field;
+
+    @NullTop MethodCall() {
+        Packing.pack(this, MethodCall.class);
+    }
 
     void mthRO(@UnknownInitialization @ReadOnly @NullTop MethodCall this) {}
 
@@ -43,8 +48,7 @@ final class MethodCall {
         this.mthUnique();
         // :: error: exclusivity.type.invalidated
         a = this.field; // invalid, refinement of field has been forgotten
-        // :: error: initialization.fields.uninitialized
-        Packing.pack(this, MethodCall.class); // invalid for same reason
+        Packing.pack(this, MethodCall.class);
     }
 
     void dontInvalidate(@Unique MethodCall this) {

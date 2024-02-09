@@ -88,7 +88,7 @@ abstract class AbstractTypeRule<N extends Node> implements TypeRule {
         }
 
         if (checkValidity) {
-            canUpdateType(getDeclaredTypeAnnotation(node), refinedType);
+            canUpdateType(getAdaptedTypeAnnotation(node), refinedType);
         }
 
         if (store != null && analysis != null) {
@@ -124,7 +124,17 @@ abstract class AbstractTypeRule<N extends Node> implements TypeRule {
         return hierarchy.isSubtypeQualifiersOnly(refinedType, declaredType);
     }
 
-    protected AnnotationMirror getDeclaredTypeAnnotation(Node node) {
+    protected AnnotationMirror getUnadaptedTypeAnnotation(Node node) {
+        if (node instanceof FieldAccessNode) {
+            return factory.getExclusivityAnnotation(factory.getAnnotatedType(((FieldAccessNode) node).getElement()).getAnnotations());
+        }
+
+        return factory.getExclusivityAnnotation(
+                // TODO Do we need to get declared types for nodes not supported by getAnnotatedTypeLhs?
+                factory.getAnnotatedTypeLhs(node.getTree()).getAnnotations());
+    }
+
+    protected AnnotationMirror getAdaptedTypeAnnotation(Node node) {
         return factory.getExclusivityAnnotation(
                 // TODO Do we need to get declared types for nodes not supported by getAnnotatedTypeLhs?
                 factory.getAnnotatedTypeLhs(node.getTree()).getAnnotations());
@@ -144,6 +154,8 @@ abstract class AbstractTypeRule<N extends Node> implements TypeRule {
                 value = store.getValue((FieldAccessNode) node);
             } else if (node instanceof LocalVariableNode) {
                 value = store.getValue((LocalVariableNode) node);
+            } else if (node instanceof ThisNode) {
+                value = store.getValue((ThisNode) node);
             }
 
             if (value != null) {

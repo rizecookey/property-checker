@@ -33,6 +33,8 @@ import javax.lang.model.element.Name;
 import javax.lang.model.type.TypeKind;
 
 import com.sun.source.tree.*;
+import com.sun.tools.javac.code.Type;
+import edu.kit.kastel.property.packing.PackingClientVisitor;
 import edu.kit.kastel.property.util.Packing;
 import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
 import org.checkerframework.checker.initialization.InitializationVisitor;
@@ -64,7 +66,7 @@ import edu.kit.kastel.property.util.ClassUtils;
 import edu.kit.kastel.property.util.CollectionUtils;
 import edu.kit.kastel.property.util.Union;
 
-public final class LatticeVisitor extends BaseTypeVisitor<LatticeAnnotatedTypeFactory> {
+public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedTypeFactory> {
 
     private final ExecutableElement packMethod;
     private final ExecutableElement unpackMethod;
@@ -313,11 +315,16 @@ public final class LatticeVisitor extends BaseTypeVisitor<LatticeAnnotatedTypeFa
 
     @Override
     protected void checkSuperConstructorCall(MethodInvocationTree superCall) {
-        // Do nothing
+        // Nothing to do
     }
 
     @Override
-    protected void checkConstructorResult(
+    protected AnnotationMirror defaultConstructorQualifier(Type classType) {
+        return atypeFactory.getTop();
+    }
+
+    @Override
+    protected void checkImplicitConstructorResult(
             AnnotatedExecutableType constructorType, ExecutableElement constructorElement) {
         QualifierHierarchy qualifierHierarchy = atypeFactory.getQualifierHierarchy();
         Set<AnnotationMirror> constructorAnnotations =
@@ -329,7 +336,28 @@ public final class LatticeVisitor extends BaseTypeVisitor<LatticeAnnotatedTypeFa
         if (!qualifierHierarchy.isSubtypeQualifiersOnly(top, constructorAnno)) {
             // Report an error instead of a warning.
             checker.reportError(
-                    constructorElement, "inconsistent.constructor.type", constructorAnno, top); //$NON-NLS-1$
+                    constructorElement, "inconsistent.constructor.type", constructorAnno, top);
+
+            result.illTypedConstructors.add(enclMethod);
+        }
+    }
+
+    @Override
+    protected void checkExplicitConstructorResult(MethodTree tree) {
+        AnnotatedExecutableType constructorType = atypeFactory.getAnnotatedType(tree);
+        ExecutableElement constructorElement = TreeUtils.elementFromDeclaration(tree);
+
+        QualifierHierarchy qualifierHierarchy = atypeFactory.getQualifierHierarchy();
+        Set<AnnotationMirror> constructorAnnotations =
+                constructorType.getReturnType().getAnnotations();
+        AnnotationMirror top = atypeFactory.getTop();
+
+        AnnotationMirror constructorAnno =
+                qualifierHierarchy.findAnnotationInHierarchy(constructorAnnotations, top);
+        if (!qualifierHierarchy.isSubtypeQualifiersOnly(top, constructorAnno)) {
+            // Report an error instead of a warning.
+            checker.reportError(
+                    constructorElement, "inconsistent.constructor.type", constructorAnno, top);
 
             result.illTypedConstructors.add(enclMethod);
         }

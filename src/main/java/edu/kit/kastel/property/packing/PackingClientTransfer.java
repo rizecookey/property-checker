@@ -2,6 +2,10 @@ package edu.kit.kastel.property.packing;
 
 import com.sun.source.tree.*;
 import com.sun.tools.javac.tree.JCTree;
+import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
+import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
+import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityTransfer;
+import edu.kit.kastel.property.subchecker.exclusivity.qual.ReadOnly;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.Unique;
 import org.checkerframework.dataflow.cfg.UnderlyingAST;
 import org.checkerframework.dataflow.cfg.node.*;
@@ -119,6 +123,12 @@ public abstract class PackingClientTransfer<
     protected void processPostconditions(Node invocationNode, S store, ExecutableElement executableElement, ExpressionTree invocationTree) {
         ContractsFromMethod contractsUtils = analysis.getTypeFactory().getContractsFromMethod();
         Set<Contract.Postcondition> postconditions = contractsUtils.getPostconditions(executableElement);
+        ExclusivityAnnotatedTypeFactory exclFactory;
+        if (this instanceof ExclusivityTransfer) {
+            exclFactory = (ExclusivityAnnotatedTypeFactory) analysis.getTypeFactory();
+        } else {
+            exclFactory = analysis.getTypeFactory().getTypeFactoryOfSubchecker(ExclusivityChecker.class);
+        }
 
         StringToJavaExpression stringToJavaExpr = null;
         if (invocationNode instanceof MethodInvocationNode) {
@@ -129,28 +139,38 @@ public abstract class PackingClientTransfer<
                                     (MethodInvocationNode) invocationNode,
                                     analysis.getTypeFactory().getChecker());
 
-            // Set receiver output type to input type by default.
+            // Set receiver output type to input type by default (unless receiver is @ReadOnly).
             Node receiver = ((MethodInvocationNode) invocationNode).getTarget().getReceiver();
 
             AnnotatedTypeFactory.ParameterizedExecutableType method =
                     analysis.getTypeFactory().methodFromUse((MethodInvocationTree) invocationNode.getTree());
+            AnnotatedTypeFactory.ParameterizedExecutableType exclMethod =
+                    exclFactory.methodFromUse((MethodInvocationTree) invocationNode.getTree());
             AnnotatedTypeMirror receiverType = method.executableType.getReceiverType();
-            if (receiverType != null) {
+            AnnotatedTypeMirror exclReceiverType = exclMethod.executableType.getReceiverType();
+
+            if (receiverType != null && !exclReceiverType.hasAnnotation(ReadOnly.class)) {
                 V receiverDefaultValue = analysis.createAbstractValue(
                         receiverType.getAnnotations(),
                         receiverType.getUnderlyingType());
                 store.insertValue(JavaExpression.fromNode(receiver), receiverDefaultValue);
             }
 
-            // Set parameter output types to input type by default.
+            // Set parameter output types to input type by default (unless param is @ReadOnly).
             int i = 0;
+            List<AnnotatedTypeMirror> exclParamTypes = exclMethod.executableType.getParameterTypes();
             for (AnnotatedTypeMirror paramType : method.executableType.getParameterTypes()) {
-                V paramDefaultValue = analysis.createAbstractValue(
-                        paramType.getAnnotations(),
-                        paramType.getUnderlyingType());
-                store.insertValue(
-                        JavaExpression.fromNode(((MethodInvocationNode) invocationNode).getArgument(i++)),
-                        paramDefaultValue);
+                boolean paramReadOnly = exclParamTypes.get(i).hasAnnotation(ReadOnly.class);
+                if (!paramReadOnly) {
+                    V paramDefaultValue = analysis.createAbstractValue(
+                            paramType.getAnnotations(),
+                            paramType.getUnderlyingType());
+                    store.insertValue(
+                            JavaExpression.fromNode(((MethodInvocationNode) invocationNode).getArgument(i)),
+                            paramDefaultValue);
+                }
+
+                ++i;
             }
         } else if (invocationNode instanceof ObjectCreationNode) {
             stringToJavaExpr =
@@ -161,14 +181,22 @@ public abstract class PackingClientTransfer<
             // Set parameter output types to input type by default.
             AnnotatedTypeFactory.ParameterizedExecutableType method =
                     analysis.getTypeFactory().constructorFromUse((NewClassTree) invocationNode.getTree());
+            AnnotatedTypeFactory.ParameterizedExecutableType exclMethod =
+                    exclFactory.constructorFromUse((NewClassTree) invocationNode.getTree());
             int i = 0;
+            List<AnnotatedTypeMirror> exclParamTypes = exclMethod.executableType.getParameterTypes();
             for (AnnotatedTypeMirror paramType : method.executableType.getParameterTypes()) {
-                V paramDefaultValue = analysis.createAbstractValue(
-                        paramType.getAnnotations(),
-                        paramType.getUnderlyingType());
-                store.insertValue(
-                        JavaExpression.fromNode(((ObjectCreationNode) invocationNode).getArgument(i++)),
-                        paramDefaultValue);
+                boolean paramReadOnly = exclParamTypes.get(i).hasAnnotation(ReadOnly.class);
+                if (!paramReadOnly) {
+                    V paramDefaultValue = analysis.createAbstractValue(
+                            paramType.getAnnotations(),
+                            paramType.getUnderlyingType());
+                    store.insertValue(
+                            JavaExpression.fromNode(((ObjectCreationNode) invocationNode).getArgument(i)),
+                            paramDefaultValue);
+                }
+
+                ++i;
             }
         } else {
             throw new BugInCF(

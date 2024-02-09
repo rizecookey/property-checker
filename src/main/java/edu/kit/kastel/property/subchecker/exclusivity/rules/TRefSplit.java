@@ -22,7 +22,7 @@ public class TRefSplit extends AssignmentRule {
         checkRhsTypeAnno(rhsNode);
 
         if (hierarchy.isSubtypeQualifiersOnly(getRefinedTypeAnnotation(rhsNode), factory.UNIQUE)
-                && !hierarchy.isSubtypeQualifiersOnly(getDeclaredTypeAnnotation(lhsNode), factory.MAYBE_ALIASED)) {
+                && !hierarchy.isSubtypeQualifiersOnly(getUnadaptedTypeAnnotation(lhsNode), factory.MAYBE_ALIASED)) {
             // Apply TRefCopyRo instead
             throw new RuleNotApplicable(getName(), rhsNode, "copy as ReadOnly instead of splitting");
         }
@@ -34,6 +34,12 @@ public class TRefSplit extends AssignmentRule {
     @Override
     protected void applyInternal(AnnotationMirror lhsType, Node rhsNode) throws RuleNotApplicable {
         checkRhsTypeAnno(rhsNode);
+
+        if (hierarchy.isSubtypeQualifiersOnly(getRefinedTypeAnnotation(rhsNode), factory.UNIQUE)
+                && !hierarchy.isSubtypeQualifiersOnly(lhsType, factory.MAYBE_ALIASED)) {
+            // Apply TRefCopyRo instead
+            throw new RuleNotApplicable(getName(), rhsNode, "copy as ReadOnly instead of splitting");
+        }
 
         canUpdateType(lhsType, getNewLhsTypeAnnotation());
         updateType(rhsNode, getNewRhsTypeAnnotation());
