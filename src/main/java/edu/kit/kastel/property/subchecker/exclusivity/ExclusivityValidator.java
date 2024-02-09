@@ -14,8 +14,10 @@ import javax.tools.Diagnostic;
 import java.util.Collections;
 import java.util.List;
 
-public class ExclusivityValidator extends BaseTypeValidator {
+public class ExclusivityValidator extends BaseTypeValidator
+{
     protected ExclusivityAnnotatedTypeFactory atypeFactory;
+
     public ExclusivityValidator(BaseTypeChecker checker, BaseTypeVisitor<?> visitor, ExclusivityAnnotatedTypeFactory atypeFactory) {
         super(checker, visitor, atypeFactory);
         this.atypeFactory = atypeFactory;

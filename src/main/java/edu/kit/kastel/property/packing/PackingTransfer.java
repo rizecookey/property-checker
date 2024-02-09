@@ -49,13 +49,15 @@ public class PackingTransfer extends InitializationAbstractTransfer<CFValue, Pac
         PackingStore initStore = super.initialStore(underlyingAST, parameters);
 
         // Add receiver value
-        UnderlyingAST.CFGMethod method = (UnderlyingAST.CFGMethod) underlyingAST;
-        MethodTree methodDeclTree = method.getMethod();
-        if (!TreeUtils.isConstructor(methodDeclTree) && methodDeclTree.getReceiverParameter() != null) {
-            AnnotatedTypeMirror thisType = atypeFactory.getAnnotatedType(methodDeclTree.getReceiverParameter());
-            initStore.initializeThisValue(thisType.getAnnotationInHierarchy(
-                    AnnotationBuilder.fromClass(atypeFactory.getElementUtils(), UnderInitialization.class)),
-                    thisType.getUnderlyingType());
+        if (underlyingAST instanceof UnderlyingAST.CFGMethod) {
+            UnderlyingAST.CFGMethod method = (UnderlyingAST.CFGMethod) underlyingAST;
+            MethodTree methodDeclTree = method.getMethod();
+            if (!TreeUtils.isConstructor(methodDeclTree) && methodDeclTree.getReceiverParameter() != null) {
+                AnnotatedTypeMirror thisType = atypeFactory.getAnnotatedType(methodDeclTree.getReceiverParameter());
+                initStore.initializeThisValue(thisType.getAnnotationInHierarchy(
+                                AnnotationBuilder.fromClass(atypeFactory.getElementUtils(), UnderInitialization.class)),
+                        thisType.getUnderlyingType());
+            }
         }
 
         return initStore;

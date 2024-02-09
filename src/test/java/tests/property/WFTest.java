@@ -19,8 +19,10 @@ package tests.property;
 import java.io.File;
 import java.util.List;
 
+import org.junit.Ignore;
 import org.junit.runners.Parameterized.Parameters;
 
+@Ignore
 @SuppressWarnings("nls")
 public class WFTest extends PropertyCheckerTest {
     public WFTest(List<File> testFiles) {

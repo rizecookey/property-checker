@@ -2,8 +2,6 @@ package edu.kit.kastel.property.subchecker.exclusivity;
 
 import com.sun.source.tree.*;
 
-import java.util.Set;
-
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.ExecutableElement;
@@ -13,10 +11,8 @@ import edu.kit.kastel.property.packing.PackingClientVisitor;
 import edu.kit.kastel.property.util.Packing;
 import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
 import org.checkerframework.common.basetype.BaseTypeChecker;
-import org.checkerframework.common.basetype.BaseTypeVisitor;
 import org.checkerframework.common.basetype.TypeValidator;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
-import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedPrimitiveType;
@@ -90,23 +86,6 @@ public final class ExclusivityVisitor extends PackingClientVisitor<ExclusivityAn
             // Local variable. Everything is checked by the transfer rules; nothing to do here.
             return p;
         }
-    }
-
-    private boolean isParam(ExpressionTree expr) {
-        if (expr instanceof IdentifierTree) {
-            IdentifierTree ident = (IdentifierTree) expr;
-            if (ident.getName().toString().equals("this")) {
-                return true;
-            }
-
-            for (VariableTree param : methodTree.getParameters()) {
-                if (param.getName().equals(ident.getName())) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
     }
 
     @Override

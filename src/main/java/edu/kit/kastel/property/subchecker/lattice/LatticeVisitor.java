@@ -131,9 +131,11 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         call(() -> super.visitVariable(node, p), () -> result.illTypedVars.add(node));
 
         AnnotatedTypeMirror varType = atypeFactory.getAnnotatedTypeLhs(node);
-        AnnotatedTypeMirror exclType = atypeFactory.getTypeFactoryOfSubchecker(ExclusivityChecker.class).getAnnotatedType(node);
+        ExclusivityAnnotatedTypeFactory exclFactory = atypeFactory.getTypeFactoryOfSubchecker(ExclusivityChecker.class);
+        AnnotatedTypeMirror exclType = exclFactory.getAnnotatedTypeLhs(node);
 
-        if (!getTypeValidator().dependsOnlyOnAbstractState(varType, exclType, node)) {
+        // Check abstract state for fields and parameters, not for local variables
+        if ((methodTree == null || isParam(node)) && !getTypeValidator().dependsOnlyOnAbstractState(varType, exclType, node)) {
             checker.reportError(node, "type.invalid.abstract.state");
         }
 

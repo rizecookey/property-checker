@@ -22,7 +22,6 @@ import java.util.List;
 import org.junit.Ignore;
 import org.junit.runners.Parameterized.Parameters;
 
-@Ignore
 @SuppressWarnings("nls")
 public class SuperMethodCallTest extends PropertyCheckerTest {
     public SuperMethodCallTest(List<File> testFiles) {

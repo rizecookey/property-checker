@@ -97,7 +97,6 @@ public final class LatticeTypeValidator extends BaseTypeValidator {
         
         if (!pa.getAnnotationType().isTrivial()
                 && (exclAnnotation == null || AnnotationUtils.areSame(exclAnnotation, exclFactory.READ_ONLY))) {
-            reportInvalidType(type, tree);
             return false;
         }
 

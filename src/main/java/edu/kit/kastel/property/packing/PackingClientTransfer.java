@@ -53,18 +53,19 @@ public abstract class PackingClientTransfer<
         S initStore = super.initialStore(underlyingAST, parameters);
         PackingClientAnnotatedTypeFactory factory = getAnalysis().getTypeFactory();
 
-        // Add receiver value
-        UnderlyingAST.CFGMethod method = (UnderlyingAST.CFGMethod) underlyingAST;
-        MethodTree methodDeclTree = method.getMethod();
-        V initialThisValue = null;
-        if (TreeUtils.isConstructor(methodDeclTree) || methodDeclTree.getReceiverParameter() != null) {
-            initialThisValue = initialThisValue(methodDeclTree);
-            initStore.initializeThisValue(initialThisValue);
-        }
-
-        // The default implementation only adds fields declared in this class.
-        // To make type-checking of pack statements more precise, we also add all fields declared in superclasses.
         if (underlyingAST.getKind() == UnderlyingAST.Kind.METHOD) {
+            // Add receiver value
+
+            UnderlyingAST.CFGMethod method = (UnderlyingAST.CFGMethod) underlyingAST;
+            MethodTree methodDeclTree = method.getMethod();
+            V initialThisValue = null;
+            if (TreeUtils.isConstructor(methodDeclTree) || methodDeclTree.getReceiverParameter() != null) {
+                initialThisValue = initialThisValue(methodDeclTree);
+                initStore.initializeThisValue(initialThisValue);
+            }
+
+            // The default implementation only adds fields declared in this class.
+            // To make type-checking of pack statements more precise, we also add all fields declared in superclasses.
             ClassTree classTree = method.getClassTree();
 
             if (!ElementUtils.isStatic(TreeUtils.elementFromDeclaration(methodDeclTree))) {

@@ -24,14 +24,11 @@ import java.util.List;
 
 import org.checkerframework.framework.qual.RelevantJavaTypes;
 import org.checkerframework.framework.qual.SubtypeOf;
-import org.checkerframework.framework.qual.TargetLocations;
-import org.checkerframework.framework.qual.TypeUseLocation;
 
 @RelevantJavaTypes({List.class})
 @SubtypeOf({UnknownLength.class})
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
-@TargetLocations({TypeUseLocation.EXPLICIT_LOWER_BOUND, TypeUseLocation.EXPLICIT_UPPER_BOUND})
 public @interface Length {
 
     String min();

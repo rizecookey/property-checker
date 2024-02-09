@@ -1,9 +1,7 @@
 package edu.kit.kastel.property.subchecker.exclusivity.qual;
 
 import org.checkerframework.checker.initialization.qual.HoldsForDefaultValue;
-import org.checkerframework.framework.qual.DefaultFor;
-import org.checkerframework.framework.qual.DefaultQualifierInHierarchy;
-import org.checkerframework.framework.qual.SubtypeOf;
+import org.checkerframework.framework.qual.*;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -15,6 +13,9 @@ import java.lang.annotation.Target;
 @Target({ElementType.TYPE_USE})
 @SubtypeOf({ReadOnly.class})
 @DefaultQualifierInHierarchy
+@DefaultFor(
+        value={TypeUseLocation.LOCAL_VARIABLE},
+        typeKinds={TypeKind.BOOLEAN, TypeKind.BYTE, TypeKind.CHAR, TypeKind.INT, TypeKind.SHORT, TypeKind.LONG, TypeKind.DOUBLE, TypeKind.FLOAT, TypeKind.NULL})
 @HoldsForDefaultValue
 public @interface MaybeAliased {}
 

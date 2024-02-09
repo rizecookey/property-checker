@@ -1,7 +1,6 @@
 package edu.kit.kastel.property.packing;
 
-import com.sun.source.tree.MethodTree;
-import com.sun.source.tree.VariableTree;
+import com.sun.source.tree.*;
 import com.sun.tools.javac.code.TargetType;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.tree.JCTree;
@@ -11,9 +10,7 @@ import org.checkerframework.common.basetype.BaseTypeVisitor;
 import org.checkerframework.dataflow.cfg.node.ThisNode;
 import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.dataflow.expression.ThisReference;
-import org.checkerframework.framework.flow.CFValue;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
-import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
 import org.checkerframework.javacutil.AnnotationMirrorSet;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.TreeUtils;
@@ -109,6 +106,34 @@ public abstract class PackingClientVisitor<
                 checker.reportError(tree, "inconsistent.constructor.type", tree);
             }
         }
+    }
+
+    protected final boolean isParam(Tree expr) {
+        if (expr instanceof IdentifierTree) {
+            IdentifierTree ident = (IdentifierTree) expr;
+            if (ident.getName().toString().equals("this")) {
+                return true;
+            }
+
+            for (VariableTree param : methodTree.getParameters()) {
+                if (param.getName().equals(ident.getName())) {
+                    return true;
+                }
+            }
+        } else if (expr instanceof VariableTree) {
+            VariableTree var = (VariableTree) expr;
+            if (var.getName().toString().equals("this")) {
+                return true;
+            }
+
+            for (VariableTree param : methodTree.getParameters()) {
+                if (param.getName().equals(var.getName())) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private AnnotationMirrorSet getConstructorAnnotations(MethodTree tree) {
