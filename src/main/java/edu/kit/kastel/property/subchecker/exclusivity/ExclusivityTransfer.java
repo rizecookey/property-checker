@@ -54,6 +54,11 @@ public class ExclusivityTransfer extends PackingClientTransfer<ExclusivityValue,
     }
 
     @Override
+    protected boolean uncommitPrimitiveFields() {
+        return false;
+    }
+
+    @Override
     public TransferResult<ExclusivityValue, ExclusivityStore> visitAssignment(
             AssignmentNode node, TransferInput<ExclusivityValue, ExclusivityStore> in) {
         ExclusivityStore store = in.getRegularStore();
@@ -108,6 +113,4 @@ public class ExclusivityTransfer extends PackingClientTransfer<ExclusivityValue,
 
         return new RegularTransferResult<>(null, store);
     }
-
-    //TODO handle constructors
 }

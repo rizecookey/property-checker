@@ -172,7 +172,9 @@ abstract class AbstractTypeRule<N extends Node> implements TypeRule {
         // TODO: There has to be a better way to do this
         String pkgName = "edu.kit.kastel.property.subchecker.exclusivity.qual.";
         StringBuilder s = new StringBuilder(anno != null ? anno.toString() : "");
-        s.delete(s.indexOf(pkgName), s.indexOf(pkgName) + pkgName.length());
+        if (s.length() > 0) {
+            s.delete(s.indexOf(pkgName), s.indexOf(pkgName) + pkgName.length());
+        }
         return s.toString();
     }
 }

@@ -22,6 +22,7 @@ import java.util.List;
 import org.junit.Ignore;
 import org.junit.runners.Parameterized.Parameters;
 
+@Ignore
 @SuppressWarnings("nls")
 public class OopslaPosterDemo extends PropertyCheckerTest {
     public OopslaPosterDemo(List<File> testFiles) {

@@ -104,7 +104,8 @@ public abstract class PackingClientTransfer<
                         }
 
                         // Use @ReadOnly if receiver is not sufficiently packed
-                        if (!packingFactory.isInitializedForFrame(receiverPackingType, fieldOwnerType)) {
+                        if (!packingFactory.isInitializedForFrame(receiverPackingType, fieldOwnerType)
+                                && (!adaptedType.getKind().isPrimitive() || uncommitPrimitiveFields())) {
                             adaptedType.clearAnnotations();
                             adaptedType.addAnnotations(factory.getQualifierHierarchy().getTopAnnotations());
                         }
@@ -119,6 +120,8 @@ public abstract class PackingClientTransfer<
 
         return initStore;
     }
+
+    protected abstract boolean uncommitPrimitiveFields();
 
     @Override
     protected void processPostconditions(Node invocationNode, S store, ExecutableElement executableElement, ExpressionTree invocationTree) {

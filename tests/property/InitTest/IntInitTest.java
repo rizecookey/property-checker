@@ -1,11 +1,12 @@
 import edu.kit.kastel.property.util.Packing;
+import edu.kit.kastel.property.checker.qual.*;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
+import edu.kit.kastel.property.subchecker.lattice.qual.*;
 import edu.kit.kastel.property.packing.qual.*;
 import org.checkerframework.checker.initialization.qual.*;
 import org.checkerframework.dataflow.qual.*;
-import edu.kit.kastel.property.subchecker.lattice.qual.*;
 
-public class IntInitTest {
+public final class IntInitTest {
     
     int unannotated;
     @Remainder(remainder="0", modulus="2") int even;
@@ -19,16 +20,14 @@ public class IntInitTest {
         
         // :: error: method.invocation.invalid
         this.nonHelper();
-
-        Packing.pack(this, IntInitTest.class);
     }
 
-    public @Remainder(remainder="0", modulus="2") int helper(@ReadOnly @UnknownInitialization IntInitTest this) {
+    public @Remainder(remainder="0", modulus="2") int helper(@Unique @UnknownInitialization IntInitTest this) {
     	// :: error: return.type.incompatible
         return this.even;
     }
 
-    public @Remainder(remainder="0", modulus="2") int nonHelper(@ReadOnly @Initialized IntInitTest this) {
+    public @Remainder(remainder="0", modulus="2") int nonHelper(@Unique @Initialized IntInitTest this) {
     	return this.even;
     }
 }

@@ -73,6 +73,11 @@ public final class LatticeTransfer extends PackingClientTransfer<LatticeValue, L
     }
 
     @Override
+    protected boolean uncommitPrimitiveFields() {
+        return true;
+    }
+
+    @Override
     protected LatticeValue initialThisValue(MethodTree methodDeclTree) {
         if (!TreeUtils.isConstructor(methodDeclTree)) {
             AnnotatedTypeMirror thisType = factory.getAnnotatedType(methodDeclTree.getReceiverParameter());
