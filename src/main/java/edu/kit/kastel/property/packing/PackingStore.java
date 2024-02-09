@@ -61,4 +61,8 @@ public class PackingStore extends InitializationAbstractStore<CFValue, PackingSt
         // We don't use the fbc commitment mechanism.
         return false;
     }
+
+    public boolean isFieldAssigned(Element f) {
+        return super.isFieldInitialized(f);
+    }
 }

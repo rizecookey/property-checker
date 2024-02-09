@@ -1,16 +1,11 @@
 package edu.kit.kastel.property.packing;
 
 import com.sun.source.tree.*;
-import org.checkerframework.checker.initialization.InitializationFieldAccessAbstractAnnotatedTypeFactory;
-import org.checkerframework.checker.initialization.InitializationFieldAccessSubchecker;
 import org.checkerframework.checker.initialization.InitializationFieldAccessTreeAnnotator;
-import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.dataflow.cfg.node.ThisNode;
 import org.checkerframework.framework.flow.CFValue;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
-import org.checkerframework.javacutil.AnnotationUtils;
-import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.TreeUtils;
 
 import javax.lang.model.element.Element;

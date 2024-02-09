@@ -291,10 +291,10 @@ public class PackingVisitor
     @Override
     protected void checkFieldsInitialized(
             Tree tree, boolean staticFields, PackingStore initExitStore, List<? extends AnnotationMirror> receiverAnnotations) {
-        // TODO: For now, the packing checker only changes a reference's type for explicit (un-)pack statements.
-        // When implementing implicit (un-)packing, change this override.
+        // TODO: For now, the packing checker only changes a reference's type for explicit (un-)pack statements,
+        // the only exception being default constructors.
+        // When implementing other kinds of implicit (un-)packing, change this override.
 
-        // Still check for static initializers and default constructors to avoid false negatives.
         if (staticFields || TreeUtils.isSynthetic((MethodTree) tree)) {
             // If the store is null, then the constructor cannot terminate successfully
             if (initExitStore == null) {
@@ -321,6 +321,12 @@ public class PackingVisitor
                                 staticFields,
                                 receiverAnnotations);
                 uninitializedFields.removeAll(initializedFields);
+
+                // The FBC behavior because it's generally unsound in the packing type system;
+                // a field may be been assigned, but the rhs may violate the field's declared type.
+                // But if a field has been initialized by an inline initializer, that assignment respects the field's
+                // declared type.
+                uninitializedFields.removeIf(f -> initExitStore.isFieldAssigned(f));
 
                 // If we are checking initialization of a class's static fields or of a default constructor,
                 // we issue an error for every uninitialized field at the respective field declaration.

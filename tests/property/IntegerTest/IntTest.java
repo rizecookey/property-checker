@@ -18,10 +18,15 @@
 import java.util.*;
 import edu.kit.kastel.property.subchecker.lattice.qual.*;
 
+class IntTestInitialized {
+
+    @Interval(min="1", max="2") int field = 2;
+}
+
 public class IntTest {
     
     // :: error: assignment.type.incompatible
-    @Interval(min="1", max="2") int field = 3;    
+    @Interval(min="1", max="2") int field = 3;
     
     public static void foo0(@Interval(min="2", max="2") int arg0, @Interval(min="2", max="5") int arg1) {
         @Interval(min="1", max="3") int l0 = arg0;
