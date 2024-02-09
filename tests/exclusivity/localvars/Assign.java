@@ -17,4 +17,9 @@ final class Assign {
         this.foo = new Foo();
         Packing.pack(this, Assign.class);
     }
+
+    void assignParam(@Unique Assign this, @Unique Assign other) {
+        // :: error: assignment.parameter
+        other = new Assign();
+    }
 }

@@ -65,7 +65,6 @@ public final class ExclusivityVisitor extends PackingClientVisitor<ExclusivityAn
 
         if (lhs instanceof MemberSelectTree) {
             // Field access
-
             MemberSelectTree lhsField = (MemberSelectTree) lhs;
             try {
                 IdentifierTree ident = (IdentifierTree) lhsField.getExpression();
@@ -83,10 +82,31 @@ public final class ExclusivityVisitor extends PackingClientVisitor<ExclusivityAn
                 checker.reportError(node, "assignment.invalid-lhs");
             }
             return p;
+        } else if (isParam(lhs)) {
+            // Parameters must not be reassigned
+            checker.reportError(node, "assignment.parameter");
+            return p;
         } else {
             // Local variable. Everything is checked by the transfer rules; nothing to do here.
             return p;
         }
+    }
+
+    private boolean isParam(ExpressionTree expr) {
+        if (expr instanceof IdentifierTree) {
+            IdentifierTree ident = (IdentifierTree) expr;
+            if (ident.getName().toString().equals("this")) {
+                return true;
+            }
+
+            for (VariableTree param : methodTree.getParameters()) {
+                if (param.getName().equals(ident.getName())) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     @Override
