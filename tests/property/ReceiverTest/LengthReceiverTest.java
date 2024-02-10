@@ -14,7 +14,8 @@ public abstract class LengthReceiverTest implements List {
             @Length(min="1", max="1") LengthReceiverTest this,
             @Length(min="2", max="2") LengthReceiverTest that) { }
 
-    public void foo(
+    // :: error: contracts.postcondition.not.satisfied
+    public void foo0(
             LengthReceiverTest this,
             @Length(min="1", max="1") LengthReceiverTest a,
             @Length(min="2", max="2") LengthReceiverTest b) {
@@ -22,16 +23,38 @@ public abstract class LengthReceiverTest implements List {
 
         // :: error: argument.type.incompatible
         a.method(a);
+    }
 
+    // :: error: contracts.postcondition.not.satisfied
+    public void foo1(
+            LengthReceiverTest this,
+            @Length(min="1", max="1") LengthReceiverTest a,
+            @Length(min="2", max="2") LengthReceiverTest b) {
         // :: error: method.invocation.invalid :: error: argument.type.incompatible
         b.method(a);
+    }
 
+    public void foo2(
+            LengthReceiverTest this,
+            @Length(min="1", max="1") LengthReceiverTest a,
+            @Length(min="2", max="2") LengthReceiverTest b) {
         // :: error: method.invocation.invalid
         b.method(b);
+    }
 
+    // :: error: contracts.postcondition.not.satisfied
+    public void foo3(
+            LengthReceiverTest this,
+            @Length(min="1", max="1") LengthReceiverTest a,
+            @Length(min="2", max="2") LengthReceiverTest b) {
         // :: error: method.invocation.invalid :: error: argument.type.incompatible
         this.method(a);
+    }
 
+    public void foo4(
+            LengthReceiverTest this,
+            @Length(min="1", max="1") LengthReceiverTest a,
+            @Length(min="2", max="2") LengthReceiverTest b) {
         // :: error: method.invocation.invalid
         this.method(b);
     }

@@ -44,9 +44,9 @@ abstract class AbstractTypeRule<N extends Node> implements TypeRule {
             throw new RuleNotApplicable(getName(), abstractNode, "wrong node type");
         }
         applyInternal(node);
-        if (getName() != null) {
+        /*if (getName() != null) {
             System.out.println("Applied " + getName());
-        }
+        }*/
     }
 
     protected abstract void applyInternal(N node) throws RuleNotApplicable;

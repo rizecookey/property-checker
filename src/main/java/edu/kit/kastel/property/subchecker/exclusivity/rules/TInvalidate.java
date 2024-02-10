@@ -27,8 +27,8 @@ public class TInvalidate implements TypeRule {
         ExclusivityValue abstractValue = analysis.createAbstractValue(
                 AnnotationMirrorSet.singleton(factory.EXCL_BOTTOM), node.getType());
         store.replaceValue(JavaExpression.fromNode(node), abstractValue);
-        System.out.printf("[~> ExclusivityBottom] %s ...;\n", node);
-        System.out.println("Applied " + getName());
+        //System.out.printf("[~> ExclusivityBottom] %s ...;\n", node);
+        //System.out.println("Applied " + getName());
     }
 
     @Override

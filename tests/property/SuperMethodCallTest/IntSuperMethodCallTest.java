@@ -18,16 +18,16 @@ import edu.kit.kastel.property.subchecker.lattice.qual.*;
 
 class BaseClass {
 
-    public void foo(@Interval(min="0", max="0") int arg) { }
+    public void foo(BaseClass this, @Interval(min="0", max="0") int arg) { }
 }
 
 class SubClass extends BaseClass {
 
     @Override
-    public void foo(@Interval(min="0", max="1") int arg) { }
+    public void foo(SubClass this, @Interval(min="0", max="1") int arg) { }
     
-    public void bar() {
-        foo(1);
+    public void bar(SubClass this) {
+        this.foo(1);
 
         // :: error: argument.type.incompatible
         super.foo(1);

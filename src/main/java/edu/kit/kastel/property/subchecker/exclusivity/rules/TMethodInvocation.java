@@ -40,7 +40,8 @@ public class TMethodInvocation extends AbstractTypeRule<MethodInvocationNode> {
         TypeMirror receiverType = node.getTarget().getMethod().getReceiverType();
         AnnotationMirror receiverTypeAnno = null;
 
-        if (!ElementUtils.isStatic(TreeUtils.elementFromUse(node.getTree()))) {
+        if (!ElementUtils.isStatic(TreeUtils.elementFromUse(node.getTree()))
+                && !node.getTarget().getMethod().getSimpleName().contentEquals("<init>")) {
             if (receiverType == null || receiverType.getKind().equals(TypeKind.NONE)) {
                 //TODO
                 System.err.printf("warning: ignoring call to method without explicit 'this' parameter declaration: %s\n", node.getTarget());
@@ -48,7 +49,7 @@ public class TMethodInvocation extends AbstractTypeRule<MethodInvocationNode> {
             }
 
             // "param_0 = arg_0"
-            System.out.printf("%s(", node.getTarget().getMethod().getSimpleName());
+            //System.out.printf("%s(", node.getTarget().getMethod().getSimpleName());
             receiverTypeAnno = factory.getExclusivityAnnotation(factory.getAnnotatedType(node.getTarget().getMethod()).getReceiverType());
             new TAssign(store, factory, analysis).applyOrInvalidate(receiverTypeAnno, receiver);
         }
@@ -60,18 +61,20 @@ public class TMethodInvocation extends AbstractTypeRule<MethodInvocationNode> {
             AnnotationMirror paramTypeAnno = factory.getExclusivityAnnotation(factory.getAnnotatedType(paramDecl));
             new TAssign(store, factory, analysis).applyOrInvalidate(paramTypeAnno, paramValue);
         }
-        System.out.print(")");
+        //System.out.print(")");
 
         // Rule is for x = mth(...), logic for refinement of x is in T-Method-Invocation-Helper
-        TypeMirror returnType = node.getTarget().getMethod().getReturnType();
+        /*TypeMirror returnType = node.getTarget().getMethod().getReturnType();
         if (!(returnType instanceof Type.JCVoidType)) {
             AnnotationMirror returnTypeAnno = factory.getExclusivityAnnotation(returnType.getAnnotationMirrors());
             System.out.printf(" -> %s\n", prettyPrint(returnTypeAnno));
-        }
+        }*/
 
         // Remove possibly invalidated refinements
         if (store != null && analysis != null) {
-            boolean thisPassedAsArgument = receiver instanceof ThisNode && hierarchy.isSubtypeQualifiersOnly(receiverTypeAnno, factory.MAYBE_ALIASED);
+            boolean thisPassedAsArgument = receiverTypeAnno != null &&
+                    receiver instanceof ThisNode &&
+                    hierarchy.isSubtypeQualifiersOnly(receiverTypeAnno, factory.MAYBE_ALIASED);
             for (int i = 0; i < node.getArguments().size(); ++i) {
                 Node arg = node.getArgument(i);
                 AnnotationMirror argAnno = factory.getExclusivityAnnotation(node.getTarget().getMethod().getParameters().get(i).asType().getAnnotationMirrors());
@@ -119,15 +122,13 @@ public class TMethodInvocation extends AbstractTypeRule<MethodInvocationNode> {
                                 new ExclusivityValue(analysis,
                                         adaptedType.getAnnotations(),
                                         adaptedType.getUnderlyingType()));
-                        System.out.printf("Resetting refinement to declared type for %s after %s\n",
-                                field, node);
+                        //System.out.printf("Resetting refinement to declared type for %s after %s\n", field, node);
                         continue;
                     }
 
                     // For remaining params, clear value
                     store.clearValue(field);
-                    System.out.printf("Clearing refinement for %s after %s\n",
-                            field, node);
+                    //System.out.printf("Clearing refinement for %s after %s\n", field, node);
                 }
             }
         }

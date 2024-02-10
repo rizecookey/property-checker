@@ -15,10 +15,10 @@ public @interface EnsuresLength {
 
     String[] value() default {"this"};
 
-    @QualifierArgument
+    @QualifierArgument("min")
     String min();
 
-    @QualifierArgument
+    @QualifierArgument("max")
     String max();
 
     @Documented

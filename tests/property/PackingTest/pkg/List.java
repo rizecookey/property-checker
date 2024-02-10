@@ -15,17 +15,30 @@ public final class List {
 
     public int size;
 
-    public @Length(min="tail.size + 1", max="tail.size + 1") List(int head, List tail) {
+    // :: error: inconsistent.constructor.type
+    public @Unique @Length(min="1", max="1") List(int head) {
         this.head = head;
-        this.next = next;
-        size = next == null ? 1 : next.size + 1;
+        this.tail = null;
+        this.size = 1;
+
+        // :: error: initialization.fields.uninitialized
         Packing.pack(this, List.class);
     }
 
-    // :: error: contracts.postcondition.not.satisfied
+    // :: error: inconsistent.constructor.type
+    public @Unique @Length(min="tail.size + 1", max="tail.size + 1") List(int head, List tail) {
+        this.head = head;
+        this.tail = tail;
+        this.size = tail == null ? 1 : tail.size + 1;
+
+        // :: error: initialization.fields.uninitialized
+        Packing.pack(this, List.class);
+    }
+
     @EnsuresLength(value="this", min="n+1", max="m+1")
+    // :: error: contracts.postcondition.not.satisfied
     public void insert(
-            @Length(min="n", max="m") List this,
+            @Unique @Length(min="n", max="m") List this,
             int newHead,
             int n, int m
     ) {

@@ -29,14 +29,14 @@ public abstract class AssignmentRule extends AbstractTypeRule<AssignmentNode> {
         AnnotationMirror oldLhs = getRefinedTypeAnnotation(lhs);
         AnnotationMirror oldRhs = getRefinedTypeAnnotation(rhs);
         applyInternal(lhs, rhs);
-        printAssignment(lhs, oldLhs, rhs, oldRhs);
+        //printAssignment(lhs, oldLhs, rhs, oldRhs);
     }
 
     public final void apply(AnnotationMirror lhsType, Node rhs) throws RuleNotApplicable {
         AnnotationMirror oldRhs = getRefinedTypeAnnotation(rhs);
         applyInternal(lhsType, rhs);
-        printTypeChange(rhs, oldRhs);
-        System.out.print(",");
+        //printTypeChange(rhs, oldRhs);
+        //System.out.print(",");
     }
 
     protected abstract void applyInternal(Node lhsNode, Node rhsNode) throws RuleNotApplicable;
@@ -45,9 +45,9 @@ public abstract class AssignmentRule extends AbstractTypeRule<AssignmentNode> {
     private void printAssignment(Node lhsNode, AnnotationMirror oldLhsTypeAnno,
                                  Node rhsNode, AnnotationMirror oldRhsTypeAnno) {
         printTypeChange(lhsNode, oldLhsTypeAnno);
-        System.out.print(" = ");
+        //System.out.print(" = ");
         printTypeChange(rhsNode, oldRhsTypeAnno);
-        System.out.println(";");
+        //System.out.println(";");
     }
 
     private void printTypeChange(Node node, AnnotationMirror oldTypeAnno) {
@@ -55,9 +55,9 @@ public abstract class AssignmentRule extends AbstractTypeRule<AssignmentNode> {
             AnnotationMirror newTypeAnno = oldTypeAnno;
             ExclusivityValue value;
             if (node instanceof ValueLiteralNode) {
-                System.out.printf("[%s ~> %s] ",
+                /*System.out.printf("[%s ~> %s] ",
                         prettyPrint(oldTypeAnno),
-                        prettyPrint(factory.MAYBE_ALIASED));
+                        prettyPrint(factory.MAYBE_ALIASED));*/
             } else {
                 try {
                     value = store.getValue(JavaExpression.fromNode(node));
@@ -67,12 +67,12 @@ public abstract class AssignmentRule extends AbstractTypeRule<AssignmentNode> {
                 if (value != null) {
                     newTypeAnno = factory.getExclusivityAnnotation(value.getAnnotations());
                 }
-                System.out.printf("[%s ~> %s] ",
+                /*System.out.printf("[%s ~> %s] ",
                         prettyPrint(oldTypeAnno),
-                        prettyPrint(newTypeAnno));
+                        prettyPrint(newTypeAnno));*/
             }
         }
-        System.out.print(node);
+        //System.out.print(node);
     }
 
     protected final ChainRule<AssignmentRule> getAssignmentRules() {

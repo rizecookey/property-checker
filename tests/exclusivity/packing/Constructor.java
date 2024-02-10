@@ -29,7 +29,7 @@ final class Constructor {
         Packing.pack(this, Constructor.class);
     }
 
-    public void foo() {}
+    public void foo(Constructor this) {}
 
     public static void main() {
         new Constructor().foo();

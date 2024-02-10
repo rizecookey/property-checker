@@ -27,18 +27,15 @@ import org.checkerframework.dataflow.cfg.node.MethodInvocationNode;
 import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.dataflow.cfg.node.ThisNode;
 import org.checkerframework.dataflow.expression.FieldAccess;
-import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.dataflow.expression.LocalVariable;
 import org.checkerframework.framework.flow.CFAbstractAnalysis;
 import org.checkerframework.framework.flow.CFValue;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
-import org.checkerframework.javacutil.ElementUtils;
-import org.checkerframework.javacutil.TreeUtils;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.type.TypeMirror;
-import java.util.Iterator;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -71,28 +68,28 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 		// Remove all dependent qualifiers in store.
 		// TODO:
 		// It would be better to remove exactly those values whose dependent type depends on `fieldAccess`.
-		Iterator<Map.Entry<FieldAccess, LatticeValue>> fieldValuesIterator = fieldValues.entrySet().iterator();
-		while (fieldValuesIterator.hasNext()) {
-			Map.Entry<FieldAccess, LatticeValue> entry = fieldValuesIterator.next();
+
+		Set<FieldAccess> fieldsToClear = new HashSet<>();
+		for (Map.Entry<FieldAccess, LatticeValue> entry : fieldValues.entrySet()) {
 			FieldAccess otherFieldAccess = entry.getKey();
 			LatticeValue otherVal = entry.getValue();
 
 			if (factory.getLattice().getEvaluatedPropertyAnnotation(otherVal.getAnnotations().first()) == null) {
-				clearValue(otherFieldAccess);
+				fieldsToClear.add(otherFieldAccess);
 			}
 		}
+		fieldsToClear.forEach(this::clearValue);
 
-		Iterator<Map.Entry<LocalVariable, LatticeValue>> localValuesIterator = localVariableValues.entrySet().iterator();
-		while (localValuesIterator.hasNext()) {
-			Map.Entry<LocalVariable, LatticeValue> entry = localValuesIterator.next();
+		Set<LocalVariable> localVarsToClear = new HashSet<>();
+		for (Map.Entry<LocalVariable, LatticeValue> entry : localVariableValues.entrySet()) {
 			LocalVariable localVar = entry.getKey();
 			LatticeValue localVal = entry.getValue();
 
 			if (factory.getLattice().getEvaluatedPropertyAnnotation(localVal.getAnnotations().first()) == null) {
-				clearValue(localVar);
-				replaceValue(localVar, createTopValue(localVal.getUnderlyingType()));
+				localVarsToClear.add(localVar);
 			}
 		}
+		localVarsToClear.forEach(v -> replaceValue(v, createTopValue(v.getElement().asType())));
 	}
 
 	protected LatticeValue createTopValue(TypeMirror underlyingType) {
@@ -106,16 +103,15 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 			GenericAnnotatedTypeFactory<LatticeValue, LatticeStore, ?, ?> atypeFactory,
 			LatticeValue val) {
 		Node receiver = node.getTarget().getReceiver();
-		TypeMirror receiverType;
-		receiverType = node.getTarget().getMethod().getReceiverType();
-
+		TypeMirror receiverType = node.getTarget().getMethod().getReceiverType();
 		ExclusivityAnnotatedTypeFactory exclFactory = atypeFactory.getTypeFactoryOfSubchecker(ExclusivityChecker.class);
-
-		AnnotationMirror receiverExclAnno = exclFactory.getExclusivityAnnotation(receiverType.getAnnotationMirrors());
+		AnnotationMirror receiverExclAnno = receiverType == null ? null : exclFactory.getExclusivityAnnotation(
+				receiverType.getAnnotationMirrors());
 
 		// Clear field values if they were possibly changed
-		boolean thisPassedAsArgument = receiver instanceof ThisNode
-				&& exclFactory.getQualifierHierarchy().isSubtypeQualifiersOnly(receiverExclAnno, exclFactory.MAYBE_ALIASED);
+		boolean thisPassedAsArgument = receiverExclAnno != null &&
+				receiver instanceof ThisNode &&
+				exclFactory.getQualifierHierarchy().isSubtypeQualifiersOnly(receiverExclAnno, exclFactory.MAYBE_ALIASED);
 		for (int i = 0; i < node.getArguments().size(); ++i) {
 			Node arg = node.getArgument(i);
 			AnnotationMirror argAnno = exclFactory.getExclusivityAnnotation(
@@ -163,8 +159,7 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 
 				// For remaining params, clear value
 				clearValue(field);
-				System.out.printf("Clearing refinement for %s after %s\n",
-						field, node);
+				//System.out.printf("Clearing refinement for %s after %s\n", field, node);
 			}
 		}
 	}
