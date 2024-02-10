@@ -14,27 +14,34 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-package tests.property;
+package tests.oopsla2021;
 
 import java.io.File;
 import java.util.List;
 
 import org.junit.Ignore;
 import org.junit.runners.Parameterized.Parameters;
+import tests.property.PropertyCheckerTest;
 
 @Ignore
 @SuppressWarnings("nls")
-public class OopslaPosterDemo extends PropertyCheckerTest {
-    public OopslaPosterDemo(List<File> testFiles) {
+public class CaseStudyTest2 extends PropertyCheckerTest {
+    public CaseStudyTest2(List<File> testFiles) {
         super(
                 testFiles,
-                "tests/property/lattice_nullness",
-                "tests/property/_oopsla_demo/",
-                "edu.kit.kastel.property.subchecker.lattice.qual");
+                "tests/oopsla2021/_case_study2/lattice_nullness"
+                        + ",tests/oopsla2021/_case_study2/lattice_agedover"
+                		+ ",tests/oopsla2021/_case_study2/lattice_allowedfor"
+                        + ",tests/oopsla2021/_case_study2/lattice_interval"
+                        + ",tests/oopsla2021/_case_study2/lattice_length"
+                        + ",tests/oopsla2021/_case_study2/lattice_okasaki"
+                        + ",tests/oopsla2021/_case_study2/lattice_sign",
+                "tests/oopsla2021/_case_study2/",
+                "edu.kit.kastel.property.subchecker.lattice.case_study_qual");
     }
 
     @Parameters
     public static String[] getTestDirs() {
-        return new String[] {"property/_oopsla_demo"};
+        return new String[] {"oopsla2021/_case_study2"};
     }
 }

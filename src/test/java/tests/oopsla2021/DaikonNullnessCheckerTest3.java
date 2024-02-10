@@ -14,7 +14,7 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-package tests.other;
+package tests.oopsla2021;
 
 import java.io.File;
 import java.util.List;
@@ -26,8 +26,8 @@ import org.junit.runners.Parameterized.Parameters;
 
 @Ignore
 @SuppressWarnings("nls")
-public class DaikonNullnessCheckerTest4 extends CheckerFrameworkPerDirectoryTest {
-    public DaikonNullnessCheckerTest4(List<File> testFiles) {
+public class DaikonNullnessCheckerTest3 extends CheckerFrameworkPerDirectoryTest {
+    public DaikonNullnessCheckerTest3(List<File> testFiles) {
         super(
                 testFiles,
                 NullnessChecker.class, "nullness");
@@ -35,6 +35,6 @@ public class DaikonNullnessCheckerTest4 extends CheckerFrameworkPerDirectoryTest
 
     @Parameters
     public static String[] getTestDirs() {
-        return new String[] {"property/_daikon4_nullness"};
+        return new String[] {"oopsla2021/_daikon3_nullness"};
     }
 }

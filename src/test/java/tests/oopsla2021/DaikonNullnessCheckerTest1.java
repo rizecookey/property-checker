@@ -14,33 +14,27 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-package tests.property;
+package tests.oopsla2021;
 
 import java.io.File;
 import java.util.List;
 
+import org.checkerframework.checker.nullness.NullnessChecker;
+import org.checkerframework.framework.test.CheckerFrameworkPerDirectoryTest;
 import org.junit.Ignore;
 import org.junit.runners.Parameterized.Parameters;
 
 @Ignore
 @SuppressWarnings("nls")
-public class CaseStudyTest2 extends PropertyCheckerTest {
-    public CaseStudyTest2(List<File> testFiles) {
+public class DaikonNullnessCheckerTest1 extends CheckerFrameworkPerDirectoryTest {
+    public DaikonNullnessCheckerTest1(List<File> testFiles) {
         super(
                 testFiles,
-                "tests/property/_case_study2/lattice_nullness"
-                        + ",tests/property/_case_study2/lattice_agedover"
-                		+ ",tests/property/_case_study2/lattice_allowedfor"
-                        + ",tests/property/_case_study2/lattice_interval"
-                        + ",tests/property/_case_study2/lattice_length"
-                        + ",tests/property/_case_study2/lattice_okasaki"
-                        + ",tests/property/_case_study2/lattice_sign",
-                "tests/property/_case_study2/",
-                "edu.kit.kastel.property.subchecker.lattice.case_study_qual");
+                NullnessChecker.class, "nullness");
     }
 
     @Parameters
     public static String[] getTestDirs() {
-        return new String[] {"property/_case_study2"};
+        return new String[] {"oopsla2021/_daikon1_nullness"};
     }
 }

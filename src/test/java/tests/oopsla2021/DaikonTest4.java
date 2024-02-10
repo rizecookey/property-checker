@@ -14,32 +14,28 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-package tests.property;
+package tests.oopsla2021;
 
 import java.io.File;
 import java.util.List;
 
 import org.junit.Ignore;
 import org.junit.runners.Parameterized.Parameters;
+import tests.property.PropertyCheckerTest;
 
 @Ignore
 @SuppressWarnings("nls")
-public class CaseStudyTest extends PropertyCheckerTest {
-    public CaseStudyTest(List<File> testFiles) {
+public class DaikonTest4 extends PropertyCheckerTest {
+    public DaikonTest4(List<File> testFiles) {
         super(
                 testFiles,
-                "tests/property/_case_study/lattice_nullness"
-                		+ ",tests/property/_case_study/lattice_allowedfor"
-                        + ",tests/property/_case_study/lattice_interval"
-                        + ",tests/property/_case_study/lattice_length"
-                        + ",tests/property/_case_study/lattice_okasaki"
-                        + ",tests/property/_case_study/lattice_sign",
-                "tests/property/_case_study/",
+                "tests/oopsla2021/_daikon4/lattice_nullness",
+                "tests/oopsla2021/_daikon4/",
                 "edu.kit.kastel.property.subchecker.lattice.case_study_qual");
     }
 
     @Parameters
     public static String[] getTestDirs() {
-        return new String[] {"property/_case_study"};
+        return new String[] {"oopsla2021/_daikon4"};
     }
 }

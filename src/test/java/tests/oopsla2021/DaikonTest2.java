@@ -14,28 +14,28 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-package tests.other;
+package tests.oopsla2021;
 
 import java.io.File;
 import java.util.List;
 
-import org.checkerframework.checker.nullness.NullnessChecker;
-import org.checkerframework.framework.test.CheckerFrameworkPerDirectoryTest;
 import org.junit.Ignore;
 import org.junit.runners.Parameterized.Parameters;
+import tests.property.PropertyCheckerTest;
 
 @Ignore
 @SuppressWarnings("nls")
-public class _NullnessCheckerTest extends CheckerFrameworkPerDirectoryTest {
-    public _NullnessCheckerTest(List<File> testFiles) {
+public class DaikonTest2 extends PropertyCheckerTest {
+    public DaikonTest2(List<File> testFiles) {
         super(
                 testFiles,
-                NullnessChecker.class, "nullness",
-                "-Aflowdotdir=../flowdot", "-Averbosecfg");
+                "tests/oopsla2021/_daikon2/lattice_nullness",
+                "tests/oopsla2021/_daikon2/",
+                "edu.kit.kastel.property.subchecker.lattice.case_study_qual");
     }
 
     @Parameters
     public static String[] getTestDirs() {
-        return new String[] {"property/_nullness_checker"};
+        return new String[] {"oopsla2021/_daikon2"};
     }
 }
