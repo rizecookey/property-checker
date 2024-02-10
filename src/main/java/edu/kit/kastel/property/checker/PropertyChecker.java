@@ -21,6 +21,7 @@ import java.util.*;
 
 import edu.kit.kastel.property.packing.PackingChecker;
 import edu.kit.kastel.property.packing.PackingFieldAccessSubchecker;
+import edu.kit.kastel.property.packing.PackingVisitor;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
@@ -52,6 +53,11 @@ public final class PropertyChecker extends PackingChecker {
     public PropertyChecker() { }
 
     @Override
+    protected PackingVisitor createSourceVisitor() {
+        return new PropertyVisitor(this);
+    }
+
+    @Override
     public boolean checkPrimitives() {
         return true;
     }
@@ -77,6 +83,7 @@ public final class PropertyChecker extends PackingChecker {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public <T extends BaseTypeChecker> @Nullable T getSubchecker(Class<T> checkerClass) {
         for (BaseTypeChecker checker : getSubcheckers()) {
             if (checker.getClass() == checkerClass) {

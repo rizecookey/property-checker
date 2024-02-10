@@ -23,8 +23,6 @@ import java.nio.file.Path;
 import edu.kit.kastel.property.packing.PackingAnnotatedTypeFactory;
 import edu.kit.kastel.property.packing.PackingStore;
 import edu.kit.kastel.property.packing.PackingTransfer;
-import org.checkerframework.checker.initialization.InitializationStore;
-import org.checkerframework.checker.initialization.InitializationTransfer;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.dataflow.cfg.visualize.CFGVisualizer;

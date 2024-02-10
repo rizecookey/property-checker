@@ -23,26 +23,23 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.List;
 
+import edu.kit.kastel.property.packing.PackingAnnotatedTypeFactory;
+import edu.kit.kastel.property.packing.PackingVisitor;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.BaseTypeVisitor;
 
 import com.sun.source.util.TreePath;
 import com.sun.tools.javac.tree.JCTree.JCCompilationUnit;
 
-import edu.kit.kastel.property.config.Config;
 import edu.kit.kastel.property.printer.JavaJMLPrinter;
 import edu.kit.kastel.property.printer.PrettyPrinter;
 import edu.kit.kastel.property.subchecker.lattice.LatticeVisitor.Result;
 import edu.kit.kastel.property.util.FileUtils;
 
-public final class PropertyVisitor extends BaseTypeVisitor<PropertyAnnotatedTypeFactory> {
+public final class PropertyVisitor extends PackingVisitor {
 
-    protected PropertyVisitor(BaseTypeChecker checker, PropertyAnnotatedTypeFactory typeFactory) {
-        super(checker, typeFactory);
-    }
-
-    public PropertyVisitor(BaseTypeChecker checker) {
-        this(checker, null);
+    protected PropertyVisitor(BaseTypeChecker checker) {
+        super(checker);
     }
 
     @SuppressWarnings("nls")
@@ -59,6 +56,9 @@ public final class PropertyVisitor extends BaseTypeVisitor<PropertyAnnotatedType
         	if (results.isEmpty()) {
         		PrettyPrinter printer = new PrettyPrinter(out, true);
             	printer.printUnit((JCCompilationUnit) path.getCompilationUnit(), null);
+                System.out.println(String.format(
+                        "Wrote file %s with no remaining proof obligations",
+                        getRelativeSourceFileName()));
         	} else {
         		JavaJMLPrinter printer = new JavaJMLPrinter(getPropertyChecker().getResults(getAbsoluteSourceFileName()), getPropertyChecker(), out);
             	printer.printUnit((JCCompilationUnit) path.getCompilationUnit(), null);
@@ -72,6 +72,11 @@ public final class PropertyVisitor extends BaseTypeVisitor<PropertyAnnotatedType
             e.printStackTrace();
             System.exit(1);
         }
+    }
+
+    @Override
+    protected PackingAnnotatedTypeFactory createTypeFactory() {
+        return new PropertyAnnotatedTypeFactory(checker);
     }
 
     protected String getAbsoluteSourceFileName() {
