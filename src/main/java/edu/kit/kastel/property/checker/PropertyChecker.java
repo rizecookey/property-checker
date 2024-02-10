@@ -16,13 +16,21 @@
  */
 package edu.kit.kastel.property.checker;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.*;
 
+import com.sun.source.util.TreePath;
+import com.sun.tools.javac.tree.JCTree;
 import edu.kit.kastel.property.packing.PackingChecker;
 import edu.kit.kastel.property.packing.PackingFieldAccessSubchecker;
-import edu.kit.kastel.property.packing.PackingVisitor;
+import edu.kit.kastel.property.printer.JavaJMLPrinter;
+import edu.kit.kastel.property.printer.PrettyPrinter;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
+import edu.kit.kastel.property.util.FileUtils;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.source.SupportedOptions;
@@ -30,6 +38,8 @@ import org.checkerframework.framework.source.SupportedOptions;
 import edu.kit.kastel.property.config.Config;
 import edu.kit.kastel.property.subchecker.lattice.LatticeSubchecker;
 import edu.kit.kastel.property.subchecker.lattice.LatticeVisitor;
+
+import javax.lang.model.element.TypeElement;
 
 @SupportedOptions({
     Config.LATTICES_FILE_OPTION,
@@ -52,13 +62,58 @@ public final class PropertyChecker extends PackingChecker {
     public PropertyChecker() { }
 
     @Override
-    protected PackingVisitor createSourceVisitor() {
+    protected PropertyVisitor createSourceVisitor() {
         return new PropertyVisitor(this);
     }
 
     @Override
     public boolean checkPrimitives() {
         return true;
+    }
+
+    @Override
+    public PropertyVisitor getVisitor() {
+        return (PropertyVisitor) super.getVisitor();
+    }
+
+    @Override
+    public void typeProcess(TypeElement element, TreePath tree) {
+        super.typeProcess(element, tree);
+
+        File file = Paths.get(getOutputDir(), getRelativeSourceFileName()).toFile();
+        file.getParentFile().mkdirs();
+        FileUtils.createFile(file);
+
+        try (BufferedWriter out = new BufferedWriter(new FileWriter(file))) {
+            List<LatticeVisitor.Result> results = getResults(getAbsoluteSourceFileName());
+            if (results.isEmpty()) {
+                PrettyPrinter printer = new PrettyPrinter(out, true);
+                printer.printUnit((JCTree.JCCompilationUnit) getVisitor().getPath().getCompilationUnit(), null);
+                System.out.println(String.format(
+                        "Wrote file %s with no remaining proof obligations",
+                        getRelativeSourceFileName()));
+            } else {
+                JavaJMLPrinter printer = new JavaJMLPrinter(getResults(getAbsoluteSourceFileName()), this, out);
+                printer.printUnit((JCTree.JCCompilationUnit) getVisitor().getPath().getCompilationUnit(), null);
+                System.out.println(String.format(
+                        "Wrote file %s with: \n\t%d assertions (to be proven in JML)\n\t%d assumptions (proven by checker)\n\t%d non-free method preconditions (to be proven in JML)\n\t%d free method preconditions (proven by checker)",
+                        getRelativeSourceFileName(),
+                        printer.getAssertions(), printer.getAssumptions(),
+                        printer.getMethodCallPreconditions(), printer.getFreeMethodCallPreconditions()));
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+    }
+
+    protected String getAbsoluteSourceFileName() {
+        return Paths.get(getVisitor().getRoot().getSourceFile().getName()).toAbsolutePath().toString();
+    }
+
+    protected String getRelativeSourceFileName() {
+        String classesDir = Paths.get(getInputDir()).toAbsolutePath().toString();
+        return getAbsoluteSourceFileName().substring(classesDir.length());
     }
 
     @Override

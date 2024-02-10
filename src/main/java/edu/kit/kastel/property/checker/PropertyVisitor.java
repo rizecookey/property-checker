@@ -24,6 +24,7 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.StringJoiner;
 
+import com.sun.source.tree.CompilationUnitTree;
 import com.sun.source.tree.Tree;
 import edu.kit.kastel.property.packing.PackingAnnotatedTypeFactory;
 import edu.kit.kastel.property.packing.PackingVisitor;
@@ -48,40 +49,24 @@ import javax.lang.model.type.TypeMirror;
 
 public final class PropertyVisitor extends PackingVisitor {
 
+    private TreePath path;
+
     protected PropertyVisitor(BaseTypeChecker checker) {
         super(checker);
     }
 
-    @SuppressWarnings("nls")
-	@Override
+    @Override
     public void visit(TreePath path) {
         super.visit(path);
+        this.path = path;
+    }
 
-        File file = Paths.get(getPropertyChecker().getOutputDir(), getRelativeSourceFileName()).toFile();
-        file.getParentFile().mkdirs();
-        FileUtils.createFile(file);
+    TreePath getPath() {
+        return path;
+    }
 
-        try (BufferedWriter out = new BufferedWriter(new FileWriter(file))) {
-        	List<Result> results = getPropertyChecker().getResults(getAbsoluteSourceFileName());
-        	if (results.isEmpty()) {
-        		PrettyPrinter printer = new PrettyPrinter(out, true);
-            	printer.printUnit((JCCompilationUnit) path.getCompilationUnit(), null);
-                System.out.println(String.format(
-                        "Wrote file %s with no remaining proof obligations",
-                        getRelativeSourceFileName()));
-        	} else {
-        		JavaJMLPrinter printer = new JavaJMLPrinter(getPropertyChecker().getResults(getAbsoluteSourceFileName()), getPropertyChecker(), out);
-            	printer.printUnit((JCCompilationUnit) path.getCompilationUnit(), null);
-            	System.out.println(String.format(
-            			"Wrote file %s with: \n\t%d assertions (to be proven in JML)\n\t%d assumptions (proven by checker)\n\t%d non-free method preconditions (to be proven in JML)\n\t%d free method preconditions (proven by checker)",
-            			getRelativeSourceFileName(),
-            			printer.getAssertions(), printer.getAssumptions(),
-            			printer.getMethodCallPreconditions(), printer.getFreeMethodCallPreconditions()));
-        	}
-        } catch (IOException e) {
-            e.printStackTrace();
-            System.exit(1);
-        }
+    CompilationUnitTree getRoot() {
+        return root;
     }
 
     @Override
@@ -125,15 +110,6 @@ public final class PropertyVisitor extends PackingVisitor {
     @Override
     protected PackingAnnotatedTypeFactory createTypeFactory() {
         return new PropertyAnnotatedTypeFactory(checker);
-    }
-
-    protected String getAbsoluteSourceFileName() {
-        return Paths.get(root.getSourceFile().getName()).toAbsolutePath().toString();
-    }
-
-    protected String getRelativeSourceFileName() {
-        String classesDir = Paths.get(getPropertyChecker().getInputDir()).toAbsolutePath().toString();
-        return getAbsoluteSourceFileName().substring(classesDir.length());
     }
 
     public PropertyChecker getPropertyChecker() {
