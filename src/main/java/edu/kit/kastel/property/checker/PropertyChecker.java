@@ -36,7 +36,6 @@ import edu.kit.kastel.property.subchecker.lattice.LatticeVisitor;
     Config.INPUT_DIR_OPTION,
     Config.OUTPUT_DIR_OPTION,
     Config.QUAL_PKG_OPTION,
-    Config.TRANSLATION_JML_DIALECT_OPTION,
     Config.TRANSLATION_ONLY_OPTION,
     Config.NO_EXCLUSITIVY_OPTION,
     "assumeInitialized"

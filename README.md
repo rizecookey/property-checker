@@ -25,7 +25,6 @@ To run the checker, use the following command:
 -APropertyChecker_outDir=<out_dir> \
 -APropertyChecker_lattices=<lattice_file> \
 -APropertyChecker_qualPkg=<qual_pkg> \
--APropertyChecker_jmlDialect=<jml_dialect> \
 -APropertyChecker_translationOnly=<translation_only>
 ```
 
@@ -38,6 +37,4 @@ where
 * `<your_project_root>` is the root directory for the source code of the project which should be checked. This is indeed redundant with the previous option. It is there because it is necessary for the Property Checker to know not just the files it should check, but also the file/package structure of the project.
 * `<out_dir>` is the directory to which the JML translation should be written.
 * `<qual_pkg>` is the fully qualified name of the package containing all annotations.
-* `<jml_dialect>` is either `key` or `openjml` depending on the JML dialect that should be used for the translation. The default is `key`.
 * `<translation_only>` is `true` if you want to only run the JML translator without running the Property Checker beforehand. The default is `false`.
-

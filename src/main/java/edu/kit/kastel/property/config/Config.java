@@ -16,13 +16,12 @@
  */
 package edu.kit.kastel.property.config;
 
-import org.checkerframework.javacutil.Pair;
-
 import edu.kit.kastel.property.lattice.Bound;
 import edu.kit.kastel.property.lattice.PropertyAnnotation;
 import edu.kit.kastel.property.lattice.SubAnnotationRelation;
 import edu.kit.kastel.property.lattice.PropertyAnnotationType.PropertyCheckable;
 import edu.kit.kastel.property.lattice.PropertyAnnotationType.WellFormednessCheckable;
+import org.checkerframework.javacutil.Pair;
 
 @SuppressWarnings("nls")
 public final class Config {
@@ -34,10 +33,6 @@ public final class Config {
     
     public static final String TRANSLATION_ONLY_OPTION = "translationOnly";
     public static final String NO_EXCLUSITIVY_OPTION = "noExclusivity";
-    
-    public static final String TRANSLATION_JML_DIALECT_OPTION = "jmlDialect";
-    public static final String TRANSLATION_JML_DIALECT_OPTION_KEY = "key";
-    public static final String TRANSLATION_JML_DIALECT_OPTION_OPENJML = "openjml";
 
     public static final String CHECKERS_PACKAGE = "__checkers";
 

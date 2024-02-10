@@ -44,7 +44,6 @@ public abstract class PropertyCheckerTest extends CheckerFrameworkPerDirectoryTe
                 "-APropertyChecker_outDir=" + "../property-checker-out",
                 "-APropertyChecker_lattices=" + latticeFile,
                 "-APropertyChecker_qualPkg=" + qualPackage,
-                "-APropertyChecker_jmlDialect=" + ObjectUtils.defaultIfNull(System.getProperty("jmlDialect"), "key"),
                 "-APropertyChecker_translationOnly=" + ObjectUtils.defaultIfNull(System.getProperty("translationOnly"), "false")
                 );
     }
