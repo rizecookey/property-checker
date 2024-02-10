@@ -17,12 +17,7 @@
 package edu.kit.kastel.property.subchecker.lattice;
 
 import java.nio.file.Paths;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import javax.annotation.processing.ProcessingEnvironment;
@@ -31,6 +26,7 @@ import javax.lang.model.type.TypeKind;
 
 import com.sun.source.tree.*;
 import com.sun.tools.javac.code.Type;
+import edu.kit.kastel.property.packing.PackingClientStore;
 import edu.kit.kastel.property.packing.PackingClientVisitor;
 import edu.kit.kastel.property.util.Packing;
 import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
@@ -38,6 +34,7 @@ import org.checkerframework.checker.initialization.InitializationVisitor;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.BaseTypeVisitor;
 import org.checkerframework.common.basetype.TypeValidator;
+import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
@@ -102,8 +99,42 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
     @Override
     public Void visitReturn(ReturnTree node, Void p) {
-        call(() -> super.visitReturn(node, p), () -> result.illTypedReturns.add(node));
+        call(() -> super.visitReturn(node, p), () -> result.illTypedMethodResults.add(enclMethod));
         return null;
+    }
+
+    @Override
+    protected void checkPostcondition(MethodTree methodTree, AnnotationMirror annotation, JavaExpression expression) {
+        int i = 0;
+        for (; i < enclMethod.getParameters().size(); ++i) {
+            if (TreeUtils.elementFromDeclaration(enclMethod.getParameters().get(i)).equals(expression)) {
+                break;
+            }
+        }
+
+        final int paramIdx = expression.toString().equals("this") ? 0 : i + 1;
+        result.methodOutputTypes.get(methodTree)[paramIdx] = annotation;
+
+        call(
+                () -> super.checkPostcondition(methodTree, annotation, expression),
+                () -> result.addIllTypedMethodOutputParam(methodTree, paramIdx));
+    }
+
+    @Override
+    protected void checkDefaultContract(VariableTree param, MethodTree methodTree, PackingClientStore<?, ?> exitStore) {
+        int i = 0;
+        for (; i < methodTree.getParameters().size(); ++i) {
+            if (methodTree.getParameters().get(i).equals(param)) {
+                break;
+            }
+        }
+
+        final int paramIdx = param.equals(methodTree.getReceiverParameter()) ? 0 : i + 1;
+        result.methodOutputTypes.get(methodTree)[paramIdx] = atypeFactory.getAnnotatedTypeLhs(param).getAnnotations().first();
+
+        call(
+                () -> super.checkDefaultContract(param, methodTree, exitStore),
+                () -> result.addIllTypedMethodOutputParam(methodTree, paramIdx));
     }
 
     @Override
@@ -173,6 +204,8 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
     public Void visitMethod(MethodTree node, Void p) {
         MethodTree prevEnclMethod = enclMethod;
         enclMethod = node;
+
+        result.methodOutputTypes.put(node, new AnnotationMirror[node.getParameters().size() + 1]);
 
         AnnotatedTypeMirror returnType = atypeFactory.getMethodReturnType(node);
         AnnotatedTypeMirror exclReturnType = atypeFactory.getTypeFactoryOfSubchecker(ExclusivityChecker.class).getMethodReturnType(node);
@@ -353,6 +386,9 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
         AnnotationMirror constructorAnno =
                 qualifierHierarchy.findAnnotationInHierarchy(constructorAnnotations, top);
+
+        result.methodOutputTypes.get(tree)[0] = constructorAnno;
+
         if (!qualifierHierarchy.isSubtypeQualifiersOnly(top, constructorAnno)) {
             // Report an error instead of a warning.
             checker.reportError(
@@ -399,13 +435,16 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
         private Set<AssignmentTree> illTypedAssignments = new HashSet<>();
         private Set<VariableTree> illTypedVars = new HashSet<>();
-        private Set<ReturnTree> illTypedReturns = new HashSet<>();
         private Set<MethodTree> illTypedConstructors = new HashSet<>();
+
+        private Set<MethodTree> illTypedMethodResults = new HashSet<>();
+        private Map<MethodTree, Set<Integer>> illTypedMethodOutputParams = new HashMap<>();
 
         private Map<MethodTree, List<Pair<AnnotatedDeclaredType, AnnotatedExecutableType>>> overriddenMethods = new HashMap<>();
 
         private Map<String, List<Invariant>> instanceInvariants = new HashMap<>();
         private Map<String, List<Invariant>> staticInvariants = new HashMap<>();
+        private Map<MethodTree, AnnotationMirror[]> methodOutputTypes = new HashMap<>();
 
         private Map<String, List<Union<StatementTree, VariableTree, BlockTree>>> instanceInitializers = new HashMap<>();
         private Map<String, List<Union<StatementTree, VariableTree, BlockTree>>> staticInitializers = new HashMap<>();
@@ -447,8 +486,8 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             return !illTypedConstructors.contains(tree);
         }
 
-        public boolean isWellTyped(ReturnTree tree) {
-            return !illTypedReturns.contains(tree);
+        public boolean isWellTypedMethodResult(MethodTree tree) {
+            return !illTypedMethodResults.contains(tree);
         }
 
         private void addInstanceInvariant(String className, Invariant invariant) {
@@ -475,6 +514,10 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             CollectionUtils.addToSetMap(illTypedConstructorParams, tree, param);
         }
 
+        private void addIllTypedMethodOutputParam(MethodTree tree, int param) {
+            CollectionUtils.addToSetMap(illTypedMethodOutputParams, tree, param);
+        }
+
         public List<Pair<AnnotatedDeclaredType, AnnotatedExecutableType>> getOverriddenMethods(MethodTree tree) {
             return CollectionUtils.getUnmodifiableList(overriddenMethods, tree);
         }
@@ -495,6 +538,12 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             return CollectionUtils.getUnmodifiableList(staticInitializers, className);
         }
 
+        public List<AnnotationMirror> getMethodOutputTypes(MethodTree tree) {
+            return methodOutputTypes.containsKey(tree)
+                    ? Collections.unmodifiableList(Arrays.asList(methodOutputTypes.get(tree)))
+                    : List.of();
+        }
+
         public Set<Integer> getIllTypedMethodParams(MethodInvocationTree tree) {
             return CollectionUtils.getUnmodifiableSet(illTypedMethodParams, tree);
         }
@@ -507,6 +556,10 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             return CollectionUtils.getUnmodifiableSet(illTypedConstructorParams, tree);
         }
 
+        public Set<Integer> getIllTypedMethodOutputParams(MethodTree tree) {
+            return CollectionUtils.getUnmodifiableSet(illTypedMethodOutputParams, tree);
+        }
+
         public List<VariableElement> getUninitializedFields(Tree tree) {
             return CollectionUtils.getUnmodifiableList(uninitializedFields, tree);
         }
@@ -514,8 +567,10 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         public void addAll(Result result) {
             illTypedAssignments.addAll(result.illTypedAssignments);
             illTypedVars.addAll(result.illTypedVars);
-            illTypedReturns.addAll(result.illTypedReturns);
             illTypedConstructors.addAll(result.illTypedConstructors);
+
+            illTypedMethodResults.addAll(result.illTypedMethodResults);
+            illTypedMethodOutputParams.putAll(result.illTypedMethodOutputParams);
 
             overriddenMethods.putAll(result.overriddenMethods);
             instanceInvariants.putAll(result.instanceInvariants);
@@ -525,8 +580,9 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
             illTypedMethodParams.putAll(result.illTypedMethodParams);
             illTypedMethodReceivers.addAll(result.illTypedMethodReceivers);
-
             illTypedConstructorParams.putAll(result.illTypedConstructorParams);
+
+            uninitializedFields.putAll(result.uninitializedFields);
         }
     }
 

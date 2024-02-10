@@ -96,10 +96,11 @@ public final class PropertyChecker extends PackingChecker {
                 JavaJMLPrinter printer = new JavaJMLPrinter(getResults(getAbsoluteSourceFileName()), this, out);
                 printer.printUnit((JCTree.JCCompilationUnit) getVisitor().getPath().getCompilationUnit(), null);
                 System.out.println(String.format(
-                        "Wrote file %s with: \n\t%d assertions (to be proven in JML)\n\t%d assumptions (proven by checker)\n\t%d non-free method preconditions (to be proven in JML)\n\t%d free method preconditions (proven by checker)",
+                        "Wrote file %s with: \n\t%d assertions (to be proven in JML)\n\t%d assumptions (proven by checker)\n\t%d non-free method preconditions (to be proven in JML)\n\t%d free method preconditions (proven by checker)\n\t%d non-free method postconditions (to be proven in JML)\n\t%d free method postconditions (proven by checker)",
                         getRelativeSourceFileName(),
                         printer.getAssertions(), printer.getAssumptions(),
-                        printer.getMethodCallPreconditions(), printer.getFreeMethodCallPreconditions()));
+                        printer.getMethodCallPreconditions(), printer.getFreeMethodCallPreconditions(),
+                        printer.getMethodCallPostconditions(), printer.getFreeMethodCallPostconditions()));
             }
         } catch (IOException e) {
             e.printStackTrace();

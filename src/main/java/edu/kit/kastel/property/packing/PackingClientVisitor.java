@@ -147,7 +147,7 @@ public abstract class PackingClientVisitor<
         return AnnotationMirrorSet.emptySet();
     }
 
-    private void checkDefaultContract(VariableTree param, MethodTree methodTree, PackingClientStore<?, ?> exitStore) {
+    protected void checkDefaultContract(VariableTree param, MethodTree methodTree, PackingClientStore<?, ?> exitStore) {
         JavaExpression paramExpr;
         if (param.getName().contentEquals("this")) {
             paramExpr = new ThisReference(((JCTree) param).type);
