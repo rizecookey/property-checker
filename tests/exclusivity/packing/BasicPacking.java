@@ -22,7 +22,7 @@ final class B extends A {
 
     // Avoid inconsistent constructor type from LatticeSubchecker by declaring constructor as NullTop
     @NullTop B() {
-        bField = new Obj();
+        this.bField = new Obj();
         Packing.pack(this, B.class);
     }
 

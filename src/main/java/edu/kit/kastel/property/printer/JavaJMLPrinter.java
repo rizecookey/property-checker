@@ -658,6 +658,12 @@ public class JavaJMLPrinter extends PrettyPrinter {
 
     @Override
     public void visitAssign(JCAssign tree) {
+        // Only assignments to local variables need an assertion; fields are checked at the next packing statement.
+        if (tree.getVariable() instanceof MemberSelectTree) {
+            super.visitAssign(tree);
+            return;
+        }
+
         String tempVar = tempVarName();
 
         visitAssignOrDef(
