@@ -231,6 +231,34 @@ public class JavaJMLPrinter extends PrettyPrinter {
                     println();
                 }
 
+                String containingClassName = enclClass.sym.getQualifiedName().toString();
+
+                for (LatticeVisitor.Result wellTypedness : results) {
+                    Lattice lattice = wellTypedness.getLattice();
+
+                    for (LatticeVisitor.Invariant invariant : wellTypedness.getStaticInvariants(containingClassName)) {
+                        Condition inv = new Condition(
+                                true,
+                                ConditionLocation.INVARIANT_STATIC,
+                                lattice.getPropertyAnnotation(invariant.getType()),
+                                containingClassName + "." + invariant.getFieldName()
+                        );
+                        printlnAligned(inv);
+                    }
+
+                    for (LatticeVisitor.Invariant invariant : wellTypedness.getInstanceInvariants(containingClassName)) {
+                        Condition inv = new Condition(
+                                true,
+                                ConditionLocation.INVARIANT_INSTANCE,
+                                lattice.getPropertyAnnotation(invariant.getType()),
+                                containingClassName + "." + invariant.getFieldName()
+                        );
+                        printlnAligned(inv.toStringOp("packed <: " + containingClassName, "-->"));
+                    }
+                }
+
+                println();
+
                 for (JCTree def : tree.defs) {
                     align();
                     def.accept(this);
@@ -287,27 +315,6 @@ public class JavaJMLPrinter extends PrettyPrinter {
                     if (!AnnotationUtils.areSame(paramType.getAnnotationInHierarchy(factory.getTop()), factory.getTop())) {
                         jmlContract.addClause(
                                 new Condition(ConditionType.ASSERTION, ConditionLocation.PRECONDITION, lattice.getPropertyAnnotation(paramType), paramName));
-                    }
-                }
-
-                if (method.getElement().getKind() != ElementKind.CONSTRUCTOR && TRANSLATION_JML_DIALECT == JMLDialect.KeYJMLDialect) {
-                    for (LatticeVisitor.Invariant invariant : wellTypedness.getStaticInvariants(containingClassName)) {
-                        jmlContract.addClause(
-                                new Condition(
-                                        ConditionType.ASSUMPTION,
-                                        ConditionLocation.PRECONDITION,
-                                        lattice.getPropertyAnnotation(invariant.getType()), getEnclClassName() + "." + invariant.getFieldName()));
-                    }
-
-                    if (!ElementUtils.isStatic(method.getElement()) && (tree.getReceiverParameter() == null
-                            || factory.getAnnotatedType(tree.getReceiverParameter()).getAnnotation(Initialized.class) != null)) {
-                        for (LatticeVisitor.Invariant invariant : wellTypedness.getInstanceInvariants(containingClassName)) {
-                            jmlContract.addClause(
-                                    new Condition(
-                                            ConditionType.ASSUMPTION,
-                                            ConditionLocation.PRECONDITION,
-                                            lattice.getPropertyAnnotation(invariant.getType()), "this." + invariant.getFieldName()));
-                        }
                     }
                 }
             }
@@ -1426,7 +1433,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
     };
 
     public enum ConditionLocation {
-        ASSERTION, PRECONDITION, POSTCONDITION;
+        ASSERTION, PRECONDITION, POSTCONDITION, INVARIANT_INSTANCE, INVARIANT_STATIC;
     }
 
     public enum ConditionType {
@@ -1501,6 +1508,30 @@ public class JavaJMLPrinter extends PrettyPrinter {
                     break;
                 case ASSUMPTION:
                     sb.append(TRANSLATION_RAW ? "ensures " : "ensures_free ");
+                    break;
+                default:
+                    throw new IllegalStateException();
+                }
+                break;
+            case INVARIANT_INSTANCE:
+                switch(conditionType) {
+                case ASSERTION:
+                    sb.append("//@ public invariant ");
+                    break;
+                case ASSUMPTION:
+                    sb.append("//@ public invariant_free ");
+                    break;
+                default:
+                    throw new IllegalStateException();
+                }
+                break;
+            case INVARIANT_STATIC:
+                switch(conditionType) {
+                case ASSERTION:
+                    sb.append("//@ public static invariant ");
+                    break;
+                case ASSUMPTION:
+                    sb.append("//@ public static invariant_free ");
                     break;
                 default:
                     throw new IllegalStateException();
