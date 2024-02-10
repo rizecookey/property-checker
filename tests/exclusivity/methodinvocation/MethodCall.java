@@ -21,8 +21,7 @@ final class MethodCall {
 
     void mthParam(@UnknownInitialization @MaybeAliased MethodCall this, @UnknownInitialization @MaybeAliased Foo arg) {}
 
-    @Unique Foo
-    mthret(@MaybeAliased MethodCall this) {
+    @Unique Foo mthret(@MaybeAliased MethodCall this) {
         return new Foo();
     }
 
@@ -36,7 +35,8 @@ final class MethodCall {
         a = x;           // invalid, x is not @Unique anymore
     }
 
-    void invokeAssign() {
+    // :: error: contracts.postcondition.not.satisfied
+    void invokeAssign(@Unique MethodCall this) {
         @Unique Foo b;
         b = this.mthret();
     }

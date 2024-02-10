@@ -28,8 +28,7 @@ public class TMethodInvocationHelper extends AssignmentRule {
     }
 
     protected void applyInternal(Node lhsNode, MethodInvocationNode rhsNode) throws RuleNotApplicable {
-        TypeMirror returnType = rhsNode.getTarget().getMethod().getReturnType();
-        AnnotationMirror returnTypeAnno = factory.getExclusivityAnnotation(returnType.getAnnotationMirrors());
+        AnnotationMirror returnTypeAnno = factory.getExclusivityAnnotation(factory.getAnnotatedType(rhsNode.getTree()));
         updateType(lhsNode, returnTypeAnno);
     }
 

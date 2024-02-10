@@ -83,10 +83,13 @@ public final class ExclusivityAnnotatedTypeFactory
             final ExclusivityStore store;
             if (oldUseIFlowAfter instanceof VariableTree) {
                 ExclusivityStore s = null;
-                for (Node n : flowResult.getNodesForTree(oldUseIFlowAfter)) {
-                    if (n instanceof AssignmentNode) {
-                        s = flowResult.getStoreAfter(n);
-                        break;
+                Set<Node> nodes = flowResult.getNodesForTree(oldUseIFlowAfter);
+                if (nodes != null) {
+                    for (Node n : nodes) {
+                        if (n instanceof AssignmentNode) {
+                            s = flowResult.getStoreAfter(n);
+                            break;
+                        }
                     }
                 }
                 store = s;

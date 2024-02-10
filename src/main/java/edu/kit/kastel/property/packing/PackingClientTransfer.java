@@ -157,12 +157,12 @@ public abstract class PackingClientTransfer<
                 store.insertValue(JavaExpression.fromNode(receiver), receiverDefaultValue);
             }
 
-            // Set parameter output types to input type by default (unless param is @ReadOnly).
+            // Set parameter output types to input type by default (unless param is @ReadOnly or primitive).
             int i = 0;
             List<AnnotatedTypeMirror> exclParamTypes = exclMethod.executableType.getParameterTypes();
             for (AnnotatedTypeMirror paramType : method.executableType.getParameterTypes()) {
                 boolean paramReadOnly = exclParamTypes.get(i).hasAnnotation(ReadOnly.class);
-                if (!paramReadOnly) {
+                if (!paramReadOnly && ! paramType.getKind().isPrimitive()) {
                     V paramDefaultValue = analysis.createAbstractValue(
                             paramType.getAnnotations(),
                             paramType.getUnderlyingType());

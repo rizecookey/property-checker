@@ -94,7 +94,7 @@ jar {
  }
 
 test {
-    //maxHeapSize = "1024m"
+    maxHeapSize = "4096m"
     //jvmArgs "-XX:MaxPermSize=256m"
     
     inputs.files("tests/property")

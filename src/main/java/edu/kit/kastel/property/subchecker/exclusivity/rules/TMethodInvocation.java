@@ -19,11 +19,14 @@ import org.checkerframework.dataflow.expression.FieldAccess;
 import org.checkerframework.framework.flow.CFValue;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.javacutil.AnnotationUtils;
+import org.checkerframework.javacutil.ElementUtils;
+import org.checkerframework.javacutil.TreeUtils;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
+import java.util.List;
 import java.util.Set;
 
 public class TMethodInvocation extends AbstractTypeRule<MethodInvocationNode> {
@@ -34,25 +37,27 @@ public class TMethodInvocation extends AbstractTypeRule<MethodInvocationNode> {
     @Override
     protected void applyInternal(MethodInvocationNode node) {
         Node receiver = node.getTarget().getReceiver();
-        TypeMirror receiverType;
-        receiverType = node.getTarget().getMethod().getReceiverType();
+        TypeMirror receiverType = node.getTarget().getMethod().getReceiverType();
+        AnnotationMirror receiverTypeAnno = null;
 
-        if (receiverType == null || receiverType.getKind().equals(TypeKind.NONE)) {
-            //TODO
-            System.err.printf("warning: ignoring call to method without explicit 'this' parameter declaration: %s\n", node.getTarget());
-            return;
+        if (!ElementUtils.isStatic(TreeUtils.elementFromUse(node.getTree()))) {
+            if (receiverType == null || receiverType.getKind().equals(TypeKind.NONE)) {
+                //TODO
+                System.err.printf("warning: ignoring call to method without explicit 'this' parameter declaration: %s\n", node.getTarget());
+                return;
+            }
+
+            // "param_0 = arg_0"
+            System.out.printf("%s(", node.getTarget().getMethod().getSimpleName());
+            receiverTypeAnno = factory.getExclusivityAnnotation(factory.getAnnotatedType(node.getTarget().getMethod()).getReceiverType());
+            new TAssign(store, factory, analysis).applyOrInvalidate(receiverTypeAnno, receiver);
         }
 
-        // "param_0 = arg_0"
-        System.out.printf("%s(", node.getTarget().getMethod().getSimpleName());
-        AnnotationMirror receiverTypeAnno = factory.getExclusivityAnnotation(receiverType.getAnnotationMirrors());
-        new TAssign(store, factory, analysis).applyOrInvalidate(receiverTypeAnno, receiver);
-
         // "param_i = arg_i;"
-        int i = 0;
-        for (VariableElement paramDecl : node.getTarget().getMethod().getParameters()) {
-            Node paramValue = node.getArgument(i++);
-            AnnotationMirror paramTypeAnno = factory.getExclusivityAnnotation(paramDecl.asType().getAnnotationMirrors());
+        for (int i = 0; i < node.getTarget().getMethod().getParameters().size(); ++i) {
+            VariableElement paramDecl = node.getTarget().getMethod().getParameters().get(i);
+            Node paramValue = node.getArgument(i);
+            AnnotationMirror paramTypeAnno = factory.getExclusivityAnnotation(factory.getAnnotatedType(paramDecl));
             new TAssign(store, factory, analysis).applyOrInvalidate(paramTypeAnno, paramValue);
         }
         System.out.print(")");
@@ -66,9 +71,19 @@ public class TMethodInvocation extends AbstractTypeRule<MethodInvocationNode> {
 
         // Remove possibly invalidated refinements
         if (store != null && analysis != null) {
+            boolean thisPassedAsArgument = receiver instanceof ThisNode && hierarchy.isSubtypeQualifiersOnly(receiverTypeAnno, factory.MAYBE_ALIASED);
+            for (int i = 0; i < node.getArguments().size(); ++i) {
+                Node arg = node.getArgument(i);
+                AnnotationMirror argAnno = factory.getExclusivityAnnotation(node.getTarget().getMethod().getParameters().get(i).asType().getAnnotationMirrors());
+                if (arg instanceof ThisNode && hierarchy.isSubtypeQualifiersOnly(argAnno, factory.MAYBE_ALIASED)) {
+                    thisPassedAsArgument = true;
+                    break;
+                }
+            }
+
             // Clear field values if they were possibly changed
             if (!factory.isSideEffectFree(node.getTarget().getMethod())
-                    && (receiver instanceof ThisNode && hierarchy.isSubtypeQualifiersOnly(receiverTypeAnno, factory.MAYBE_ALIASED))) {
+                    && thisPassedAsArgument) {
                 PackingFieldAccessAnnotatedTypeFactory packingFactory =
                         factory.getTypeFactoryOfSubcheckerOrNull(PackingFieldAccessSubchecker.class);
 
@@ -90,13 +105,13 @@ public class TMethodInvocation extends AbstractTypeRule<MethodInvocationNode> {
                         continue;
                     }
 
-                    // Don't clear params in frame of UnknownInit input type
+                    // Don't clear fields in frame of UnknownInit input type
                     if (receiverInputPackingType.hasAnnotation(UnknownInitialization.class) &&
                             packingFactory.isInitializedForFrame(receiverInputPackingType, fieldOwnerType)) {
                         continue;
                     }
 
-                    // For remaining params in frame of output type, add declared type to store
+                    // For remaining fields in frame of output type, add declared type to store
                     if (receiverOutputPackingValue != null && packingFactory.isInitializedForFrame(receiverOutputPackingType, fieldOwnerType)) {
                         AnnotatedTypeMirror adaptedType = factory.getAnnotatedType(field.getField());
                         store.replaceValue(

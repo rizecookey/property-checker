@@ -30,6 +30,8 @@ import org.checkerframework.framework.flow.CFAbstractAnalysis;
 import org.checkerframework.framework.flow.CFValue;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
+import org.checkerframework.javacutil.ElementUtils;
+import org.checkerframework.javacutil.TreeUtils;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.type.TypeMirror;
@@ -67,12 +69,25 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 		receiverType = node.getTarget().getMethod().getReceiverType();
 
 		ExclusivityAnnotatedTypeFactory exclFactory = atypeFactory.getTypeFactoryOfSubchecker(ExclusivityChecker.class);
+
 		AnnotationMirror receiverExclAnno = exclFactory.getExclusivityAnnotation(receiverType.getAnnotationMirrors());
 
 		// Clear field values if they were possibly changed
+		boolean thisPassedAsArgument = receiver instanceof ThisNode
+				&& exclFactory.getQualifierHierarchy().isSubtypeQualifiersOnly(receiverExclAnno, exclFactory.MAYBE_ALIASED);
+		for (int i = 0; i < node.getArguments().size(); ++i) {
+			Node arg = node.getArgument(i);
+			AnnotationMirror argAnno = exclFactory.getExclusivityAnnotation(
+					node.getTarget().getMethod().getParameters().get(i).asType().getAnnotationMirrors());
+			if (arg instanceof ThisNode && exclFactory.getQualifierHierarchy()
+					.isSubtypeQualifiersOnly(argAnno, exclFactory.MAYBE_ALIASED)) {
+				thisPassedAsArgument = true;
+				break;
+			}
+		}
+
 		if (!atypeFactory.isSideEffectFree(node.getTarget().getMethod())
-				&& (receiver instanceof ThisNode
-				&& exclFactory.getQualifierHierarchy().isSubtypeQualifiersOnly(receiverExclAnno, exclFactory.MAYBE_ALIASED))) {
+				&& thisPassedAsArgument) {
 			PackingFieldAccessAnnotatedTypeFactory packingFactory =
 					atypeFactory.getTypeFactoryOfSubcheckerOrNull(PackingFieldAccessSubchecker.class);
 
@@ -87,13 +102,13 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 			for (FieldAccess field : Set.copyOf(getFieldValues().keySet())) {
 				TypeMirror fieldOwnerType = field.getField().getEnclosingElement().asType();
 
-				// Don't clear params in frame of UnknownInit input type
+				// Don't clear fields in frame of UnknownInit input type
 				if (receiverInputPackingType.hasAnnotation(UnknownInitialization.class) &&
 						packingFactory.isInitializedForFrame(receiverInputPackingType, fieldOwnerType)) {
 					continue;
 				}
 
-				// For remaining params in frame of output type, add declared type to store
+				// For remaining fields in frame of output type, add declared type to store
 				if (receiverOutputPackingValue != null &&
 						packingFactory.isInitializedForFrame(receiverOutputPackingType, fieldOwnerType)) {
 					AnnotatedTypeMirror adaptedType = atypeFactory.getAnnotatedType(field.getField());
