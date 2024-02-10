@@ -22,10 +22,12 @@ import edu.kit.kastel.property.packing.PackingFieldAccessSubchecker;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.cfg.node.MethodInvocationNode;
 import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.dataflow.cfg.node.ThisNode;
 import org.checkerframework.dataflow.expression.FieldAccess;
+import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.framework.flow.CFAbstractAnalysis;
 import org.checkerframework.framework.flow.CFValue;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
@@ -35,6 +37,8 @@ import org.checkerframework.javacutil.TreeUtils;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.type.TypeMirror;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 
 public final class LatticeStore extends PackingClientStore<LatticeValue, LatticeStore> {
@@ -57,6 +61,20 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 				analysis.getTypeFactory().getChecker().hasOption("assumeSideEffectFree")
 						|| analysis.getTypeFactory().getChecker().hasOption("assumePure");
 		assumePureGetters = analysis.getTypeFactory().getChecker().hasOption("assumePureGetters");
+	}
+
+	@Override
+	protected boolean shouldInsert(JavaExpression expr, @Nullable LatticeValue value, boolean permitNondeterministic) {
+		// Never insert dependent qualifiers in store.
+		// TODO:
+		// It would be better to insert them in the store and then every time a field `f` is possibly modified,
+		// remove exactly those values whose dependent type depends on `f`.
+		LatticeAnnotatedTypeFactory factory = (LatticeAnnotatedTypeFactory) analysis.getTypeFactory();
+		if (factory.getLattice().getEvaluatedPropertyAnnotation(value.getAnnotations().first()) == null) {
+			return false;
+		}
+
+		return super.shouldInsert(expr, value, permitNondeterministic);
 	}
 
 	@Override
