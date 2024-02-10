@@ -35,6 +35,7 @@ import java.util.stream.Collectors;
 
 import javax.lang.model.element.*;
 import javax.lang.model.type.TypeKind;
+import javax.lang.model.util.ElementFilter;
 
 import com.google.errorprone.annotations.Var;
 import com.sun.source.tree.MemberSelectTree;
@@ -83,6 +84,7 @@ import edu.kit.kastel.property.subchecker.lattice.LatticeVisitor;
 import edu.kit.kastel.property.util.TypeUtils;
 import edu.kit.kastel.property.util.Union;
 import org.checkerframework.javacutil.TreeUtils;
+import org.checkerframework.javacutil.TypesUtils;
 
 @SuppressWarnings("nls")
 public class JavaJMLPrinter extends PrettyPrinter {
@@ -553,19 +555,27 @@ public class JavaJMLPrinter extends PrettyPrinter {
 
         try {
             if (tree.meth.toString().equals("Packing.pack")) {
+                AssertionSequence assertionsSeq = new AssertionSequence();
                 for (LatticeVisitor.Result result : results) {
+                    List<VariableElement> allFields = ElementFilter.fieldsIn(TypesUtils.getTypeElement(enclClass.type).getEnclosedElements());
                     List<VariableElement> uninitFields = result.getUninitializedFields(tree);
-                    if (result.getUninitializedFields(tree) != null) {
-                        for (VariableElement field : uninitFields) {
-                            AnnotatedTypeMirror type = result.getTypeFactory().getAnnotatedType(field);
-                            PropertyAnnotation pa = result.getLattice().getPropertyAnnotation(type);
-                            Condition cond = new Condition(false, ConditionLocation.ASSERTION, pa, field.toString());
-                            println(cond);
-                            align();
+                    for (VariableElement field : allFields) {
+                        AnnotatedTypeMirror type = result.getTypeFactory().getAnnotatedType(field);
+                        PropertyAnnotation pa = result.getLattice().getPropertyAnnotation(type);
+                        if (!pa.getAnnotationType().isTrivial()) {
+                            Condition cond = new Condition(
+                                    !uninitFields.contains(field),
+                                    ConditionLocation.ASSERTION,
+                                    pa,
+                                    field.toString());
+                            assertionsSeq.addClause(cond);
                         }
                     }
                 }
 
+                println();
+                printlnAligned(assertionsSeq.toString());
+                align();
                 print("//@ set packed = ");
                 print(tree.args.get(1));
                 return;
@@ -1516,6 +1526,42 @@ public class JavaJMLPrinter extends PrettyPrinter {
 
             sb.append(";");
 
+            return sb.toString();
+        }
+    }
+
+    public class AssertionSequence {
+
+        private List<String> assertions = new ArrayList<>();
+        private List<String> assumptions = new ArrayList<>();
+
+        public void addClause(Condition condition) {
+            if (condition.pa.getAnnotationType().isTrivial()) {
+                return;
+            }
+
+            switch (condition.conditionLocation) {
+                case PRECONDITION:
+                case POSTCONDITION:
+                    throw new IllegalArgumentException("condition");
+                case ASSERTION:
+                    switch (condition.conditionType) {
+                        case ASSERTION:
+                            assertions.add(condition.toString());
+                            break;
+                        case ASSUMPTION:
+                            assumptions.add(condition.toString());
+                            break;
+                    }
+                    break;
+            }
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            assumptions.forEach(c -> sb.append(String.format("%s\n", c)));
+            assertions.forEach(c -> sb.append(String.format("%s\n", c)));
             return sb.toString();
         }
     }
