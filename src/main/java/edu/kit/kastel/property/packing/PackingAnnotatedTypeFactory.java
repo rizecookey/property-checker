@@ -6,6 +6,7 @@ import com.sun.source.tree.Tree;
 import com.sun.source.util.TreePath;
 import com.sun.tools.javac.tree.JCTree;
 import org.checkerframework.checker.initialization.*;
+import org.checkerframework.checker.initialization.qual.HoldsForDefaultValue;
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -16,6 +17,8 @@ import org.checkerframework.framework.flow.CFAbstractAnalysis;
 import org.checkerframework.framework.flow.CFAbstractStore;
 import org.checkerframework.framework.flow.CFAbstractValue;
 import org.checkerframework.framework.flow.CFValue;
+import org.checkerframework.framework.qual.MonotonicQualifier;
+import org.checkerframework.framework.qual.PolymorphicQualifier;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
 import org.checkerframework.framework.type.QualifierHierarchy;
@@ -26,12 +29,14 @@ import org.checkerframework.framework.type.typeannotator.IrrelevantTypeAnnotator
 import org.checkerframework.framework.type.typeannotator.ListTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.PropagationTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
+import org.checkerframework.framework.util.AnnotatedTypes;
 import org.checkerframework.framework.util.QualifierKind;
 import org.checkerframework.javacutil.*;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
+import java.lang.annotation.Annotation;
 import java.util.*;
 
 public class PackingAnnotatedTypeFactory
@@ -114,6 +119,23 @@ public class PackingAnnotatedTypeFactory
                 });
 
         return uninitializedFields;
+    }
+
+    public static boolean isInitialized(
+            GenericAnnotatedTypeFactory<?, ?, ?, ?> factory,
+            CFAbstractValue<?> value,
+            VariableElement var) {
+        AnnotatedTypeMirror declType = factory.getAnnotatedType(var);
+        AnnotatedTypeMirror refType;
+        if (value != null) {
+            refType = AnnotatedTypeMirror.createType(value.getUnderlyingType(), factory, false);
+            refType.addAnnotations(value.getAnnotations());
+        } else {
+            refType = AnnotatedTypeMirror.createType(declType.getUnderlyingType(), factory, false);
+            refType.addAnnotations(factory.getQualifierHierarchy().getTopAnnotations());
+        }
+
+        return factory.getTypeHierarchy().isSubtype(refType, declType);
     }
 
     @Override

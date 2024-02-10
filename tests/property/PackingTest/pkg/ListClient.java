@@ -14,12 +14,13 @@ public final class ListClient {
     @MaybeAliased @Length(min="1", max="1") List b;
     @Unique @Length(min="a.size", max="a.size") List c;
 
+    // :: error: inconsistent.constructor.type
     public ListClient() {
         this.a = new List(42);
         this.b = new List(42);
         this.c = new List(42);
 
-        // :: error: initialization.fields.uninitialized)
+        // :: error: (initialization.fields.uninitialized)
         Packing.pack(this, ListClient.class);
     }
 

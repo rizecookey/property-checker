@@ -26,7 +26,7 @@ public class PackingTest extends PropertyCheckerTest {
     public PackingTest(List<File> testFiles) {
         super(
                 testFiles,
-                "tests/property/lattice_remainder,tests/property/lattice_length",
+                "tests/property/lattice_nullness,tests/property/lattice_length_custom_list",
                 "tests/property/PackingTest/");
     }
 

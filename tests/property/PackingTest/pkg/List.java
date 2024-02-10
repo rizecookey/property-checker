@@ -43,9 +43,10 @@ public final class List {
             int n, int m
     ) {
         Packing.unpack(this, List.class);
-        tail = new List(head, tail);
-        head = newHead;
-        ++size;
+        // :: error: argument.type.incompatible
+        this.tail = new List(head, tail);
+        this.head = newHead;
+        ++this.size;
         // :: error: initialization.fields.uninitialized
         Packing.pack(this, List.class);
     }
