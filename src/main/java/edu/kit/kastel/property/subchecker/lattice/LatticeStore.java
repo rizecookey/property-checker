@@ -28,6 +28,7 @@ import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.dataflow.cfg.node.ThisNode;
 import org.checkerframework.dataflow.expression.FieldAccess;
 import org.checkerframework.dataflow.expression.JavaExpression;
+import org.checkerframework.dataflow.expression.LocalVariable;
 import org.checkerframework.framework.flow.CFAbstractAnalysis;
 import org.checkerframework.framework.flow.CFValue;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
@@ -64,17 +65,39 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 	}
 
 	@Override
-	protected boolean shouldInsert(JavaExpression expr, @Nullable LatticeValue value, boolean permitNondeterministic) {
-		// Never insert dependent qualifiers in store.
-		// TODO:
-		// It would be better to insert them in the store and then every time a field `f` is possibly modified,
-		// remove exactly those values whose dependent type depends on `f`.
+	protected void removeConflicting(FieldAccess fieldAccess, @Nullable LatticeValue val) {
+		super.removeConflicting(fieldAccess, val);
 		LatticeAnnotatedTypeFactory factory = (LatticeAnnotatedTypeFactory) analysis.getTypeFactory();
-		if (factory.getLattice().getEvaluatedPropertyAnnotation(value.getAnnotations().first()) == null) {
-			return false;
+		// Remove all dependent qualifiers in store.
+		// TODO:
+		// It would be better to remove exactly those values whose dependent type depends on `fieldAccess`.
+		Iterator<Map.Entry<FieldAccess, LatticeValue>> fieldValuesIterator = fieldValues.entrySet().iterator();
+		while (fieldValuesIterator.hasNext()) {
+			Map.Entry<FieldAccess, LatticeValue> entry = fieldValuesIterator.next();
+			FieldAccess otherFieldAccess = entry.getKey();
+			LatticeValue otherVal = entry.getValue();
+
+			if (factory.getLattice().getEvaluatedPropertyAnnotation(otherVal.getAnnotations().first()) == null) {
+				clearValue(otherFieldAccess);
+			}
 		}
 
-		return super.shouldInsert(expr, value, permitNondeterministic);
+		Iterator<Map.Entry<LocalVariable, LatticeValue>> localValuesIterator = localVariableValues.entrySet().iterator();
+		while (localValuesIterator.hasNext()) {
+			Map.Entry<LocalVariable, LatticeValue> entry = localValuesIterator.next();
+			LocalVariable localVar = entry.getKey();
+			LatticeValue localVal = entry.getValue();
+
+			if (factory.getLattice().getEvaluatedPropertyAnnotation(localVal.getAnnotations().first()) == null) {
+				clearValue(localVar);
+				replaceValue(localVar, createTopValue(localVal.getUnderlyingType()));
+			}
+		}
+	}
+
+	protected LatticeValue createTopValue(TypeMirror underlyingType) {
+		LatticeAnnotatedTypeFactory factory = (LatticeAnnotatedTypeFactory) analysis.getTypeFactory();
+		return analysis.createSingleAnnotationValue(factory.getTop(), underlyingType);
 	}
 
 	@Override

@@ -10,14 +10,14 @@ import pkg.List;
 
 public final class ListClient {
 
-    @Unique List a;
+    @Unique  @Length(min="1", max="6") List a;
     @MaybeAliased @Length(min="5", max="5") List b;
     @Unique @Length(min="a.size", max="a.size") List c;
 
     void correctPacking() {
         Packing.unpack(this, ListClient.class);
-        a.insert(42);
-        c.insert(42);
+        a.insert(42, 1, 6);
+        c.insert(42, 1, 6);
         // :: error: initialization.fields.uninitialized
         Packing.pack(this, ListClient.class);
     }
