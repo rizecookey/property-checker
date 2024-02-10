@@ -22,9 +22,13 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.StringJoiner;
 
+import com.sun.source.tree.Tree;
 import edu.kit.kastel.property.packing.PackingAnnotatedTypeFactory;
 import edu.kit.kastel.property.packing.PackingVisitor;
+import edu.kit.kastel.property.subchecker.lattice.LatticeSubchecker;
+import edu.kit.kastel.property.subchecker.lattice.LatticeVisitor;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.BaseTypeVisitor;
 
@@ -35,6 +39,12 @@ import edu.kit.kastel.property.printer.JavaJMLPrinter;
 import edu.kit.kastel.property.printer.PrettyPrinter;
 import edu.kit.kastel.property.subchecker.lattice.LatticeVisitor.Result;
 import edu.kit.kastel.property.util.FileUtils;
+import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
+import org.checkerframework.javacutil.ElementUtils;
+import org.checkerframework.javacutil.TypesUtils;
+
+import javax.lang.model.element.VariableElement;
+import javax.lang.model.type.TypeMirror;
 
 public final class PropertyVisitor extends PackingVisitor {
 
@@ -71,6 +81,44 @@ public final class PropertyVisitor extends PackingVisitor {
         } catch (IOException e) {
             e.printStackTrace();
             System.exit(1);
+        }
+    }
+
+    @Override
+    protected void checkFieldsInitializedUpToFrame(
+            Tree tree,
+            TypeMirror frame) {
+        for (BaseTypeChecker targetChecker : getChecker().getTargetCheckers()) {
+            GenericAnnotatedTypeFactory<?, ?, ?, ?> targetFactory = targetChecker.getTypeFactory();
+
+            List<VariableElement> uninitializedFields =
+                    atypeFactory.getUninitializedFields(
+                            atypeFactory.getStoreBefore(tree),
+                            targetFactory.getStoreBefore(tree),
+                            getCurrentPath(),
+                            false,
+                            List.of());
+
+            // Remove fields below frame
+            uninitializedFields.retainAll(ElementUtils.getAllFieldsIn(TypesUtils.getTypeElement(frame), elements));
+
+            // Remove fields with a relevant @SuppressWarnings annotation
+            uninitializedFields.removeIf(
+                    f -> checker.shouldSuppressWarnings(f, "initialization.field.uninitialized"));
+
+            if (!uninitializedFields.isEmpty()) {
+                StringJoiner fieldsString = new StringJoiner(", ");
+                for (VariableElement f : uninitializedFields) {
+                    fieldsString.add(f.getSimpleName());
+                }
+                checker.reportError(tree, "initialization.fields.uninitialized", fieldsString);
+
+                // Add uninitialized fields to LatticeVisitor for JML printer to use
+                if (targetChecker instanceof LatticeSubchecker) {
+                    LatticeVisitor latticeVisitor = (LatticeVisitor) targetChecker.getVisitor();
+                    latticeVisitor.addUninitializedFields(tree, uninitializedFields);
+                }
+            }
         }
     }
 

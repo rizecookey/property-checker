@@ -33,13 +33,11 @@ import java.util.StringJoiner;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
-import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.ElementKind;
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.Modifier;
-import javax.lang.model.element.Name;
+import javax.lang.model.element.*;
 import javax.lang.model.type.TypeKind;
 
+import com.google.errorprone.annotations.Var;
+import com.sun.source.tree.MemberSelectTree;
 import org.apache.commons.lang3.StringUtils;
 import org.checkerframework.checker.initialization.qual.Initialized;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
@@ -84,6 +82,7 @@ import edu.kit.kastel.property.subchecker.lattice.LatticeAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.lattice.LatticeVisitor;
 import edu.kit.kastel.property.util.TypeUtils;
 import edu.kit.kastel.property.util.Union;
+import org.checkerframework.javacutil.TreeUtils;
 
 @SuppressWarnings("nls")
 public class JavaJMLPrinter extends PrettyPrinter {
@@ -163,7 +162,9 @@ public class JavaJMLPrinter extends PrettyPrinter {
     
     @Override
     public void visitImport(JCImport tree) {
-    	if (tree.qualid.toString().startsWith("edu.kit.kastel.property")) {
+        String str = tree.qualid.toString();
+    	if (str.startsWith("edu.kit.kastel.property")
+                || str.startsWith("org.checkerframework.checker.initialization")) {
     		return;
     	}
     	
@@ -213,11 +214,9 @@ public class JavaJMLPrinter extends PrettyPrinter {
                 println(" {");
                 indent();
 
-                for (JCTree def : tree.defs) {
-                    align();
-                    def.accept(this);
-                    println();
-                }
+                println();
+                printlnAligned("//@ public ghost Class packed = Object.class;");
+                println();
 
                 if (!isInterface(tree)) {
                     printlnAligned("static {");
@@ -227,6 +226,12 @@ public class JavaJMLPrinter extends PrettyPrinter {
                     enclBlock = false;
                     undent();
                     printlnAligned("}");
+                    println();
+                }
+
+                for (JCTree def : tree.defs) {
+                    align();
+                    def.accept(this);
                     println();
                 }
 
@@ -547,6 +552,33 @@ public class JavaJMLPrinter extends PrettyPrinter {
         }
 
         try {
+            if (tree.meth.toString().equals("Packing.pack")) {
+                for (LatticeVisitor.Result result : results) {
+                    List<VariableElement> uninitFields = result.getUninitializedFields(tree);
+                    if (result.getUninitializedFields(tree) != null) {
+                        for (VariableElement field : uninitFields) {
+                            AnnotatedTypeMirror type = result.getTypeFactory().getAnnotatedType(field);
+                            PropertyAnnotation pa = result.getLattice().getPropertyAnnotation(type);
+                            Condition cond = new Condition(false, ConditionLocation.ASSERTION, pa, field.toString());
+                            println(cond);
+                            align();
+                        }
+                    }
+                }
+
+                print("//@ set packed = ");
+                print(tree.args.get(1));
+                return;
+            }
+
+            if (tree.meth.toString().equals("Packing.unpack")) {
+                TypeElement typeElement = (TypeElement) TreeUtils.elementFromUse(((MemberSelectTree) tree.args.get(1)).getExpression());
+                print("//@ set packed = ");
+                print(typeElement.getSuperclass());
+                print(".class");
+                return;
+            }
+
             AnnotatedExecutableType invokedMethod = propertyFactory.methodFromUse(tree).executableType;
             StringJoiner booleanArgs = new StringJoiner(", ");
 
@@ -1168,6 +1200,16 @@ public class JavaJMLPrinter extends PrettyPrinter {
                 throw new UncheckedIOException(e);
             }
         }
+    }
+
+    protected void println(Condition cond) throws IOException {
+        PropertyAnnotationType pat = cond.pa.getAnnotationType();
+
+        if (pat.isTrivial()) {
+            return;
+        }
+
+        println(cond.toString());
     }
 
     protected void println(String s) throws IOException {

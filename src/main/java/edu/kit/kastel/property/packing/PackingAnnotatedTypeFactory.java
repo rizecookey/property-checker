@@ -75,7 +75,7 @@ public class PackingAnnotatedTypeFactory
             Collection<? extends AnnotationMirror> receiverAnnotations) {
         boolean wasComputingUninitializedFields = getFieldAccessFactory().isComputingUninitializedFields();
 
-        List<VariableElement> uninitializedFields =  getUninitializedFieldsForTarget(initStore, targetStore, path, isStatic, receiverAnnotations);
+        List<VariableElement> uninitializedFields = getUninitializedFieldsForTarget(initStore, targetStore, path, isStatic, receiverAnnotations);
 
         getFieldAccessFactory().setComputingUninitializedFields(wasComputingUninitializedFields);
         return uninitializedFields;

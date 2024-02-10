@@ -134,8 +134,8 @@ test {
 
 clean.doFirst {
     delete "${rootDir}/tests/build/"
-    delete "${rootDir}/../property-checker-out/*"
-    delete "${rootDir}/../flowdot/*"
+    delete "${rootDir}/../property-checker-out/"
+    delete "${rootDir}/../flowdot/"
 }
 
 task printClasspath {

@@ -64,7 +64,7 @@ public class PackingVisitor
                 return null;
             }
 
-            Element typeElement = TreeUtils.elementFromUse(((MemberSelectTree) node.getArguments().get(1)).getExpression());
+            TypeElement typeElement = (TypeElement) TreeUtils.elementFromUse(((MemberSelectTree) node.getArguments().get(1)).getExpression());
 
             CFValue oldValue = atypeFactory.getStoreBefore(node).getValue((ThisNode) null);
             AnnotationMirror oldAnnotation;
@@ -90,7 +90,7 @@ public class PackingVisitor
             TypeMirror newTypeFrame;
             if (ElementUtils.isMethod(invokedMethod, unpackMethod, env)) {
                 // Type-check unpack statement: new type frame must be supertype of old type frame.
-                newTypeFrame = ((TypeElement) typeElement).getSuperclass();
+                newTypeFrame = typeElement.getSuperclass();
                 if (newTypeFrame instanceof NoType) {
                     checker.reportError(node, "initialization.unpacking.object.class");
                 } else if (oldTypeFrame != null && (!types.isSubtype(oldTypeFrame, newTypeFrame) || types.isSameType(oldTypeFrame, newTypeFrame))) {

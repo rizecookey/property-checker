@@ -26,10 +26,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.annotation.processing.ProcessingEnvironment;
-import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.Modifier;
-import javax.lang.model.element.Name;
+import javax.lang.model.element.*;
 import javax.lang.model.type.TypeKind;
 
 import com.sun.source.tree.*;
@@ -392,6 +389,10 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         return t.name == t.name.table.names.init;
     }
 
+    public void addUninitializedFields(Tree packingStatement, List<VariableElement> uninitFields) {
+        result.uninitializedFields.put(packingStatement, uninitFields);
+    }
+
     public static class Result {
 
         private LatticeSubchecker checker;
@@ -408,10 +409,11 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
         private Map<String, List<Union<StatementTree, VariableTree, BlockTree>>> instanceInitializers = new HashMap<>();
         private Map<String, List<Union<StatementTree, VariableTree, BlockTree>>> staticInitializers = new HashMap<>();
-
         private Map<MethodInvocationTree, Set<Integer>> illTypedMethodParams = new HashMap<>();
         private Set<MethodInvocationTree> illTypedMethodReceivers = new HashSet<>();
         private Map<NewClassTree, Set<Integer>> illTypedConstructorParams = new HashMap<>();
+
+        private Map<Tree, List<VariableElement>> uninitializedFields = new HashMap<>();
 
         private Result(LatticeSubchecker checker) {
             this.checker = checker;
@@ -503,6 +505,10 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
         public Set<Integer> getIllTypedConstructorParams(NewClassTree tree) {
             return CollectionUtils.getUnmodifiableSet(illTypedConstructorParams, tree);
+        }
+
+        public List<VariableElement> getUninitializedFields(Tree tree) {
+            return CollectionUtils.getUnmodifiableList(uninitializedFields, tree);
         }
 
         public void addAll(Result result) {
