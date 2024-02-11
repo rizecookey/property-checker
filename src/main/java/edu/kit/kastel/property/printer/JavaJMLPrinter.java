@@ -289,11 +289,31 @@ public class JavaJMLPrinter extends PrettyPrinter {
             JMLContract jmlContract = new JMLContract(Flags.asFlagSet(tree.mods.flags));
             jmlContract.addClause("diverges true;");
 
+            List<String> paramNames = tree.params.stream().map(JCVariableDecl::getName).map(Object::toString).collect(Collectors.toList());
+            {
+                List<AnnotationMirror> inputPackingTypes = propertyFactory.getInputPackingTypes(tree);
+                List<AnnotationMirror> outputPackingTypes = propertyFactory.getOutputPackingTypes(tree);
+                AnnotationMirror receiverInputType = inputPackingTypes.get(0);
+                AnnotationMirror receiverOutputType = outputPackingTypes.get(0);
+
+                if (receiverInputType != null) {
+                    jmlContract.addClause(String.format("requires_free %s;", getPackedCondition(receiverInputType, "this")));
+                }
+
+                if (receiverOutputType != null) {
+                    jmlContract.addClause(String.format("ensures_free %s;", getPackedCondition(receiverOutputType, "this")));
+                }
+
+                for (int i = 0; i < paramNames.size(); ++i) {
+                    jmlContract.addClause(String.format("requires_free %s;", getPackedCondition(inputPackingTypes.get(i + 1), paramNames.get(i))));
+                    jmlContract.addClause(String.format("ensures_free %s;", getPackedCondition(outputPackingTypes.get(i + 1), paramNames.get(i))));
+                }
+            }
+
             for (LatticeVisitor.Result wellTypedness : results) {
                 LatticeAnnotatedTypeFactory factory = wellTypedness.getTypeFactory();
                 Lattice lattice = factory.getLattice();
                 AnnotatedExecutableType method = wellTypedness.getTypeFactory().getAnnotatedType(tree);
-                List<String> paramNames = tree.params.stream().map(JCVariableDecl::getName).map(Object::toString).collect(Collectors.toList());
 
                 if (method.getReceiverType() != null) {
                     AnnotatedTypeMirror requiredReceiverType = method.getReceiverType();
@@ -357,7 +377,6 @@ public class JavaJMLPrinter extends PrettyPrinter {
                 Lattice lattice = wellTypedness.getLattice();
                 LatticeAnnotatedTypeFactory factory = wellTypedness.getTypeFactory();
                 AnnotatedExecutableType method = wellTypedness.getTypeFactory().getAnnotatedType(tree);
-                List<String> paramNames = tree.params.stream().map(JCVariableDecl::getName).map(Object::toString).collect(Collectors.toList());
                 List<AnnotationMirror> methodOutputTypes = wellTypedness.getMethodOutputTypes(tree);
                 Set<Integer> illTypedMethodOutputParams = wellTypedness.getIllTypedMethodOutputParams(tree);
                 {
@@ -860,6 +879,26 @@ public class JavaJMLPrinter extends PrettyPrinter {
         JMLContract jmlContract = new JMLContract(EnumSet.of(Flag.PUBLIC));
         jmlContract.addClause("diverges true;");
 
+        {
+            List<AnnotationMirror> inputPackingTypes = propertyFactory.getInputPackingTypes(tree);
+            List<AnnotationMirror> outputPackingTypes = propertyFactory.getOutputPackingTypes(tree);
+            AnnotationMirror receiverInputType = inputPackingTypes.get(0);
+            AnnotationMirror receiverOutputType = outputPackingTypes.get(0);
+
+            if (receiverInputType != null) {
+                jmlContract.addClause(String.format("requires_free %s;", getPackedCondition(receiverInputType, "this")));
+            }
+
+            if (receiverOutputType != null) {
+                jmlContract.addClause(String.format("ensures_free %s;", getPackedCondition(receiverOutputType, "this")));
+            }
+
+            for (int i = 0; i < paramNames.size(); ++i) {
+                jmlContract.addClause(String.format("requires_free %s;", getPackedCondition(inputPackingTypes.get(i + 1), paramNames.get(i))));
+                jmlContract.addClause(String.format("ensures_free %s;", getPackedCondition(outputPackingTypes.get(i + 1), paramNames.get(i))));
+            }
+        }
+
         for (LatticeVisitor.Result wellTypedness : results) {
             LatticeAnnotatedTypeFactory factory = wellTypedness.getTypeFactory();
             Lattice lattice = wellTypedness.getLattice();
@@ -1232,6 +1271,16 @@ public class JavaJMLPrinter extends PrettyPrinter {
 			return "";
 		}
 	}
+
+    protected String getPackedCondition(AnnotationMirror packingType, String varName) {
+        if (propertyFactory.isInitialized(packingType)) {
+            return String.format("%s.packed == typeof(%s)", varName, varName);
+        } else if (propertyFactory.isUnderInitialization(packingType)) {
+            return String.format("%s.packed == %s", varName, propertyFactory.getTypeFrameFromAnnotation(packingType));
+        } else {
+            return String.format("%s.packed <: %s", varName, propertyFactory.getTypeFrameFromAnnotation(packingType));
+        }
+    }
 
     public enum ConditionLocation {
         ASSERTION, PRECONDITION, POSTCONDITION, INVARIANT_INSTANCE, INVARIANT_STATIC;

@@ -17,12 +17,15 @@
 package edu.kit.kastel.property.util;
 
 import com.sun.source.tree.ClassTree;
+import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
+import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.code.Type.ArrayType;
+import org.checkerframework.javacutil.TreeUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,7 +35,28 @@ public final class TypeUtils {
 
     private TypeUtils() { }
 
-    @SuppressWarnings("nls")
+    public static int getParameterIndex(MethodTree tree, JavaExpression param) {
+        int i = 0;
+        for (; i < tree.getParameters().size(); ++i) {
+            if (TreeUtils.elementFromDeclaration(tree.getParameters().get(i)).equals(param)) {
+                break;
+            }
+        }
+
+        return param.toString().equals("this") ? 0 : i + 1;
+    }
+
+    public static int getParameterIndex(MethodTree tree, VariableTree param) {
+        int i = 0;
+        for (; i < tree.getParameters().size(); ++i) {
+            if (tree.getParameters().get(i).equals(param)) {
+                break;
+            }
+        }
+
+        return param.equals(tree.getReceiverParameter()) ? 0 : i + 1;
+    }
+
     public static String unannotatedTypeName(AnnotatedTypeMirror mirror) {
         if (mirror instanceof AnnotatedExecutableType) {
             throw new IllegalArgumentException();

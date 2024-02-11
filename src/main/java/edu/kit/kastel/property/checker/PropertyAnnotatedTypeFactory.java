@@ -19,14 +19,21 @@ package edu.kit.kastel.property.checker;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
+import com.sun.source.tree.MethodTree;
 import edu.kit.kastel.property.packing.PackingAnnotatedTypeFactory;
+import edu.kit.kastel.property.packing.PackingChecker;
 import edu.kit.kastel.property.packing.PackingStore;
 import edu.kit.kastel.property.packing.PackingTransfer;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.dataflow.cfg.visualize.CFGVisualizer;
 import org.checkerframework.framework.flow.CFValue;
+
+import javax.lang.model.element.AnnotationMirror;
 
 public final class PropertyAnnotatedTypeFactory extends PackingAnnotatedTypeFactory {
 
@@ -44,5 +51,18 @@ public final class PropertyAnnotatedTypeFactory extends PackingAnnotatedTypeFact
             } catch (IOException e) { }
         }
         return super.createCFGVisualizer();
+    }
+
+    @Override
+    public PropertyChecker getChecker() {
+        return (PropertyChecker) super.getChecker();
+    }
+
+    public List<AnnotationMirror> getInputPackingTypes(MethodTree tree) {
+        return Collections.unmodifiableList(Arrays.asList(getChecker().getVisitor().inputPackingTypes.get(tree)));
+    }
+
+    public List<AnnotationMirror> getOutputPackingTypes(MethodTree tree) {
+        return Collections.unmodifiableList(Arrays.asList(getChecker().getVisitor().outputPackingTypes.get(tree)));
     }
 }

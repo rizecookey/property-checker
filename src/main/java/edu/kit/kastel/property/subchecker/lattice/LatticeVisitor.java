@@ -28,7 +28,7 @@ import com.sun.source.tree.*;
 import com.sun.tools.javac.code.Type;
 import edu.kit.kastel.property.packing.PackingClientStore;
 import edu.kit.kastel.property.packing.PackingClientVisitor;
-import edu.kit.kastel.property.util.Packing;
+import edu.kit.kastel.property.util.*;
 import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
 import org.checkerframework.checker.initialization.InitializationVisitor;
 import org.checkerframework.common.basetype.BaseTypeChecker;
@@ -56,9 +56,6 @@ import edu.kit.kastel.property.lattice.PropertyAnnotation;
 import edu.kit.kastel.property.lattice.PropertyAnnotationType;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
-import edu.kit.kastel.property.util.ClassUtils;
-import edu.kit.kastel.property.util.CollectionUtils;
-import edu.kit.kastel.property.util.Union;
 
 public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedTypeFactory> {
 
@@ -105,16 +102,8 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
     @Override
     protected void checkPostcondition(MethodTree methodTree, AnnotationMirror annotation, JavaExpression expression) {
-        int i = 0;
-        for (; i < enclMethod.getParameters().size(); ++i) {
-            if (TreeUtils.elementFromDeclaration(enclMethod.getParameters().get(i)).equals(expression)) {
-                break;
-            }
-        }
-
-        final int paramIdx = expression.toString().equals("this") ? 0 : i + 1;
+        final int paramIdx = TypeUtils.getParameterIndex(methodTree, expression);
         result.methodOutputTypes.get(methodTree)[paramIdx] = annotation;
-
         call(
                 () -> super.checkPostcondition(methodTree, annotation, expression),
                 () -> result.addIllTypedMethodOutputParam(methodTree, paramIdx));
@@ -122,16 +111,8 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
     @Override
     protected void checkDefaultContract(VariableTree param, MethodTree methodTree, PackingClientStore<?, ?> exitStore) {
-        int i = 0;
-        for (; i < methodTree.getParameters().size(); ++i) {
-            if (methodTree.getParameters().get(i).equals(param)) {
-                break;
-            }
-        }
-
-        final int paramIdx = param.equals(methodTree.getReceiverParameter()) ? 0 : i + 1;
-        result.methodOutputTypes.get(methodTree)[paramIdx] = atypeFactory.getAnnotatedTypeLhs(param).getAnnotations().first();
-
+        final int paramIdx = TypeUtils.getParameterIndex(methodTree, param);
+        result.methodOutputTypes.get(methodTree)[paramIdx] = atypeFactory.getAnnotatedTypeLhs(param).getAnnotationInHierarchy(atypeFactory.getTop());
         call(
                 () -> super.checkDefaultContract(param, methodTree, exitStore),
                 () -> result.addIllTypedMethodOutputParam(methodTree, paramIdx));

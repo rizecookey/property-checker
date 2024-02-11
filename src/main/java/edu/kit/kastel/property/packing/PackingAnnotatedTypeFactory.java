@@ -234,19 +234,19 @@ public class PackingAnnotatedTypeFactory
         return new ListTypeAnnotator(typeAnnotators);
     }
 
-    protected AnnotationMirror getInitialized() {
+    public AnnotationMirror getInitialized() {
         return INITIALIZED;
     }
 
-    protected AnnotationMirror getUnknownInitialization() {
+    public AnnotationMirror getUnknownInitialization() {
         return UNKNOWN_INITIALIZATION;
     }
 
-    protected AnnotationMirror getUnderInitialization() {
+    public AnnotationMirror getUnderInitialization() {
         return UNDER_INITALIZATION;
     }
 
-    protected AnnotationMirror getFBCBottom() {
+    public AnnotationMirror getFBCBottom() {
         return FBCBOTTOM;
     }
 

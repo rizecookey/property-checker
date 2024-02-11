@@ -21,15 +21,18 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.List;
-import java.util.StringJoiner;
+import java.util.*;
 
 import com.sun.source.tree.CompilationUnitTree;
+import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.Tree;
+import com.sun.source.tree.VariableTree;
 import edu.kit.kastel.property.packing.PackingAnnotatedTypeFactory;
+import edu.kit.kastel.property.packing.PackingStore;
 import edu.kit.kastel.property.packing.PackingVisitor;
 import edu.kit.kastel.property.subchecker.lattice.LatticeSubchecker;
 import edu.kit.kastel.property.subchecker.lattice.LatticeVisitor;
+import edu.kit.kastel.property.util.TypeUtils;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.BaseTypeVisitor;
 
@@ -40,16 +43,22 @@ import edu.kit.kastel.property.printer.JavaJMLPrinter;
 import edu.kit.kastel.property.printer.PrettyPrinter;
 import edu.kit.kastel.property.subchecker.lattice.LatticeVisitor.Result;
 import edu.kit.kastel.property.util.FileUtils;
+import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
 import org.checkerframework.javacutil.ElementUtils;
+import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TypesUtils;
 
+import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
 
 public final class PropertyVisitor extends PackingVisitor {
 
     private TreePath path;
+
+    Map<MethodTree, AnnotationMirror[]> inputPackingTypes = new HashMap<>();
+    Map<MethodTree, AnnotationMirror[]> outputPackingTypes = new HashMap<>();
 
     protected PropertyVisitor(BaseTypeChecker checker) {
         super(checker);
@@ -67,6 +76,38 @@ public final class PropertyVisitor extends PackingVisitor {
 
     CompilationUnitTree getRoot() {
         return root;
+    }
+
+    @Override
+    public Void visitMethod(MethodTree tree, Void p) {
+        inputPackingTypes.put(tree, new AnnotationMirror[tree.getParameters().size() + 1]);
+        outputPackingTypes.put(tree, new AnnotationMirror[tree.getParameters().size() + 1]);
+
+        for (int i = 0; i < tree.getParameters().size(); ++i) {
+            VariableTree param = tree.getParameters().get(i);
+            inputPackingTypes.get(tree)[i + 1] = atypeFactory.getAnnotatedType(param).getAnnotationInHierarchy(atypeFactory.getInitialized());
+        }
+
+        if (TreeUtils.isConstructor(tree) && !TreeUtils.isSynthetic(tree)) {
+            outputPackingTypes.get(tree)[0] = getDeclaredConstructorResult(tree);
+        } else {
+            inputPackingTypes.get(tree)[0] = atypeFactory.getAnnotatedType(tree.getReceiverParameter()).getAnnotationInHierarchy(atypeFactory.getInitialized());
+        }
+        return super.visitMethod(tree, p);
+    }
+
+    @Override
+    protected void checkPostcondition(MethodTree methodTree, AnnotationMirror annotation, JavaExpression expression) {
+        int paramIdx = TypeUtils.getParameterIndex(methodTree, expression);
+        outputPackingTypes.get(methodTree)[paramIdx] = annotation;
+        super.checkPostcondition(methodTree, annotation, expression);
+    }
+
+    @Override
+    protected void checkDefaultContract(VariableTree param, MethodTree methodTree, PackingStore exitStore) {
+        int paramIdx = TypeUtils.getParameterIndex(methodTree, param);
+        outputPackingTypes.get(methodTree)[paramIdx] = atypeFactory.getAnnotatedTypeLhs(param).getAnnotationInHierarchy(atypeFactory.getInitialized());
+        super.checkDefaultContract(param, methodTree, exitStore);
     }
 
     @Override

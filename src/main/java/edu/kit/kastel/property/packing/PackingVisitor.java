@@ -181,21 +181,7 @@ public class PackingVisitor
         // Implicit default constructors are instead treated by ::checkConstructorResult
         if (TreeUtils.isConstructor(tree) && ! TreeUtils.isSynthetic(tree)) {
             CFValue thisValue = atypeFactory.getRegularExitStore(tree).getValue((ThisNode) null);
-            Type classType = ((JCTree.JCMethodDecl) tree).sym.owner.type;
-            AnnotationMirror declared;
-            // Default declared type if no explicit annotation is given
-            if (classType.isFinal()) {
-                declared = atypeFactory.getInitialized();
-            } else {
-                declared =
-                        atypeFactory.createUnderInitializationAnnotation(((JCTree.JCMethodDecl) tree).sym.owner.type);
-            }
-            for (AnnotationMirror anno : getConstructorAnnotations(tree)) {
-                if (atypeFactory.isSupportedQualifier(anno)) {
-                    declared = anno;
-                    break;
-                }
-            }
+            AnnotationMirror declared = getDeclaredConstructorResult(tree);
             AnnotationMirror top = qualHierarchy.getTopAnnotations().first();
 
             if (thisValue == null) {
@@ -212,6 +198,25 @@ public class PackingVisitor
         }
 
         return p;
+    }
+
+    protected AnnotationMirror getDeclaredConstructorResult(MethodTree tree) {
+        Type classType = ((JCTree.JCMethodDecl) tree).sym.owner.type;
+        AnnotationMirror declared;
+        // Default declared type if no explicit annotation is given
+        if (classType.isFinal()) {
+            declared = atypeFactory.getInitialized();
+        } else {
+            declared =
+                    atypeFactory.createUnderInitializationAnnotation(((JCTree.JCMethodDecl) tree).sym.owner.type);
+        }
+        for (AnnotationMirror anno : getConstructorAnnotations(tree)) {
+            if (atypeFactory.isSupportedQualifier(anno)) {
+                declared = anno;
+                break;
+            }
+        }
+        return declared;
     }
 
     private AnnotationMirrorSet getConstructorAnnotations(MethodTree tree) {
@@ -235,7 +240,7 @@ public class PackingVisitor
         }
     }
 
-    private void checkDefaultContract(VariableTree param, MethodTree methodTree, PackingStore exitStore) {
+    protected void checkDefaultContract(VariableTree param, MethodTree methodTree, PackingStore exitStore) {
         JavaExpression paramExpr;
         if (param.getName().contentEquals("this")) {
             paramExpr = new ThisReference(((JCTree) param).type);
