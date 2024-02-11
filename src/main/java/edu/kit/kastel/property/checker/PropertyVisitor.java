@@ -88,9 +88,9 @@ public final class PropertyVisitor extends PackingVisitor {
             inputPackingTypes.get(tree)[i + 1] = atypeFactory.getAnnotatedType(param).getAnnotationInHierarchy(atypeFactory.getInitialized());
         }
 
-        if (TreeUtils.isConstructor(tree) && !TreeUtils.isSynthetic(tree)) {
+        if (TreeUtils.isConstructor(tree)) {
             outputPackingTypes.get(tree)[0] = getDeclaredConstructorResult(tree);
-        } else {
+        } else if (tree.getReceiverParameter() != null) {
             inputPackingTypes.get(tree)[0] = atypeFactory.getAnnotatedType(tree.getReceiverParameter()).getAnnotationInHierarchy(atypeFactory.getInitialized());
         }
         return super.visitMethod(tree, p);

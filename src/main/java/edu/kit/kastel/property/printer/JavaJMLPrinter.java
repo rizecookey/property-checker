@@ -384,7 +384,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
                     String paramName = "this";
                     boolean wt = !illTypedMethodOutputParams.contains(0);
 
-                    if (!AnnotationUtils.areSame(paramOutputType, factory.getTop())) {
+                    if (paramOutputType != null && !AnnotationUtils.areSame(paramOutputType, factory.getTop())) {
                         jmlContract.addClause(
                                 new Condition(
                                         wt,
@@ -980,7 +980,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
                 AnnotationMirror paramOutputType = methodOutputTypes.get(0);
                 String paramName = "this";
 
-                if (!AnnotationUtils.areSame(paramOutputType, factory.getTop())) {
+                if (paramOutputType != null && !AnnotationUtils.areSame(paramOutputType, factory.getTop())) {
                     jmlContract.addClause(
                             new Condition(
                                     true,
