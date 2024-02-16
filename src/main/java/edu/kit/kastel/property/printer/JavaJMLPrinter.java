@@ -16,51 +16,16 @@
  */
 package edu.kit.kastel.property.printer;
 
-import static com.sun.tools.javac.code.Flags.ABSTRACT;
-import static com.sun.tools.javac.code.Flags.ENUM;
-import static com.sun.tools.javac.code.Flags.INTERFACE;
-import static com.sun.tools.javac.tree.JCTree.Tag.SELECT;
-
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.util.*;
-import java.util.stream.Collectors;
-
-import javax.lang.model.element.*;
-import javax.lang.model.type.TypeKind;
-import javax.lang.model.util.ElementFilter;
-
-import com.google.errorprone.annotations.Var;
-import com.sun.source.tree.MemberSelectTree;
-import org.apache.commons.lang3.StringUtils;
-import org.checkerframework.checker.initialization.qual.Initialized;
-import org.checkerframework.framework.type.AnnotatedTypeMirror;
-import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
-import org.checkerframework.javacutil.AnnotationUtils;
-import org.checkerframework.javacutil.ElementUtils;
-
 import com.google.common.collect.Streams;
 import com.sun.source.tree.BlockTree;
+import com.sun.source.tree.MemberSelectTree;
 import com.sun.source.tree.StatementTree;
 import com.sun.source.tree.VariableTree;
 import com.sun.tools.javac.code.Attribute;
 import com.sun.tools.javac.code.Flags;
-import com.sun.tools.javac.code.Flags.Flag;
 import com.sun.tools.javac.tree.JCTree;
-import com.sun.tools.javac.tree.JCTree.JCAssign;
-import com.sun.tools.javac.tree.JCTree.JCBlock;
-import com.sun.tools.javac.tree.JCTree.JCClassDecl;
-import com.sun.tools.javac.tree.JCTree.JCFieldAccess;
-import com.sun.tools.javac.tree.JCTree.JCImport;
-import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
-import com.sun.tools.javac.tree.JCTree.JCMethodInvocation;
-import com.sun.tools.javac.tree.JCTree.JCModifiers;
-import com.sun.tools.javac.tree.JCTree.JCNewClass;
-import com.sun.tools.javac.tree.JCTree.JCReturn;
-import com.sun.tools.javac.tree.JCTree.JCStatement;
-import com.sun.tools.javac.tree.JCTree.JCVariableDecl;
+import com.sun.tools.javac.tree.JCTree.*;
 import com.sun.tools.javac.tree.TreeInfo;
-
 import edu.kit.kastel.property.checker.PropertyAnnotatedTypeFactory;
 import edu.kit.kastel.property.checker.PropertyChecker;
 import edu.kit.kastel.property.checker.qual.JMLClause;
@@ -76,8 +41,24 @@ import edu.kit.kastel.property.subchecker.lattice.LatticeAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.lattice.LatticeVisitor;
 import edu.kit.kastel.property.util.TypeUtils;
 import edu.kit.kastel.property.util.Union;
+import org.apache.commons.lang3.StringUtils;
+import org.checkerframework.framework.type.AnnotatedTypeMirror;
+import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
+import org.checkerframework.javacutil.AnnotationUtils;
+import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TypesUtils;
+
+import javax.lang.model.element.*;
+import javax.lang.model.type.TypeKind;
+import javax.lang.model.util.ElementFilter;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static com.sun.tools.javac.code.Flags.*;
+import static com.sun.tools.javac.tree.JCTree.Tag.SELECT;
 
 @SuppressWarnings("nls")
 public class JavaJMLPrinter extends PrettyPrinter {
@@ -212,9 +193,10 @@ public class JavaJMLPrinter extends PrettyPrinter {
                 println(" {");
                 indent();
 
-                println();
+                //TODO Add this to Object class in KeY JavaRedux
+                /*println();
                 printlnAligned("//@ public ghost Class packed = Object.class;");
-                println();
+                println();*/
 
                 if (!isInterface(tree)) {
                     printStaticInitializers();
@@ -222,8 +204,31 @@ public class JavaJMLPrinter extends PrettyPrinter {
 
                 String containingClassName = enclClass.sym.getQualifiedName().toString();
 
+                println();
+
                 for (LatticeVisitor.Result wellTypedness : results) {
                     Lattice lattice = wellTypedness.getLattice();
+
+                    List<VariableElement> allFields = ElementFilter.fieldsIn(TypesUtils.getTypeElement(enclClass.type).getEnclosedElements());
+                    for (VariableElement field : allFields) {
+                        if (!field.asType().getKind().isPrimitive()) {
+                            if (ElementUtils.isStatic(field)) {
+                                printlnAligned(String.format(
+                                        "//@ public static invariant_free packed <: %s ==> %s;",
+                                        containingClassName,
+                                        getPackedCondition(
+                                                propertyFactory.getAnnotatedType(field).getAnnotationInHierarchy(propertyFactory.getInitialized()),
+                                                field.getSimpleName().toString())));
+                            } else {
+                                printlnAligned(String.format(
+                                        "//@ public invariant_free packed <: %s ==> %s;",
+                                        containingClassName,
+                                        getPackedCondition(
+                                                propertyFactory.getAnnotatedType(field).getAnnotationInHierarchy(propertyFactory.getInitialized()),
+                                                field.getSimpleName().toString())));
+                            }
+                        }
+                    }
 
                     for (LatticeVisitor.Invariant invariant : wellTypedness.getStaticInvariants(containingClassName)) {
                         PropertyAnnotation pa = lattice.getPropertyAnnotation(invariant.getType());
@@ -305,8 +310,10 @@ public class JavaJMLPrinter extends PrettyPrinter {
                 }
 
                 for (int i = 0; i < paramNames.size(); ++i) {
-                    jmlContract.addClause(String.format("requires_free %s;", getPackedCondition(inputPackingTypes.get(i + 1), paramNames.get(i))));
-                    jmlContract.addClause(String.format("ensures_free %s;", getPackedCondition(outputPackingTypes.get(i + 1), paramNames.get(i))));
+                    if (!tree.getParameters().get(i).type.getKind().isPrimitive()) {
+                        jmlContract.addClause(String.format("requires_free %s;", getPackedCondition(inputPackingTypes.get(i + 1), paramNames.get(i))));
+                        jmlContract.addClause(String.format("ensures_free %s;", getPackedCondition(outputPackingTypes.get(i + 1), paramNames.get(i))));
+                    }
                 }
             }
 
@@ -599,10 +606,20 @@ public class JavaJMLPrinter extends PrettyPrinter {
         try {
             if (tree.meth.toString().equals("Packing.pack")) {
                 AssertionSequence assertionsSeq = new AssertionSequence();
+
+                println();
                 for (LatticeVisitor.Result result : results) {
                     List<VariableElement> allFields = ElementFilter.fieldsIn(TypesUtils.getTypeElement(enclClass.type).getEnclosedElements());
                     List<VariableElement> uninitFields = result.getUninitializedFields(tree);
                     for (VariableElement field : allFields) {
+                        if (!field.asType().getKind().isPrimitive()) {
+                            printlnAligned(String.format(
+                                    "//@ assume %s;",
+                                    getPackedCondition(
+                                            propertyFactory.getAnnotatedType(field).getAnnotationInHierarchy(propertyFactory.getInitialized()),
+                                            field.getSimpleName().toString())));
+                        }
+
                         AnnotatedTypeMirror type = result.getTypeFactory().getAnnotatedType(field);
                         PropertyAnnotation pa = result.getLattice().getPropertyAnnotation(type);
                         if (!pa.getAnnotationType().isTrivial()) {
@@ -615,8 +632,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
                         }
                     }
                 }
-
-                println();
+                
                 printlnAligned(assertionsSeq.toString());
                 assertions += assertionsSeq.assertions.size();
                 align();
