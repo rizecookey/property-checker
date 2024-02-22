@@ -15,11 +15,8 @@ public @interface EnsuresLength {
 
     String[] value() default {"this"};
 
-    @QualifierArgument("min")
-    String min();
-
-    @QualifierArgument("max")
-    String max();
+    @QualifierArgument("len")
+    String len();
 
     @Documented
     @Retention(RetentionPolicy.RUNTIME)

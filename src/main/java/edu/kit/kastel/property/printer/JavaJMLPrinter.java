@@ -250,7 +250,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
                                     true,
                                     ConditionLocation.INVARIANT_INSTANCE,
                                     pa,
-                                    containingClassName + "." + invariant.getFieldName()
+                                    invariant.getFieldName()
                             );
                             printlnAligned(inv.toStringOp("packed <: " + containingClassName, "==>"));
                         }
@@ -443,10 +443,6 @@ public class JavaJMLPrinter extends PrettyPrinter {
             if (isConstructor(tree)) {
                 print(enclClass != null ? enclClass.sym.getSimpleName() : tree.name);
             } else {
-                if (!ElementUtils.isStatic(propertyFactory.getAnnotatedType(tree).getElement())) {
-                    print("/*@helper@*/ ");
-                }
-
                 TypeKind k = propertyFactory.getAnnotatedType(tree).getReturnType().getKind();
                 if (k != TypeKind.VOID && !k.isPrimitive()) {
                     print("/*@nullable@*/ ");
@@ -636,16 +632,18 @@ public class JavaJMLPrinter extends PrettyPrinter {
                 printlnAligned(assertionsSeq.toString());
                 assertions += assertionsSeq.assertions.size();
                 align();
-                print("//@ set packed = ");
-                print(tree.args.get(1));
+                TypeElement typeElement = (TypeElement) TreeUtils.elementFromUse(((MemberSelectTree) tree.args.get(1)).getExpression());
+                //TODO Workaround for KeY not supporting set statement for \TYPE variable because Recoder is terrible
+                //print(String.format("//@ set packed = \\type(%s)", typeElement));
+                print(String.format("havocPacked(); //@ assume packed == \\type(%s)", typeElement));
                 return;
             }
 
             if (tree.meth.toString().equals("Packing.unpack")) {
                 TypeElement typeElement = (TypeElement) TreeUtils.elementFromUse(((MemberSelectTree) tree.args.get(1)).getExpression());
-                print("//@ set packed = ");
-                print(typeElement.getSuperclass());
-                print(".class");
+                //TODO Workaround for KeY not supporting set statement for \TYPE variable because Recoder is terrible
+                //print(String.format("//@ set packed = \\type(%s)", typeElement.getSuperclass()));
+                print(String.format("havocPacked(); //@ assume packed == \\type(%s)", typeElement.getSuperclass()));
                 return;
             }
 
@@ -910,8 +908,10 @@ public class JavaJMLPrinter extends PrettyPrinter {
             }
 
             for (int i = 0; i < paramNames.size(); ++i) {
-                jmlContract.addClause(String.format("requires_free %s;", getPackedCondition(inputPackingTypes.get(i + 1), paramNames.get(i))));
-                jmlContract.addClause(String.format("ensures_free %s;", getPackedCondition(outputPackingTypes.get(i + 1), paramNames.get(i))));
+                if (!tree.getParameters().get(i).type.getKind().isPrimitive()) {
+                    jmlContract.addClause(String.format("requires_free %s;", getPackedCondition(inputPackingTypes.get(i + 1), paramNames.get(i))));
+                    jmlContract.addClause(String.format("ensures_free %s;", getPackedCondition(outputPackingTypes.get(i + 1), paramNames.get(i))));
+                }
             }
         }
 
@@ -973,7 +973,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
             Lattice lattice = wellTypedness.getLattice();
             AnnotatedExecutableType methodType = factory.getAnnotatedType(tree);
 
-            if (propertyMethodType.getReturnType().getKind() != TypeKind.VOID) {
+            if (propertyMethodType.getReturnType().getKind() != TypeKind.VOID && !isConstructor(tree)) {
                 AnnotatedTypeMirror returnType = wellTypedness.getTypeFactory().getMethodReturnType(tree);
                 AnnotationMirror anno = returnType.getAnnotationInHierarchy(wellTypedness.getTypeFactory().getTop());
 
@@ -994,7 +994,6 @@ public class JavaJMLPrinter extends PrettyPrinter {
             List<AnnotationMirror> methodOutputTypes = wellTypedness.getMethodOutputTypes(tree);
             {
                 AnnotationMirror paramOutputType = methodOutputTypes.get(0);
-                String paramName = "this";
 
                 if (paramOutputType != null && !AnnotationUtils.areSame(paramOutputType, factory.getTop())) {
                     jmlContract.addClause(
@@ -1002,7 +1001,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
                                     true,
                                     ConditionLocation.POSTCONDITION,
                                     lattice.getPropertyAnnotation(paramOutputType),
-                                    paramName));
+                                    "this"));
                 }
             }
             for (int i = 0; i < methodType.getParameterTypes().size(); ++i) {
@@ -1021,37 +1020,37 @@ public class JavaJMLPrinter extends PrettyPrinter {
         }
 
         if (isConstructor(tree)) {
-            jmlContract.addClause("ensures \\result != null;");
+            jmlContract.addClause("ensures \\result != null && \\fresh(\\result);");
         }
 
         ExecutableElement element = propertyFactory.getAnnotatedType(tree).getElement();
 
         for (String clause : getJMLClauseValues(element)) {
-            if (isConstructor(tree)) {
-                if (clause.startsWith("assignable")) {
-                    jmlContract.addClause(clause.replace("this.*", "\\nothing"));
-                } else {
-                    jmlContract.addClause(clause.replace("this", "\\result"));
-                }
+            if (isConstructor(tree) && clause.startsWith("assignable")) {
+                jmlContract.addClause(clause.replace("this.*", "\\nothing"));
+            } else {
+                jmlContract.addClause(clause);
             }
         }
 
         if (TRANSLATION_RAW) {
             for (String clause : getJMLClauseValuesTranslationOnly(element)) {
-                if (isConstructor(tree)) {
-                    if (clause.startsWith("assignable")) {
-                        jmlContract.addClause(clause.replace("this.*", "\\nothing"));
-                    } else {
-                        jmlContract.addClause(clause.replace("this", "\\result"));
-                    }
+                if (isConstructor(tree) && clause.startsWith("assignable")) {
+                    jmlContract.addClause(clause.replace("this.*", "\\nothing"));
+                } else {
+                    jmlContract.addClause(clause);
                 }
             }
         }
 
-        printlnAligned(jmlContract.toString());
+        if (isConstructor(tree)) {
+            printlnAligned(jmlContract.toString().replace("this", "\\result"));
+        } else {
+            printlnAligned(jmlContract.toString());
+        }
 
         if (printBody) {
-            printlnAligned(String.format("public /*@helper@*/ %s %s%s %s(%s) {",
+            printlnAligned(String.format("public %s %s%s %s(%s) {",
                     ElementUtils.isStatic(propertyMethodType.getElement()) || isConstructor(tree) ? "static" : "",
                             propertyMethodType.getReturnType().getKind() == TypeKind.VOID || propertyMethodType.getReturnType().getKind().isPrimitive()
                             ? "" : "/*@nullable@*/ ",
@@ -1290,7 +1289,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
 
     protected String getPackedCondition(AnnotationMirror packingType, String varName) {
         if (propertyFactory.isInitialized(packingType)) {
-            return String.format("%s.packed == typeof(%s)", varName, varName);
+            return String.format("%s.packed == \\typeof(%s)", varName, varName);
         } else if (propertyFactory.isUnderInitialization(packingType)) {
             return String.format("%s.packed == %s", varName, propertyFactory.getTypeFrameFromAnnotation(packingType));
         } else {

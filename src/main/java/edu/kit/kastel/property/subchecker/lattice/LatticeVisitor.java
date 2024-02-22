@@ -16,25 +16,27 @@
  */
 package edu.kit.kastel.property.subchecker.lattice;
 
-import java.nio.file.Paths;
-import java.util.*;
-import java.util.stream.Collectors;
-
-import javax.annotation.processing.ProcessingEnvironment;
-import javax.lang.model.element.*;
-import javax.lang.model.type.TypeKind;
-
 import com.sun.source.tree.*;
+import com.sun.source.tree.Tree.Kind;
+import com.sun.source.util.TreePath;
 import com.sun.tools.javac.code.Type;
+import com.sun.tools.javac.tree.JCTree;
+import com.sun.tools.javac.tree.JCTree.JCClassDecl;
+import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
+import edu.kit.kastel.property.checker.PropertyChecker;
+import edu.kit.kastel.property.lattice.EvaluatedPropertyAnnotation;
+import edu.kit.kastel.property.lattice.Lattice;
+import edu.kit.kastel.property.lattice.PropertyAnnotationType;
 import edu.kit.kastel.property.packing.PackingClientStore;
 import edu.kit.kastel.property.packing.PackingClientVisitor;
+import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
+import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
 import edu.kit.kastel.property.util.*;
 import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
-import org.checkerframework.checker.initialization.InitializationVisitor;
 import org.checkerframework.common.basetype.BaseTypeChecker;
-import org.checkerframework.common.basetype.BaseTypeVisitor;
 import org.checkerframework.common.basetype.TypeValidator;
 import org.checkerframework.dataflow.expression.JavaExpression;
+import org.checkerframework.dataflow.expression.ThisReference;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
@@ -44,18 +46,12 @@ import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
 
-import com.sun.source.tree.Tree.Kind;
-import com.sun.source.util.TreePath;
-import com.sun.tools.javac.tree.JCTree.JCClassDecl;
-import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
-
-import edu.kit.kastel.property.checker.PropertyChecker;
-import edu.kit.kastel.property.lattice.EvaluatedPropertyAnnotation;
-import edu.kit.kastel.property.lattice.Lattice;
-import edu.kit.kastel.property.lattice.PropertyAnnotation;
-import edu.kit.kastel.property.lattice.PropertyAnnotationType;
-import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
-import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
+import javax.annotation.processing.ProcessingEnvironment;
+import javax.lang.model.element.*;
+import javax.lang.model.type.TypeKind;
+import java.nio.file.Paths;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedTypeFactory> {
 
@@ -111,8 +107,16 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
     @Override
     protected void checkDefaultContract(VariableTree param, MethodTree methodTree, PackingClientStore<?, ?> exitStore) {
+        JavaExpression paramExpr;
+        if (param.getName().contentEquals("this")) {
+            paramExpr = new ThisReference(((JCTree) param).type);
+        } else {
+            paramExpr = JavaExpression.fromVariableTree(param);
+        }
         final int paramIdx = TypeUtils.getParameterIndex(methodTree, param);
-        result.methodOutputTypes.get(methodTree)[paramIdx] = atypeFactory.getAnnotatedTypeLhs(param).getAnnotationInHierarchy(atypeFactory.getTop());
+        if (!paramsInContract.contains(paramExpr)) {
+            result.methodOutputTypes.get(methodTree)[paramIdx] = atypeFactory.getAnnotatedTypeLhs(param).getAnnotationInHierarchy(atypeFactory.getTop());
+        }
         call(
                 () -> super.checkDefaultContract(param, methodTree, exitStore),
                 () -> result.addIllTypedMethodOutputParam(methodTree, paramIdx));

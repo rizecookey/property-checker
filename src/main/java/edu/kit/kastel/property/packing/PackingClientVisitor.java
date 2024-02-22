@@ -30,7 +30,7 @@ public abstract class PackingClientVisitor<
                 ? extends PackingClientAnalysis<?, ?, ?>>>
         extends BaseTypeVisitor<Factory> {
 
-    private Set<JavaExpression> paramsInContract = new HashSet<>();
+    protected Set<JavaExpression> paramsInContract = new HashSet<>();
 
     public PackingClientVisitor(BaseTypeChecker checker) {
         super(checker);
