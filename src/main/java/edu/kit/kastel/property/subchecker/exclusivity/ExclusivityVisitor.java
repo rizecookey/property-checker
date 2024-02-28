@@ -1,11 +1,6 @@
 package edu.kit.kastel.property.subchecker.exclusivity;
 
 import com.sun.source.tree.*;
-
-import javax.annotation.processing.ProcessingEnvironment;
-import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.ExecutableElement;
-
 import com.sun.tools.javac.code.Type;
 import edu.kit.kastel.property.packing.PackingClientVisitor;
 import edu.kit.kastel.property.util.Packing;
@@ -18,6 +13,10 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutab
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedPrimitiveType;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
+
+import javax.annotation.processing.ProcessingEnvironment;
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.ExecutableElement;
 
 public final class ExclusivityVisitor extends PackingClientVisitor<ExclusivityAnnotatedTypeFactory> {
 
@@ -166,6 +165,11 @@ public final class ExclusivityVisitor extends PackingClientVisitor<ExclusivityAn
             AnnotatedExecutableType constructorType, ExecutableElement constructorElement) {
         // For implicit default constructors, the default type @Unique is always correct and exact, so there's
         // nothing to do here.
+    }
+
+    @Override
+    protected String getContractPostconditionNotSatisfiedMessage() {
+        return "exclusivity.postcondition.not.satisfied";
     }
 
     @Override

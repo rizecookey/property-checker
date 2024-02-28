@@ -16,17 +16,17 @@
  */
 package edu.kit.kastel.property.subchecker.lattice;
 
-import java.io.File;
-import java.net.URLClassLoader;
-import java.util.*;
-
+import edu.kit.kastel.property.checker.PropertyChecker;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
+import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
 import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 
-import edu.kit.kastel.property.checker.PropertyChecker;
-import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
+import java.io.File;
+import java.net.URLClassLoader;
+import java.util.List;
+import java.util.Objects;
 
 public final class LatticeSubchecker extends BaseTypeChecker {
 
@@ -92,7 +92,7 @@ public final class LatticeSubchecker extends BaseTypeChecker {
     @Override
     public void reportError(Object source, @CompilerMessageKey String messageKey, Object... args) {
         ++errorCount;
-        super.reportError(source, messageKey, args);
+        super.reportError(source, getTypeFactory().getLattice().getIdent() + "." + messageKey, args);
     }
 
     public File getLatticeFile() {

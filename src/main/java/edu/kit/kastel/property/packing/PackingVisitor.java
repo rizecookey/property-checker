@@ -8,12 +8,12 @@ import com.sun.tools.javac.tree.TreeInfo;
 import edu.kit.kastel.property.util.Packing;
 import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
 import org.checkerframework.checker.initialization.InitializationAbstractVisitor;
-import org.checkerframework.checker.initialization.InitializationChecker;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.dataflow.cfg.node.ThisNode;
 import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.dataflow.expression.ThisReference;
 import org.checkerframework.framework.flow.CFAbstractStore;
+import org.checkerframework.framework.flow.CFAbstractValue;
 import org.checkerframework.framework.flow.CFValue;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
@@ -23,7 +23,10 @@ import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.*;
 import javax.lang.model.type.NoType;
 import javax.lang.model.type.TypeMirror;
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 public class PackingVisitor
@@ -159,7 +162,26 @@ public class PackingVisitor
     @Override
     protected void checkPostcondition(MethodTree methodTree, AnnotationMirror annotation, JavaExpression expression) {
         paramsInContract.add(expression);
-        super.checkPostcondition(methodTree, annotation, expression);
+        CFAbstractStore<?, ?> exitStore = atypeFactory.getRegularExitStore(methodTree);
+        if (exitStore == null) {
+            // If there is no regular exitStore, then the method cannot reach the regular exit and
+            // there is no need to check anything.
+        } else {
+            CFAbstractValue<?> value = exitStore.getValue(expression);
+            AnnotationMirror inferredAnno = null;
+            if (value != null) {
+                AnnotationMirrorSet annos = value.getAnnotations();
+                inferredAnno = qualHierarchy.findAnnotationInSameHierarchy(annos, annotation);
+            }
+            if (!checkContract(expression, annotation, inferredAnno, exitStore)) {
+                checker.reportError(
+                        methodTree,
+                        "packing.postcondition.not.satisfied",
+                        methodTree.getName(),
+                        contractExpressionAndType(expression.toString(), inferredAnno),
+                        contractExpressionAndType(expression.toString(), annotation));
+            }
+        }
     }
 
     @Override
@@ -263,7 +285,7 @@ public class PackingVisitor
             if (!typeHierarchy.isSubtype(currentType, declType)) {
                 checker.reportError(
                         methodTree,
-                        "contracts.postcondition.not.satisfied",
+                        "packing.postcondition.not.satisfied",
                         methodTree.getName(),
                         contractExpressionAndType(paramElem.toString(), currentType.getAnnotationInHierarchy(atypeFactory.getInitialized())),
                         contractExpressionAndType(paramElem.toString(), declType.getAnnotationInHierarchy(atypeFactory.getInitialized())));

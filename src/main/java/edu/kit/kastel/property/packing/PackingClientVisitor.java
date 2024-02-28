@@ -10,6 +10,8 @@ import org.checkerframework.common.basetype.BaseTypeVisitor;
 import org.checkerframework.dataflow.cfg.node.ThisNode;
 import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.dataflow.expression.ThisReference;
+import org.checkerframework.framework.flow.CFAbstractStore;
+import org.checkerframework.framework.flow.CFAbstractValue;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.javacutil.AnnotationMirrorSet;
 import org.checkerframework.javacutil.AnnotationUtils;
@@ -43,7 +45,26 @@ public abstract class PackingClientVisitor<
     @Override
     protected void checkPostcondition(MethodTree methodTree, AnnotationMirror annotation, JavaExpression expression) {
         paramsInContract.add(expression);
-        super.checkPostcondition(methodTree, annotation, expression);
+        CFAbstractStore<?, ?> exitStore = atypeFactory.getRegularExitStore(methodTree);
+        if (exitStore == null) {
+            // If there is no regular exitStore, then the method cannot reach the regular exit and
+            // there is no need to check anything.
+        } else {
+            CFAbstractValue<?> value = exitStore.getValue(expression);
+            AnnotationMirror inferredAnno = null;
+            if (value != null) {
+                AnnotationMirrorSet annos = value.getAnnotations();
+                inferredAnno = qualHierarchy.findAnnotationInSameHierarchy(annos, annotation);
+            }
+            if (!checkContract(expression, annotation, inferredAnno, exitStore)) {
+                checker.reportError(
+                        methodTree,
+                        getContractPostconditionNotSatisfiedMessage(),
+                        methodTree.getName(),
+                        contractExpressionAndType(expression.toString(), inferredAnno),
+                        contractExpressionAndType(expression.toString(), annotation));
+            }
+        }
     }
 
     protected abstract AnnotationMirror defaultConstructorQualifier(Type classType);
@@ -147,6 +168,10 @@ public abstract class PackingClientVisitor<
         return AnnotationMirrorSet.emptySet();
     }
 
+    protected String getContractPostconditionNotSatisfiedMessage() {
+        return "contracts.postcondition.not.satisfied";
+    }
+
     protected void checkDefaultContract(VariableTree param, MethodTree methodTree, PackingClientStore<?, ?> exitStore) {
         JavaExpression paramExpr;
         if (param.getName().contentEquals("this")) {
@@ -170,7 +195,7 @@ public abstract class PackingClientVisitor<
             if (!typeHierarchy.isSubtype(currentType, declType)) {
                 checker.reportError(
                         methodTree,
-                        "contracts.postcondition.not.satisfied",
+                        getContractPostconditionNotSatisfiedMessage(),
                         methodTree.getName(),
                         contractExpressionAndType(paramElem.toString(), currentType.getAnnotationInHierarchy(atypeFactory.getQualifierHierarchy().getTopAnnotations().first())),
                         contractExpressionAndType(paramElem.toString(), declType.getAnnotationInHierarchy(atypeFactory.getQualifierHierarchy().getTopAnnotations().first())));

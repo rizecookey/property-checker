@@ -8,7 +8,7 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD, ElementType.CONSTRUCTOR})
 @InheritedAnnotation
-@PostconditionAnnotation(qualifier =  Unique.class)
+@PostconditionAnnotation(qualifier =  ReadOnly.class)
 @Repeatable(EnsuresReadOnly.List.class)
 public @interface EnsuresReadOnly {
 
@@ -17,7 +17,7 @@ public @interface EnsuresReadOnly {
     @Documented
     @Retention(RetentionPolicy.RUNTIME)
     @Target({ElementType.METHOD, ElementType.CONSTRUCTOR})
-    @PostconditionAnnotation(qualifier = Unique.class)
+    @PostconditionAnnotation(qualifier = ReadOnly.class)
     @InheritedAnnotation
     public static @interface List {
 
