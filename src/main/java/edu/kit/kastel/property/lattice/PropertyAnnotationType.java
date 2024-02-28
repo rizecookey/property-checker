@@ -16,6 +16,10 @@
  */
 package edu.kit.kastel.property.lattice;
 
+import edu.kit.kastel.property.config.Config;
+import edu.kit.kastel.property.subchecker.lattice.LatticeAnnotatedTypeFactory;
+import org.checkerframework.javacutil.AnnotationBuilder;
+
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -24,11 +28,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-
-import org.checkerframework.javacutil.AnnotationBuilder;
-
-import edu.kit.kastel.property.config.Config;
-import edu.kit.kastel.property.subchecker.lattice.LatticeAnnotatedTypeFactory;
 
 public final class PropertyAnnotationType {
 
@@ -151,6 +150,12 @@ public final class PropertyAnnotationType {
     public boolean isBottom(LatticeAnnotatedTypeFactory factory) {
         return annotationType.getSimpleName().equals(
                 factory.getBottom().getAnnotationType().asElement().getSimpleName().toString());
+    }
+
+    // Used by LatticeVisitor to determine whether to suppress every error if this qualifier
+    // appears on a constructor, since a constructor result is never null
+    public boolean isNonNull() {
+        return getWFCondition().equals("true") && getProperty().equals("§subject§ != null");
     }
 
     @SuppressWarnings("nls")

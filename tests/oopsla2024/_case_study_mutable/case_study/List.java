@@ -22,7 +22,7 @@ public class List {
     @JMLClause("assignable \\nothing;")
     public
     @Unique @Length(min="tail.size + 1", max="tail.size + 1")
-    // :: error: nullness.inconsistent.constructor.type :: error: length.inconsistent.constructor.type
+    // :: error: length.inconsistent.constructor.type
     List(
             Object head,
             List tail) {
@@ -37,7 +37,7 @@ public class List {
     @JMLClause("assignable \\nothing;")
     public
     @Unique @Length(min="1", max="1")
-    // :: error: nullness.inconsistent.constructor.type :: error: length.inconsistent.constructor.type
+    // :: error: length.inconsistent.constructor.type
     List(Object head) {
         this.size = 1;
         this.head = head;

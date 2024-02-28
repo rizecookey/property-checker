@@ -15,7 +15,6 @@ public class Order {
 
     @JMLClause("ensures this.customer == customer && this.product == product && this.witness == witness;")
     @JMLClause("assignable \\nothing;")
-    // :: error: nullness.inconsistent.constructor.type
     public Order(int witness, @AgedOver(age="witness") Customer customer, @AllowedFor(age="witness") Product product) {
         this.witness = witness;
         this.customer = customer;

@@ -350,7 +350,8 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
         AnnotationMirror constructorAnno =
                 qualifierHierarchy.findAnnotationInHierarchy(constructorAnnotations, top);
-        if (!qualifierHierarchy.isSubtypeQualifiersOnly(top, constructorAnno)) {
+        if (!qualifierHierarchy.isSubtypeQualifiersOnly(top, constructorAnno) &&
+                !atypeFactory.getLattice().getPropertyAnnotation(constructorAnno).getAnnotationType().isNonNull()) {
             // Report an error instead of a warning.
             checker.reportError(
                     constructorElement, "inconsistent.constructor.type", constructorAnno, top);
@@ -374,7 +375,8 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
         result.methodOutputTypes.get(tree)[0] = constructorAnno;
 
-        if (!qualifierHierarchy.isSubtypeQualifiersOnly(top, constructorAnno)) {
+        if (!qualifierHierarchy.isSubtypeQualifiersOnly(top, constructorAnno) &&
+                !atypeFactory.getLattice().getPropertyAnnotation(constructorAnno).getAnnotationType().isNonNull()) {
             // Report an error instead of a warning.
             checker.reportError(
                     constructorElement, "inconsistent.constructor.type", constructorAnno, top);

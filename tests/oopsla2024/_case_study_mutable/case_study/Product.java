@@ -15,7 +15,7 @@ public class Product {
 
     @JMLClause("ensures this.title == title && this.price == price && this.ageRestriction == ageRestriction;")
     @JMLClause("assignable \\nothing;")
-    // :: error: nullness.inconsistent.constructor.type :: error: allowedfor.inconsistent.constructor.type
+    // :: error: allowedfor.inconsistent.constructor.type
     public @AllowedFor(age="ageRestriction") Product(
             String title,
             @Interval(min="0", max="2147483647") int price,

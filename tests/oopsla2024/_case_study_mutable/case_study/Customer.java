@@ -14,7 +14,7 @@ public class Customer {
 
     @JMLClause("ensures this.name == name && this.age == age;")
     @JMLClause("assignable \\nothing;")
-    // :: error: nullness.inconsistent.constructor.type :: error: agedover.inconsistent.constructor.type
+    // :: error: agedover.inconsistent.constructor.type
     public @AgedOver(age="age") Customer(String name, @Interval(min="14", max="150") int age) {
         this.name = name;
         this.age = age;

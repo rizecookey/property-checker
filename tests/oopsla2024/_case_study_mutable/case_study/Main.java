@@ -9,7 +9,6 @@ import org.checkerframework.checker.initialization.qual.*;
 
 public class Main {
 
-    // :: error: nullness.inconsistent.constructor.type
     private Main() {
         Packing.pack(this, Main.class);
     }

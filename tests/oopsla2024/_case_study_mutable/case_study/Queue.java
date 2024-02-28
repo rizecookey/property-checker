@@ -21,7 +21,6 @@ public class Queue {
 
     @JMLClause("ensures this.front == front && this.back == back;")
     @JMLClause("assignable \\nothing;")
-    // :: error: inconsistent.constructor.type
     public Queue(@Nullable List front, @Nullable List back) {
         this.front = front;
         this.back = back;
