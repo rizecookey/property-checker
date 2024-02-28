@@ -3,14 +3,14 @@ package case_study;
 import edu.kit.kastel.property.util.Packing;
 import edu.kit.kastel.property.checker.qual.*;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
-import edu.kit.kastel.property.subchecker.lattice.qual.*;
+import edu.kit.kastel.property.subchecker.lattice.case_study_mutable_qual.*;
 import edu.kit.kastel.property.packing.qual.*;
 import org.checkerframework.checker.initialization.qual.*;
 
 public class Queue {
     
-    public final @Nullable List front;
-    public final @Nullable List back;
+    public @Nullable List front;
+    public @Nullable List back;
 
     @JMLClause("ensures \\result.front == null && \\result.back == null;")
     @JMLClause("assignable \\nothing;")
@@ -54,10 +54,10 @@ public class Queue {
     public void toOkasaki(@Unique Queue this) {
         // :: error: method.invocation.invalid
         if (back == null || (front != null && front.size() >= back.size())) {
-            // :: error: return.type.incompatible
-            return this;
+            // :: error: contracts.postcondition.not.satisfied
+            return;
         } else {
-            rotate(null);
+            this.rotate();
         }
     }
 
@@ -66,7 +66,7 @@ public class Queue {
     @JMLClause("ensures this.front != null && this.back == null ==> \\result == this.front.size")
     @JMLClause("ensures this.front != null && this.back != null ==> \\result == this.front.size + this.back.size")
     @JMLClause("assignable \\nothing;")
-    public int size() {
+    public int size(Queue this) {
         return List.size(this.front) + List.size(this.back);
     }
 
@@ -83,6 +83,7 @@ public class Queue {
     }
 
     @JMLClause("assignable this.front;")
+    @EnsuresTopOkasaki("this")
     public void remove(@Unique @FrontNonEmpty Queue this) {
         Packing.unpack(this, Queue.class);
         front = front.getTail();
@@ -92,15 +93,11 @@ public class Queue {
     @JMLClause("assignable this.front;")
     public void removeIfPresent(@Unique Queue this) {
         if (this.size() > 0) {
-            if (this.front != null) {
-                // :: error: method.invocation.invalid
-                this.remove();
-            } else {
-                // :: error: method.invocation.invalid
-                this.toOkasaki().remove();
+            if (this.front == null) {
+                this.toOkasaki();
             }
-        } else {
-            return this;
+            // :: error: method.invocation.invalid
+            this.remove();
         }
     }
 

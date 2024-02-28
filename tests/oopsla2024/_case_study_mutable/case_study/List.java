@@ -3,46 +3,47 @@ package case_study;
 import edu.kit.kastel.property.util.Packing;
 import edu.kit.kastel.property.checker.qual.*;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
-import edu.kit.kastel.property.subchecker.lattice.qual.*;
+import edu.kit.kastel.property.subchecker.lattice.case_study_mutable_qual.*;
 import edu.kit.kastel.property.packing.qual.*;
 import org.checkerframework.checker.initialization.qual.*;
 
 public class List {
 
-    public final @MaybeAliased Object head;
+    public @MaybeAliased Object head;
 
-    public final
+    public
     @Unique
     @Nullable @Length(min="this.size - 1", max="this.size - 1")
     List tail;
 
-    public final @Positive int size;
+    public @Positive int size;
 
     @JMLClause("ensures this.tail == tail && this.head == head;")
     @JMLClause("assignable \\nothing;")
     public
     @Unique @Length(min="tail.size + 1", max="tail.size + 1")
-    // :: error: inconsistent.constructor.type
+    // :: error: nullness.inconsistent.constructor.type :: error: length.inconsistent.constructor.type
     List(
             Object head,
             List tail) {
-        // :: error: assignment.type.incompatible
         this.size = tail.size() + 1;
         this.head = head;
-        // :: error: assignment.type.incompatible
         this.tail = tail;
+        // :: error: initialization.fields.uninitialized
+        Packing.pack(this, List.class);
     }
 
     @JMLClause("ensures this.head == head;")
     @JMLClause("assignable \\nothing;")
     public
     @Unique @Length(min="1", max="1")
-    // :: error: inconsistent.constructor.type
+    // :: error: nullness.inconsistent.constructor.type :: error: length.inconsistent.constructor.type
     List(Object head) {
         this.size = 1;
         this.head = head;
-        // :: error: assignment.type.incompatible
         this.tail = null;
+        // :: error: initialization.fields.uninitialized
+        Packing.pack(this, List.class);
     }
 
     @JMLClause("ensures this.head == newHead;")
@@ -65,7 +66,7 @@ public class List {
 
     @JMLClause("ensures this.head == newHead;")
     @JMLClause("assignable this.*;")
-    @EnsuresReadOnly(value="other")
+    @EnsuresReadOnly(value="#1")
     public void appendBack(
             @Unique List this,
             @Unique List other) {
@@ -81,24 +82,23 @@ public class List {
 
     @JMLClause("ensures \\result == this.head;")
     @JMLClause("assignable \\nothing;")
-    public Object getHead(@ReadOnly List this) {
+    public @ReadOnly Object getHead(@ReadOnly List this) {
         return this.head;
     }
 
+    @JMLClause("ensures \\result == this.tail;")
+    @JMLClause("assignable \\nothing;")
     @Nullable
     @Length(min="this.size - 1", max="this.size - 1")
-    @JMLClause("ensures \\result == this.tail;")
-    @JMLClause("assignable \\nothing")
     public @ReadOnly List getTail(@ReadOnly List this) {
-        // :: error: return.type.incompatible
         return this.tail;
     }
 
-    @Nullable
-    @Length(min="this.size - 1", max="this.size - 1")
     @JMLClause("ensures \\result == this.tail;")
     @JMLClause("assignable \\nothing")
     @EnsuresReadOnly("this")
+    @Nullable
+    @Length(min="this.size - 1", max="this.size - 1")
     public @Unique List stealTail(@Unique List this) {
         Packing.unpack(this, List.class);
         // :: error: return.type.incompatible
@@ -106,14 +106,14 @@ public class List {
     }
 
     @JMLClause("ensures \\result == this.size;")
-    @JMLClause("assignable \\nothing")
-    public @Positive int getSize(@ReadOnly List this) {
+    @JMLClause("assignable \\nothing;")
+    public @Positive int size(@ReadOnly List this) {
         return this.size;
     }
 
-    @JMLClause("ensures l != null ==> \result == l.size")
-    @JMLClause("ensures l == null ==> \result == 0")
-    @JMLClause("assignable \\nothing")
+    @JMLClause("ensures l != null ==> \\result == l.size;")
+    @JMLClause("ensures l == null ==> \\result == 0;")
+    @JMLClause("assignable \\nothing;")
     public static @NonNegative int size(@ReadOnly List l) {
         if (l == null) {
             return 0;
