@@ -209,7 +209,9 @@ public class JavaJMLPrinter extends PrettyPrinter {
                 for (LatticeVisitor.Result wellTypedness : results) {
                     Lattice lattice = wellTypedness.getLattice();
 
-                    List<VariableElement> allFields = ElementFilter.fieldsIn(TypesUtils.getTypeElement(enclClass.type).getEnclosedElements());
+                    List<VariableElement> allFields = enclClass.type == null
+                            ? List.of()
+                            : ElementFilter.fieldsIn(TypesUtils.getTypeElement(enclClass.type).getEnclosedElements());
                     for (VariableElement field : allFields) {
                         if (!field.asType().getKind().isPrimitive()) {
                             if (ElementUtils.isStatic(field)) {
@@ -298,15 +300,17 @@ public class JavaJMLPrinter extends PrettyPrinter {
             {
                 List<AnnotationMirror> inputPackingTypes = propertyFactory.getInputPackingTypes(tree);
                 List<AnnotationMirror> outputPackingTypes = propertyFactory.getOutputPackingTypes(tree);
-                AnnotationMirror receiverInputType = inputPackingTypes.get(0);
-                AnnotationMirror receiverOutputType = outputPackingTypes.get(0);
 
-                if (receiverInputType != null) {
-                    jmlContract.addClause(String.format("requires_free %s;", getPackedCondition(receiverInputType, "this")));
-                }
+                if (!inputPackingTypes.isEmpty() ) {
+                    AnnotationMirror receiverInputType = inputPackingTypes.get(0);
+                    if (receiverInputType != null) {
+                        jmlContract.addClause(String.format("requires_free %s;", getPackedCondition(receiverInputType, "this")));
+                    }
 
-                if (receiverOutputType != null) {
-                    jmlContract.addClause(String.format("ensures_free %s;", getPackedCondition(receiverOutputType, "this")));
+                    AnnotationMirror receiverOutputType = outputPackingTypes.get(0);
+                    if (receiverOutputType != null) {
+                        jmlContract.addClause(String.format("ensures_free %s;", getPackedCondition(receiverOutputType, "this")));
+                    }
                 }
 
                 for (int i = 0; i < paramNames.size(); ++i) {
@@ -386,7 +390,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
                 AnnotatedExecutableType method = wellTypedness.getTypeFactory().getAnnotatedType(tree);
                 List<AnnotationMirror> methodOutputTypes = wellTypedness.getMethodOutputTypes(tree);
                 Set<Integer> illTypedMethodOutputParams = wellTypedness.getIllTypedMethodOutputParams(tree);
-                {
+                if (!methodOutputTypes.isEmpty()) {
                     AnnotationMirror paramOutputType = methodOutputTypes.get(0);
                     String paramName = "this";
                     boolean wt = !illTypedMethodOutputParams.contains(0);
@@ -605,7 +609,9 @@ public class JavaJMLPrinter extends PrettyPrinter {
 
                 println();
                 for (LatticeVisitor.Result result : results) {
-                    List<VariableElement> allFields = ElementFilter.fieldsIn(TypesUtils.getTypeElement(enclClass.type).getEnclosedElements());
+                    List<VariableElement> allFields = enclClass.type == null
+                            ? List.of()
+                            : ElementFilter.fieldsIn(TypesUtils.getTypeElement(enclClass.type).getEnclosedElements());
                     List<VariableElement> uninitFields = result.getUninitializedFields(tree);
                     for (VariableElement field : allFields) {
                         if (!field.asType().getKind().isPrimitive()) {

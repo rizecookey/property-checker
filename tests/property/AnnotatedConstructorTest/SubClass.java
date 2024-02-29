@@ -5,11 +5,14 @@ import edu.kit.kastel.property.packing.qual.*;
 import org.checkerframework.checker.initialization.qual.*;
 import org.checkerframework.dataflow.qual.*;
 
-class Foo {
+public class SubClass extends AnnotatedConstructorTest {
 
-    int i;
+    public SubClass() {
+        Packing.pack(this, SubClass.class);
+    }
 
-    @NonNull Foo() {
-        Packing.pack(this, Foo.class);
+    // :: error: simple.inconsistent.constructor.type
+    public @D SubClass(int i) {
+        Packing.pack(this, SubClass.class);
     }
 }

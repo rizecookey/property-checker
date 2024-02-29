@@ -17,7 +17,6 @@
 import java.util.*;
 import edu.kit.kastel.property.subchecker.lattice.qual.*;
 
-// :: error: inconsistent.constructor.type
 public class NullnessTest {
 
     public static void foo(@Nullable Object possiblyNull) {
@@ -25,7 +24,7 @@ public class NullnessTest {
         @Nullable Object tricky = possiblyNull;
 
         if (b) {
-            // :: error: assignment.type.incompatible
+            // :: error: nullness.assignment.type.incompatible
             @NonNull Object nonNull = tricky;
         }
     }

@@ -9,14 +9,14 @@ import java.util.List;
 
 public class LengthWFTest {
     
-    @Length(min="1", max="3") List wellFormed0;
-    @Length(min="1", max="1") List wellFormed1;
+    @Length(len="1") List wellFormed0;
+    @Length(len="1") List wellFormed1;
     
     // :: error: type.invalid
-    @Length(min="1", max="0") List malFormed0;    
+    @Length(len="1") List malFormed0;
     
     // :: error: type.invalid
-    @Length(min="1", max="3") String malFormed1;
+    @Length(len="1") String malFormed1;
 
     public LengthWFTest() {
         // :: error: initialization.fields.uninitialized

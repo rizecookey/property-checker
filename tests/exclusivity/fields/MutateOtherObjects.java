@@ -4,13 +4,12 @@ import edu.kit.kastel.property.packing.qual.*;
 import org.checkerframework.checker.initialization.qual.*;
 import org.checkerframework.dataflow.qual.*;
 
-// :: error: inconsistent.constructor.type
 class MutateOtherObjects {
 
     // :: error: initialization.field.uninitialized
     @Unique Foo foo;
 
-    // :: error: contracts.postcondition.not.satisfied
+    // :: error: packing.postcondition.not.satisfied
     void mutate(@Unique MutateOtherObjects this, @Unique MutateOtherObjects other) {
         // :: error: initialization.write.committed.field
         this.foo = new Foo();

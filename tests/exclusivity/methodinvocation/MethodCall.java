@@ -35,7 +35,7 @@ final class MethodCall {
         a = x;           // invalid, x is not @Unique anymore
     }
 
-    // :: error: contracts.postcondition.not.satisfied
+    // :: error: exclusivity.postcondition.not.satisfied
     void invokeAssign(@Unique MethodCall this) {
         @Unique Foo b;
         b = this.mthret();

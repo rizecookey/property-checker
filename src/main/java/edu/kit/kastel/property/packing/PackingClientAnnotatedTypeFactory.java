@@ -1,21 +1,18 @@
 package edu.kit.kastel.property.packing;
 
 import com.sun.source.tree.*;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.dataflow.cfg.node.*;
 import org.checkerframework.dataflow.cfg.visualize.CFGVisualizer;
 import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.dataflow.expression.Unknown;
-import org.checkerframework.framework.flow.CFValue;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.LiteralTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.PropagationTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
-import org.checkerframework.framework.util.defaults.QualifierDefaults;
 import org.checkerframework.javacutil.AnnotationMirrorSet;
 import org.checkerframework.javacutil.TreeUtils;
 

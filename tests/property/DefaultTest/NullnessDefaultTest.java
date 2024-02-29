@@ -6,7 +6,6 @@ import edu.kit.kastel.property.packing.qual.*;
 import org.checkerframework.checker.initialization.qual.*;
 import org.checkerframework.dataflow.qual.*;
 
-// :: error: inconsistent.constructor.type
 public class NullnessDefaultTest {
 
     // :: error: initialization.field.uninitialized
@@ -16,15 +15,15 @@ public class NullnessDefaultTest {
     // :: error: initialization.field.uninitialized
     Object defaultField;
     
-    // :: error: initialization.field.uninitialized :: error: type.invalid.abstract.state
+    // :: error: initialization.field.uninitialized :: error: nullness.type.invalid.abstract.state
     @ReadOnly @NonNull Object nonNullField0;
-    // :: error: initialization.field.uninitialized :: error: type.invalid.abstract.state
+    // :: error: initialization.field.uninitialized :: error: nullness.type.invalid.abstract.state
     @ReadOnly Object defaultField0;
 
     public void foo() {
         @NonNull Object nonNullLocal = nonNullField;
         nonNullLocal = defaultField;
-        // :: error: assignment.type.incompatible
+        // :: error: nullness.assignment.type.incompatible
         nonNullLocal = nullableField;
         
         @Nullable Object nullableLocal = nonNullField;
@@ -39,8 +38,8 @@ public class NullnessDefaultTest {
     public void validParam0(@NonNull Object arg) {}
     public void validParam1(Object arg) {}
 
-    // :: error: type.invalid.abstract.state
+    // :: error: nullness.type.invalid.abstract.state
     public void invalidParam0(@ReadOnly @NonNull Object arg) {}
-    // :: error: type.invalid.abstract.state
+    // :: error: nullness.type.invalid.abstract.state
     public void invalidParam1(@ReadOnly Object arg) {}
 }

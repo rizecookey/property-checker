@@ -4,7 +4,6 @@ import edu.kit.kastel.property.packing.qual.*;
 import org.checkerframework.checker.initialization.qual.*;
 import org.checkerframework.dataflow.qual.*;
 
-// :: error: inconsistent.constructor.type
 final class Assign {
 
     // :: error: initialization.field.uninitialized

@@ -8,9 +8,7 @@ import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.TypeValidator;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
-import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
-import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedPrimitiveType;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
 
@@ -129,7 +127,7 @@ public final class ExclusivityVisitor extends PackingClientVisitor<ExclusivityAn
         return p;
     }
     
-    @Override
+   /* @Override
     public boolean isValidUse(AnnotatedPrimitiveType type, Tree tree) {
         return super.isValidUse(type, tree)
                 && type.hasAnnotation(atypeFactory.UNIQUE);
@@ -145,7 +143,7 @@ public final class ExclusivityVisitor extends PackingClientVisitor<ExclusivityAn
         } else {
             return super.isValidUse(declarationType, useType, tree);
         }
-    }
+    }*/
 
     @Override
     protected TypeValidator createTypeValidator() {

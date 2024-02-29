@@ -11,23 +11,23 @@ import java.util.List;
 public class DependentLengthTest {
 
     public static
-    @JMLClause("requires a+c > 0 && b+d > 0")
+    @JMLClause("requires a+b > 0")
     @MaybeAliased
-    @Length(min="a+c", max="b+d") List
-    // :: error: contracts.postcondition.not.satisfied
+    @Length(len="a+b") List
+    // :: error: length.contracts.postcondition.not.satisfied
     concat(
             int a, int b, int c, int d,
-            @Length(min="a", max="b") List l0,
-            @Length(min="c", max="d") List l1) {
-        // :: error: return.type.incompatible
+            @Length(len="a") List l0,
+            @Length(len="b") List l1) {
+        // :: error: length.return.type.incompatible
         return null;
     }
 
-    // :: error: contracts.postcondition.not.satisfied
+    // :: error: length.contracts.postcondition.not.satisfied
     public static void foo(
-            @Length(min="1", max="1") List l0,
-            @Length(min="2", max="2") List l1) {
-        // :: error: assignment.type.incompatible :: error: argument.type.incompatible
-        @Length(min="3", max="3") List res = concat(1, 1, 2, 2, l0, l1);
+            @Length(len="1") List l0,
+            @Length(len="2") List l1) {
+        // :: error: length.argument.type.incompatible :: error: length.assignment.type.incompatible
+        @Length(len="3") List res = concat(1, 1, 2, 2, l0, l1);
     }
 }

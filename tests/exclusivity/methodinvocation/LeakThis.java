@@ -42,7 +42,7 @@ class LeakThis {
         this.aliased = this;
     }
 
-    // :: error: contracts.postcondition.not.satisfied
+    // :: error: exclusivity.postcondition.not.satisfied
     void mthUnique(@UnknownInitialization(Object.class) @Unique @NullTop LeakThis this) {
         this.unique = this;
     }
@@ -96,4 +96,3 @@ class LeakThis {
         this.foo1(a, b);
     }
 }
- 

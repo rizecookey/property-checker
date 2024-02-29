@@ -9,7 +9,6 @@ class Foo {
 
     int i;
 
-    // :: error: inconsistent.constructor.type
     @NonNull Foo() {
         Packing.pack(this, Foo.class);
     }

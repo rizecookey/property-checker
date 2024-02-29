@@ -1,6 +1,5 @@
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
 
-// :: error: inconsistent.constructor.type
 class References {
 
     void refNew() {

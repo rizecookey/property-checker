@@ -7,30 +7,18 @@ import org.checkerframework.dataflow.qual.*;
 
 public class AnnotatedConstructorTest {
     
-    // :: error: inconsistent.constructor.type
+    // :: error: simple.inconsistent.constructor.type
     public @B AnnotatedConstructorTest() {
         Packing.pack(this, AnnotatedConstructorTest.class);
     }
 
-    public void foo(@B AnnotatedConstructorTest arg) {
+    public void foo(AnnotatedConstructorTest this, @B AnnotatedConstructorTest arg) {
         AnnotatedConstructorTest b = new AnnotatedConstructorTest();
         @B AnnotatedConstructorTest b2 = b;
         
         @A AnnotatedConstructorTest a = new AnnotatedConstructorTest();
         
-        // :: error: assignment.type.incompatible
+        // :: error: simple.assignment.type.incompatible
         @D AnnotatedConstructorTest d = b;
-    }
-}
-
-class SubClass extends AnnotatedConstructorTest {
-
-    public SubClass() {
-        Packing.pack(this, SubClass.class);
-    }
-
-    // :: error: inconsistent.constructor.type
-    public @D SubClass(int i) {
-        Packing.pack(this, SubClass.class);
     }
 }

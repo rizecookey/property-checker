@@ -16,17 +16,11 @@
  */
 package edu.kit.kastel.property.checker;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.nio.file.Paths;
-import java.util.*;
-
 import com.sun.source.tree.CompilationUnitTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
+import com.sun.source.util.TreePath;
 import edu.kit.kastel.property.packing.PackingAnnotatedTypeFactory;
 import edu.kit.kastel.property.packing.PackingStore;
 import edu.kit.kastel.property.packing.PackingVisitor;
@@ -34,15 +28,6 @@ import edu.kit.kastel.property.subchecker.lattice.LatticeSubchecker;
 import edu.kit.kastel.property.subchecker.lattice.LatticeVisitor;
 import edu.kit.kastel.property.util.TypeUtils;
 import org.checkerframework.common.basetype.BaseTypeChecker;
-import org.checkerframework.common.basetype.BaseTypeVisitor;
-
-import com.sun.source.util.TreePath;
-import com.sun.tools.javac.tree.JCTree.JCCompilationUnit;
-
-import edu.kit.kastel.property.printer.JavaJMLPrinter;
-import edu.kit.kastel.property.printer.PrettyPrinter;
-import edu.kit.kastel.property.subchecker.lattice.LatticeVisitor.Result;
-import edu.kit.kastel.property.util.FileUtils;
 import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
 import org.checkerframework.javacutil.ElementUtils;
@@ -52,6 +37,10 @@ import org.checkerframework.javacutil.TypesUtils;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.StringJoiner;
 
 public final class PropertyVisitor extends PackingVisitor {
 
@@ -76,6 +65,11 @@ public final class PropertyVisitor extends PackingVisitor {
 
     CompilationUnitTree getRoot() {
         return root;
+    }
+
+    @Override
+    public void setRoot(CompilationUnitTree root) {
+        super.setRoot(root);
     }
 
     @Override

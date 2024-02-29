@@ -19,26 +19,21 @@ import edu.kit.kastel.property.subchecker.lattice.qual.*;
 
 interface MultiInheritanceA {
     
-    @Length(min="1", max="3") List foo(@Length(min="0", max="99") List a);
+    @Length(len="1") List foo(@Length(len="0") List a);
 }
 
 interface MultiInheritanceB {
     
-    @Length(min="2", max="3") List foo(@Length(min="0", max="199") List a);
+    @Length(len="2") List foo(@Length(len="0") List a);
 }
 
-interface MultiInheritanceC {
-    
-    @Length(min="1", max="2") List foo(@Length(min="0", max="299") List a);
+abstract class A implements MultiInheritanceA {
+
+    public abstract @Length(len="1") List foo(@Length(len="0") List a);
 }
 
-abstract class A implements MultiInheritanceA, MultiInheritanceB, MultiInheritanceC {
+abstract class B implements MultiInheritanceA, MultiInheritanceB {
 
-    public abstract @Length(min="2", max="2") List foo(@Length(min="0", max="299") List a);
-}
-
-abstract class B implements MultiInheritanceA, MultiInheritanceB, MultiInheritanceC {
-
-    // :: error: override.return.invalid :: error: override.param.invalid
-    public abstract @Length(min="1", max="3") List foo(@Length(min="0", max="99") List a);
+    // :: error: length.override.return.invalid :: error: length.override.param.invalid
+    public abstract @Length(len="1") List foo(@Length(len="0") List a);
 }

@@ -16,7 +16,7 @@ public final class List {
 
     @JMLClause("ensures this.head == head && this.tail == null && this.size == 1;")
     @JMLClause("assignable \\nothing;")
-    // :: error: inconsistent.constructor.type
+    // :: error: length.inconsistent.constructor.type
     public @Unique @Length(len="1") List(int head) {
         this.head = head;
         this.tail = null;
@@ -28,7 +28,7 @@ public final class List {
 
     @JMLClause("ensures this.head == head && this.tail == tail;")
     @JMLClause("assignable \\nothing;")
-    // :: error: inconsistent.constructor.type :: error: contracts.postcondition.not.satisfied
+    // :: error: length.inconsistent.constructor.type :: error: length.contracts.postcondition.not.satisfied
     public @Unique @Length(len="n+1") List(int head,  @Length(len="n") List tail, int n) {
         this.head = head;
         this.tail = tail;
@@ -40,7 +40,7 @@ public final class List {
 
     @EnsuresLength(value="this", len="n+1")
     @JMLClause("assignable this.*;")
-    // :: error: contracts.postcondition.not.satisfied
+    // :: error: length.contracts.postcondition.not.satisfied
     public void insert(
             @Unique @Length(len="n") List this,
             int newHead,
@@ -50,7 +50,7 @@ public final class List {
         if (tail == null) {
             this.tail = new List(head);
         } else {
-            // :: error: argument.type.incompatible
+            // :: error: length.argument.type.incompatible :: error: nullness.argument.type.incompatible
             this.tail = new List(head, tail, n - 1);
         }
         this.head = newHead;

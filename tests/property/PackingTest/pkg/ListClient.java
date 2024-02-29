@@ -13,7 +13,6 @@ public final class ListClient {
     @MaybeAliased @Length(len="1") List b;
     @Unique @Length(len="a.size") List c;
 
-    // :: error: inconsistent.constructor.type
     public ListClient() {
         this.a = new List(42);
         this.b = new List(42);
@@ -25,9 +24,9 @@ public final class ListClient {
 
     public void correctPacking(@Unique ListClient this) {
         Packing.unpack(this, ListClient.class);
-        // :: error: method.invocation.invalid
+        // :: error: length.method.invocation.invalid
         a.insert(42, 1);
-        // :: error: method.invocation.invalid
+        // :: error: length.method.invocation.invalid
         c.insert(42, 1);
         // :: error: initialization.fields.uninitialized
         Packing.pack(this, ListClient.class);
