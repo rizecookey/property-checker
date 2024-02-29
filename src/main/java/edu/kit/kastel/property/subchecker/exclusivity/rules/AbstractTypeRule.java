@@ -147,7 +147,7 @@ abstract class AbstractTypeRule<N extends Node> implements TypeRule {
             assert false;
             oldAnno = null;
         } else if (node instanceof ValueLiteralNode) {
-            return factory.MAYBE_ALIASED;
+            return factory.UNIQUE;
         } else {
             ExclusivityValue value = null;
             if (node instanceof FieldAccessNode) {

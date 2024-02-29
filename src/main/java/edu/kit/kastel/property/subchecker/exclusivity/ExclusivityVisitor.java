@@ -132,8 +132,7 @@ public final class ExclusivityVisitor extends PackingClientVisitor<ExclusivityAn
     @Override
     public boolean isValidUse(AnnotatedPrimitiveType type, Tree tree) {
         return super.isValidUse(type, tree)
-                // Primitives are always MaybeAliased
-                && type.hasAnnotation(atypeFactory.MAYBE_ALIASED);
+                && type.hasAnnotation(atypeFactory.UNIQUE);
     }
     
     @SuppressWarnings("nls")
@@ -142,8 +141,6 @@ public final class ExclusivityVisitor extends PackingClientVisitor<ExclusivityAn
             AnnotatedDeclaredType useType, Tree tree) {
         if (declarationType.getUnderlyingType().asElement().toString().equals("java.lang.String")) {
             return super.isValidUse(declarationType, useType, tree)
-                    // Strings should always be annotated as MaybeAliased.
-                    // There's no point annotating them as Unique, since they're immutable.
                     && useType.hasAnnotation(atypeFactory.MAYBE_ALIASED);
         } else {
             return super.isValidUse(declarationType, useType, tree);

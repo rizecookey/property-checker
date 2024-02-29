@@ -78,6 +78,7 @@ public abstract class AssignmentRule extends AbstractTypeRule<AssignmentNode> {
     protected final ChainRule<AssignmentRule> getAssignmentRules() {
         return new ChainRule<>(
                 new TRefNew(store, factory, analysis),
+                new TRefCopyPrimitive(store, factory, analysis),
                 new TRefSplit(store, factory, analysis),
                 new TRefTransfer(store, factory, analysis),
                 new TRefCopyRo(store, factory, analysis)

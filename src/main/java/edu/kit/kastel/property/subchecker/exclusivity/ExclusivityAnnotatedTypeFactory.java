@@ -44,7 +44,7 @@ public final class ExclusivityAnnotatedTypeFactory
 
     @Override
     public AnnotationMirror getDefaultPrimitiveQualifier() {
-        return MAYBE_ALIASED;
+        return UNIQUE;
     }
 
     @Override
@@ -143,12 +143,12 @@ public final class ExclusivityAnnotatedTypeFactory
     @Override
     protected TreeAnnotator createTreeAnnotator() {
         List<TreeAnnotator> treeAnnotators = new ArrayList<>(2);
+        treeAnnotators.add(new PackingFieldAccessTreeAnnotator(this, false));
         treeAnnotators.add(new ExclusivityPropagationTreeAnnotator(this));
         treeAnnotators.add(new LiteralTreeAnnotator(this).addStandardLiteralQualifiers());
         if (dependentTypesHelper.hasDependentAnnotations()) {
             treeAnnotators.add(dependentTypesHelper.createDependentTypesTreeAnnotator());
         }
-        treeAnnotators.add(new PackingFieldAccessTreeAnnotator(this));
         return new ListTreeAnnotator(treeAnnotators);
     }
 

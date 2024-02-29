@@ -11,12 +11,18 @@ import org.checkerframework.javacutil.TreeUtils;
 import javax.lang.model.element.Element;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
-import java.util.List;
 
 public class PackingFieldAccessTreeAnnotator extends InitializationFieldAccessTreeAnnotator {
 
+    private boolean uncommitPrimitiveFields;
+
     public PackingFieldAccessTreeAnnotator(GenericAnnotatedTypeFactory<?, ?, ?, ?> atypeFactory) {
+        this(atypeFactory, true);
+    }
+
+    public PackingFieldAccessTreeAnnotator(GenericAnnotatedTypeFactory<?, ?, ?, ?> atypeFactory, boolean uncommitPrimitiveFields) {
         super(atypeFactory);
+        this.uncommitPrimitiveFields = uncommitPrimitiveFields;
     }
 
     @Override
@@ -43,6 +49,10 @@ public class PackingFieldAccessTreeAnnotator extends InitializationFieldAccessTr
     private void computeFieldAccessType(ExpressionTree tree, AnnotatedTypeMirror type) {
         GenericAnnotatedTypeFactory<?, ?, ?, ?> factory =
                 (GenericAnnotatedTypeFactory<?, ?, ?, ?>) atypeFactory;
+
+        if (!uncommitPrimitiveFields && type.getPrimitiveKind() != null) {
+            return;
+        }
 
         // Don't adapt anything if initialization checking is turned off.
         if (assumeInitialized || ((PackingFieldAccessAnnotatedTypeFactory) fieldAccessFactory).isComputingUninitializedFields()) {

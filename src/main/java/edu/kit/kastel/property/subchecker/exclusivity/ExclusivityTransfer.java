@@ -3,7 +3,6 @@ package edu.kit.kastel.property.subchecker.exclusivity;
 import com.sun.source.tree.*;
 
 import edu.kit.kastel.property.packing.PackingClientTransfer;
-import edu.kit.kastel.property.subchecker.exclusivity.qual.ReadOnly;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.Unique;
 import edu.kit.kastel.property.subchecker.exclusivity.rules.*;
 
@@ -12,9 +11,6 @@ import org.checkerframework.dataflow.analysis.RegularTransferResult;
 import org.checkerframework.dataflow.analysis.TransferInput;
 import org.checkerframework.dataflow.analysis.TransferResult;
 import org.checkerframework.dataflow.cfg.node.*;
-import org.checkerframework.dataflow.expression.JavaExpression;
-import org.checkerframework.framework.flow.CFAbstractStore;
-import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.javacutil.AnnotationBuilder;
 import org.checkerframework.javacutil.TreeUtils;

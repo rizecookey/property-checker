@@ -14,8 +14,6 @@ import java.lang.annotation.Target;
 @SubtypeOf({ReadOnly.class})
 @DefaultQualifierInHierarchy
 @DefaultFor(
-        value={TypeUseLocation.LOCAL_VARIABLE, TypeUseLocation.ALL},
-        typeKinds={TypeKind.BOOLEAN, TypeKind.BYTE, TypeKind.CHAR, TypeKind.INT, TypeKind.SHORT, TypeKind.LONG, TypeKind.DOUBLE, TypeKind.FLOAT, TypeKind.NULL})
+        value={TypeUseLocation.LOCAL_VARIABLE, TypeUseLocation.ALL})
 @HoldsForDefaultValue
 public @interface MaybeAliased {}
-

@@ -30,4 +30,38 @@ public class ExclusivityViewpointAdapter extends AbstractViewpointAdapter {
             return declaredAnnotation;
         }
     }
+
+    @Override
+    protected AnnotatedTypeMirror combineAnnotationWithType(
+            AnnotationMirror receiverAnnotation, AnnotatedTypeMirror declaredType) {
+        AnnotatedTypeMirror result = AnnotatedTypeMirror.createType(
+                declaredType.getUnderlyingType(), atypeFactory, declaredType.isDeclaration());
+        if (declaredType.getPrimitiveKind() != null) {
+            result.addAnnotation(atypeFactory.UNIQUE);
+            return result;
+        } else if (declaredType.hasAnnotation(atypeFactory.UNIQUE)) {
+            result.addAnnotation(receiverAnnotation);
+            return result;
+        } else {
+            result.addAnnotation(declaredType.getAnnotationInHierarchy(atypeFactory.UNIQUE));
+            return result;
+        }
+    }
+
+    @Override
+    protected AnnotatedTypeMirror combineTypeWithType(
+            AnnotatedTypeMirror receiverType, AnnotatedTypeMirror declaredType) {
+        AnnotatedTypeMirror result = AnnotatedTypeMirror.createType(
+                declaredType.getUnderlyingType(), atypeFactory, declaredType.isDeclaration());
+        if (declaredType.getPrimitiveKind() != null) {
+            result.addAnnotation(atypeFactory.UNIQUE);
+            return result;
+        } else if (declaredType.hasAnnotation(atypeFactory.UNIQUE)) {
+            result.addAnnotation(receiverType.getAnnotationInHierarchy(atypeFactory.UNIQUE));
+            return result;
+        } else {
+            result.addAnnotation(declaredType.getAnnotationInHierarchy(atypeFactory.UNIQUE));
+            return result;
+        }
+    }
 }
