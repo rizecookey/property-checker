@@ -5,6 +5,7 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.javacutil.AnnotationUtils;
 
 import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.ExecutableElement;
 
 public class ExclusivityViewpointAdapter extends AbstractViewpointAdapter {
 
@@ -63,5 +64,15 @@ public class ExclusivityViewpointAdapter extends AbstractViewpointAdapter {
             result.addAnnotation(declaredType.getAnnotationInHierarchy(atypeFactory.UNIQUE));
             return result;
         }
+    }
+
+    @Override
+    public void viewpointAdaptMethod(AnnotatedTypeMirror receiverType, ExecutableElement methodElt, AnnotatedTypeMirror.AnnotatedExecutableType methodType) {
+        // do nothing
+    }
+
+    @Override
+    public void viewpointAdaptConstructor(AnnotatedTypeMirror receiverType, ExecutableElement constructorElt, AnnotatedTypeMirror.AnnotatedExecutableType constructorType) {
+        // do nothing
     }
 }
