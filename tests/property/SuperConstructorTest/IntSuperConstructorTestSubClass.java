@@ -6,23 +6,16 @@ import edu.kit.kastel.property.packing.qual.*;
 import org.checkerframework.checker.initialization.qual.*;
 import org.checkerframework.dataflow.qual.*;
 
-class BaseClass {
+public class IntSuperConstructorTestSubClass extends IntSuperConstructorTestBaseClass {
 
-    public BaseClass(@Interval(min="0", max="0") int arg) {
-        Packing.pack(this, BaseClass.class);
-    }
-}
-
-class SubClass extends BaseClass {
-
-    public SubClass() {
+    public IntSuperConstructorTestSubClass() {
         super(0);
-        Packing.pack(this, SubClass.class);
+        Packing.pack(this, IntSuperConstructorTestSubClass.class);
     }
 
-    public SubClass(@Interval(min="0", max="1") int arg) {
-        // :: error: argument.type.incompatible
+    public IntSuperConstructorTestSubClass(@Interval(min="0", max="1") int arg) {
+        // :: error: interval.argument.type.incompatible
         super(arg);
-        Packing.pack(this, SubClass.class);
+        Packing.pack(this, IntSuperConstructorTestSubClass.class);
     }
 }

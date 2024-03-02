@@ -16,27 +16,15 @@
  */
 package edu.kit.kastel.property.subchecker.lattice;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
-import java.lang.annotation.Annotation;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.util.Elements;
-
+import edu.kit.kastel.property.config.Config;
+import edu.kit.kastel.property.lattice.*;
+import edu.kit.kastel.property.lattice.compiler.ClassBuilder;
+import edu.kit.kastel.property.lattice.parser.LatticeParser;
+import edu.kit.kastel.property.lattice.parser.ParseException;
 import edu.kit.kastel.property.packing.PackingClientAnnotatedTypeFactory;
 import edu.kit.kastel.property.packing.PackingFieldAccessTreeAnnotator;
+import edu.kit.kastel.property.util.ClassUtils;
+import edu.kit.kastel.property.util.UnorderedPair;
 import org.apache.commons.lang3.StringUtils;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.type.ElementQualifierHierarchy;
@@ -50,19 +38,15 @@ import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.Pair;
 
-import edu.kit.kastel.property.config.Config;
-import edu.kit.kastel.property.lattice.Bound;
-import edu.kit.kastel.property.lattice.Checkable;
-import edu.kit.kastel.property.lattice.EvaluatedPropertyAnnotation;
-import edu.kit.kastel.property.lattice.Lattice;
-import edu.kit.kastel.property.lattice.PropertyAnnotation;
-import edu.kit.kastel.property.lattice.PropertyAnnotationType;
-import edu.kit.kastel.property.lattice.SubAnnotationRelation;
-import edu.kit.kastel.property.lattice.compiler.ClassBuilder;
-import edu.kit.kastel.property.lattice.parser.LatticeParser;
-import edu.kit.kastel.property.lattice.parser.ParseException;
-import edu.kit.kastel.property.util.ClassUtils;
-import edu.kit.kastel.property.util.UnorderedPair;
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.util.Elements;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.lang.annotation.Annotation;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public final class LatticeAnnotatedTypeFactory
         extends PackingClientAnnotatedTypeFactory<LatticeValue, LatticeStore, LatticeTransfer, LatticeAnalysis> {
@@ -185,6 +169,11 @@ public final class LatticeAnnotatedTypeFactory
 
     @Override
     public AnnotationMirror getDefaultPrimitiveQualifier() {
+        return getTop();
+    }
+
+    @Override
+    public AnnotationMirror getDefaultStringQualifier() {
         return getTop();
     }
 

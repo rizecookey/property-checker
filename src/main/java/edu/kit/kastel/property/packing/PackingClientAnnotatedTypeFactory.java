@@ -17,6 +17,7 @@ import org.checkerframework.javacutil.AnnotationMirrorSet;
 import org.checkerframework.javacutil.TreeUtils;
 
 import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.type.TypeKind;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -87,13 +88,7 @@ public abstract class PackingClientAnnotatedTypeFactory<
     }
 
     public abstract AnnotationMirror getDefaultPrimitiveQualifier();
-
-    @Override
-    public AnnotatedTypeMirror.AnnotatedNullType getAnnotatedNullType(Set<? extends AnnotationMirror> annotations) {
-        AnnotatedTypeMirror.AnnotatedNullType result = super.getAnnotatedNullType(annotations);
-        result.replaceAnnotation(getDefaultPrimitiveQualifier());
-        return result;
-    }
+    public abstract AnnotationMirror getDefaultStringQualifier();
 
     @Override
     public AnnotatedTypeMirror.AnnotatedDeclaredType getSelfType(Tree tree) {
@@ -133,7 +128,14 @@ public abstract class PackingClientAnnotatedTypeFactory<
                     if (node instanceof ValueLiteralNode
                             || node instanceof BinaryOperationNode
                             || node instanceof UnaryOperationNode) {
-                        return analysis.createAbstractValue(AnnotationMirrorSet.singleton(getDefaultPrimitiveQualifier()), node.getType());
+                        if (node.getType().getKind().isPrimitive()) {
+                            return analysis.createAbstractValue(AnnotationMirrorSet.singleton(getDefaultPrimitiveQualifier()), node.getType());
+                        } else if (node.getType().getKind().equals(TypeKind.NULL)) {
+                            return analysis.createAbstractValue(getAnnotatedNullType(Set.of()));
+                        } else {
+                            // We already dealt with primitives and null, so node must be a String
+                            return analysis.createAbstractValue(AnnotationMirrorSet.singleton(getDefaultStringQualifier()), node.getType());
+                        }
                     } else if (!((expr = JavaExpression.fromNode(node)) instanceof Unknown)) {
                         return store.getValue(expr);
                     } else if (node instanceof MethodInvocationNode) {

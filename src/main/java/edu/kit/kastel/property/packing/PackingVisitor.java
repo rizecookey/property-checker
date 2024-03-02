@@ -55,6 +55,27 @@ public class PackingVisitor
     }
 
     @Override
+    protected void reportCommonAssignmentError(
+            AnnotatedTypeMirror varType,
+            AnnotatedTypeMirror valueType,
+            Tree valueTree,
+            @CompilerMessageKey String errorKey,
+            Object... extraArgs) {
+        super.reportCommonAssignmentError(varType, valueType, valueTree, "packing." + errorKey, extraArgs);
+    }
+
+    @Override
+    protected void reportMethodInvocabilityError(
+            MethodInvocationTree tree, AnnotatedTypeMirror found, AnnotatedTypeMirror expected) {
+        checker.reportError(
+                tree,
+                "packing.method.invocation.invalid",
+                TreeUtils.elementFromUse(tree),
+                found.toString(),
+                expected.toString());
+    }
+
+    @Override
     public Void visitMethodInvocation(MethodInvocationTree node, Void p) {
         ExecutableElement invokedMethod = TreeUtils.elementFromUse(node);
         ProcessingEnvironment env = atypeFactory.getProcessingEnv();

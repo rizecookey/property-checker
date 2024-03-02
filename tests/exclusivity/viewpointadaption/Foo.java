@@ -5,13 +5,7 @@ import edu.kit.kastel.property.packing.qual.*;
 import org.checkerframework.checker.initialization.qual.*;
 import org.checkerframework.dataflow.qual.*;
 
-class Bar {
-
-    public void change(@Unique @NullTop Bar this) {}
-}
-
-// :: error: inconsistent.constructor.type
-class Foo {
+public class Foo {
     @ReadOnly @NullTop Bar readOnly;
     // :: error: initialization.field.uninitialized
     @MaybeAliased Bar aliased;

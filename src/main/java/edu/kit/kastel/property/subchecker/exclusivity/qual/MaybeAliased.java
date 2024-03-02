@@ -13,5 +13,6 @@ import java.lang.annotation.Target;
 @Target({ElementType.TYPE_USE})
 @SubtypeOf({ReadOnly.class})
 @DefaultQualifierInHierarchy
+@DefaultFor(types = {java.lang.String.class})
 @HoldsForDefaultValue
 public @interface MaybeAliased {}

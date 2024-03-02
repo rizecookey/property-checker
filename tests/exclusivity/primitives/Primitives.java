@@ -1,32 +1,17 @@
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
 
 @SuppressWarnings({"initialization","lattice"})
-class Primitives {
+public class Primitives {
     Foo foo;
     @Unique Foo unique;
     @MaybeAliased Foo aliased;
     @ReadOnly Foo readOnly;
     
     boolean b;
-    // :: error: type.invalid.annotations.on.use
-    @Unique boolean uniqueB;
-    @MaybeAliased boolean aliasedB;
-    // :: error: type.invalid.annotations.on.use
-    @ReadOnly boolean readOnlyB;
     
     int i;
-    // :: error: type.invalid.annotations.on.use
-    @Unique int uniqueI;
-    @MaybeAliased int aliasedI;
-    // :: error: type.invalid.annotations.on.use
-    @ReadOnly int readOnlyI;
     
     String s;
-    // :: error: type.invalid.annotations.on.use
-    @Unique String uniqueS;
-    @MaybeAliased String aliasedS;
-    // :: error: type.invalid.annotations.on.use
-    @ReadOnly String readOnlyS;
 
     void assignUniqueThisObjectField(@Unique Primitives this) {
         this.unique = new Foo();

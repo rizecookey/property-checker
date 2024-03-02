@@ -18,7 +18,7 @@ public final class IntInitTest {
         even = 2;
         odd = 1;
         
-        // :: error: method.invocation.invalid
+        // :: error: packing.method.invocation.invalid
         this.nonHelper();
     }
 

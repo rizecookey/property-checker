@@ -16,8 +16,10 @@
  */
 package edu.kit.kastel.property.subchecker.lattice.qual;
 
+import org.checkerframework.framework.qual.DefaultFor;
 import org.checkerframework.framework.qual.RelevantJavaTypes;
 import org.checkerframework.framework.qual.SubtypeOf;
+import org.checkerframework.framework.qual.TypeKind;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -28,4 +30,5 @@ import java.lang.annotation.Target;
 @SubtypeOf({NullTop.class})
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE_USE})
+@DefaultFor(typeKinds = {TypeKind.NULL})
 public @interface Nullable {}

@@ -3,33 +3,33 @@ import edu.kit.kastel.property.subchecker.lattice.qual.*;
 
 public class IntTest {
     
-    // :: error: assignment.type.incompatible
+    // :: error: interval.assignment.type.incompatible
     @Interval(min="1", max="2") int field = 3;
     
     public static void foo0(@Interval(min="2", max="2") int arg0, @Interval(min="2", max="5") int arg1) {
         @Interval(min="1", max="3") int l0 = arg0;
         @Interval(min="1", max="5") int l1 = arg1;
         
-        // :: error: assignment.type.incompatible
+        // :: error: interval.assignment.type.incompatible
         @Interval(min="1", max="2") int l2 = arg1;
         
         // This does not work yet. It would require a contract for the + operator.
-        // :: error: assignment.type.incompatible
+        // :: error: interval.assignment.type.incompatible
         @Interval(min="4", max="7") int l3 = arg0 + arg1;
         
-        // :: error: assignment.type.incompatible
+        // :: error: interval.assignment.type.incompatible
         @Interval(min="2", max="5") int l4 = arg0 + arg1;
-        // :: error: assignment.type.incompatible
+        // :: error: interval.assignment.type.incompatible
         @Interval(min="2", max="2") int l5 = arg0 + arg1;
         
         @Interval(min="4", max="7") @Remainder(remainder="1", modulus="4") int lit0 = 5;
         
-        // :: error: assignment.type.incompatible
+        // :: error: remainder.assignment.type.incompatible
         lit0 = 6;
         
         @Interval(min="4", max="7") int lit1 = 5;
         
-        // :: error: unary.increment.type.incompatible
+        // :: error: interval.unary.increment.type.incompatible
         ++lit1;
     }
     
@@ -43,16 +43,16 @@ public class IntTest {
     public static void foo2(@Remainder(remainder="1", modulus="6") @Interval(min="1", max="5") int arg0) {
         foo1(arg0, 4);
         
-        // :: error: argument.type.incompatible
+        // :: error: remainder.argument.type.incompatible
         foo1(arg0, 0);
         
-        // :: error: assignment.type.incompatible
+        // :: error: remainder.assignment.type.incompatible
         @Remainder(remainder="1", modulus="12") @Interval(min="1", max="5") int a = arg0;
 
-        // :: error: assignment.type.incompatible
+        // :: error: interval.assignment.type.incompatible
         @Remainder(remainder="1", modulus="6") @Interval(min="3", max="3") int b = arg0;
 
-        // :: error: assignment.type.incompatible :: error: assignment.type.incompatible
+        // :: error: interval.assignment.type.incompatible :: error: remainder.assignment.type.incompatible
         @Remainder(remainder="1", modulus="12") @Interval(min="3", max="3") int c = arg0;
         
         @Remainder(remainder="1", modulus="6") @Interval(min="1", max="5") int d = arg0;

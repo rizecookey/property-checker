@@ -11,11 +11,11 @@ public class ExceptionTest {
 
     // Avoid inconsistent constructor type from LatticeSubchecker by declaring constructor as NullTop
     public @NullTop ExceptionTest() {
-        field = new Object();
+        this.field = new Object();
         Packing.pack(this, ExceptionTest.class);
     }
 
-    public void foo() {}
+    public void foo(ExceptionTest this) {}
 
     public static void main() {
         ExceptionTest obj = new ExceptionTest();

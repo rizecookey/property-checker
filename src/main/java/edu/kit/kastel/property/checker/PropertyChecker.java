@@ -74,38 +74,6 @@ public final class PropertyChecker extends PackingChecker {
         return (PropertyVisitor) super.getVisitor();
     }
 
-    @Override
-    public void typeProcess(TypeElement element, TreePath tree) {
-        super.typeProcess(element, tree);
-
-        File file = Paths.get(getOutputDir(), getRelativeSourceFileName()).toFile();
-        file.getParentFile().mkdirs();
-        FileUtils.createFile(file);
-
-        try (BufferedWriter out = new BufferedWriter(new FileWriter(file))) {
-            List<LatticeVisitor.Result> results = getResults(getAbsoluteSourceFileName());
-            if (results.isEmpty()) {
-                PrettyPrinter printer = new PrettyPrinter(out, true);
-                printer.printUnit((JCTree.JCCompilationUnit) getVisitor().getPath().getCompilationUnit(), null);
-                System.out.println(String.format(
-                        "Wrote file %s with no remaining proof obligations",
-                        getRelativeSourceFileName()));
-            } else {
-                JavaJMLPrinter printer = new JavaJMLPrinter(getResults(getAbsoluteSourceFileName()), this, out);
-                printer.printUnit((JCTree.JCCompilationUnit) getVisitor().getPath().getCompilationUnit(), null);
-                System.out.println(String.format(
-                        "Wrote file %s with: \n\t%d assertions (to be proven in JML)\n\t%d assumptions (proven by checker)\n\t%d non-free method preconditions (to be proven in JML)\n\t%d free method preconditions (proven by checker)\n\t%d non-free method postconditions (to be proven in JML)\n\t%d free method postconditions (proven by checker)",
-                        getRelativeSourceFileName(),
-                        printer.getAssertions(), printer.getAssumptions(),
-                        printer.getMethodCallPreconditions(), printer.getFreeMethodCallPreconditions(),
-                        printer.getMethodCallPostconditions(), printer.getFreeMethodCallPostconditions()));
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-            System.exit(1);
-        }
-    }
-
     protected String getAbsoluteSourceFileName() {
         return Paths.get(getVisitor().getRoot().getSourceFile().getName()).toAbsolutePath().toString();
     }

@@ -21,11 +21,15 @@ import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePath;
+import com.sun.tools.javac.tree.JCTree;
 import edu.kit.kastel.property.packing.PackingAnnotatedTypeFactory;
 import edu.kit.kastel.property.packing.PackingStore;
 import edu.kit.kastel.property.packing.PackingVisitor;
+import edu.kit.kastel.property.printer.JavaJMLPrinter;
+import edu.kit.kastel.property.printer.PrettyPrinter;
 import edu.kit.kastel.property.subchecker.lattice.LatticeSubchecker;
 import edu.kit.kastel.property.subchecker.lattice.LatticeVisitor;
+import edu.kit.kastel.property.util.FileUtils;
 import edu.kit.kastel.property.util.TypeUtils;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.dataflow.expression.JavaExpression;
@@ -37,6 +41,11 @@ import org.checkerframework.javacutil.TypesUtils;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -57,6 +66,35 @@ public final class PropertyVisitor extends PackingVisitor {
     public void visit(TreePath path) {
         super.visit(path);
         this.path = path;
+
+        PropertyChecker checker = (PropertyChecker) this.checker;
+
+        File file = Paths.get(checker.getOutputDir(), checker.getRelativeSourceFileName()).toFile();
+        file.getParentFile().mkdirs();
+        FileUtils.createFile(file);
+
+        try (BufferedWriter out = new BufferedWriter(new FileWriter(file))) {
+            List<LatticeVisitor.Result> results = checker.getResults(checker.getAbsoluteSourceFileName());
+            if (results.isEmpty()) {
+                PrettyPrinter printer = new PrettyPrinter(out, true);
+                printer.printUnit((JCTree.JCCompilationUnit) checker.getVisitor().getPath().getCompilationUnit(), null);
+                System.out.println(String.format(
+                        "Wrote file %s with no remaining proof obligations",
+                        checker.getRelativeSourceFileName()));
+            } else {
+                JavaJMLPrinter printer = new JavaJMLPrinter(checker.getResults(checker.getAbsoluteSourceFileName()), checker, out);
+                printer.printUnit((JCTree.JCCompilationUnit) checker.getVisitor().getPath().getCompilationUnit(), null);
+                System.out.println(String.format(
+                        "Wrote file %s with: \n\t%d assertions (to be proven in JML)\n\t%d assumptions (proven by checker)\n\t%d non-free method preconditions (to be proven in JML)\n\t%d free method preconditions (proven by checker)\n\t%d non-free method postconditions (to be proven in JML)\n\t%d free method postconditions (proven by checker)",
+                        checker.getRelativeSourceFileName(),
+                        printer.getAssertions(), printer.getAssumptions(),
+                        printer.getMethodCallPreconditions(), printer.getFreeMethodCallPreconditions(),
+                        printer.getMethodCallPostconditions(), printer.getFreeMethodCallPostconditions()));
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
     }
 
     TreePath getPath() {
@@ -65,11 +103,6 @@ public final class PropertyVisitor extends PackingVisitor {
 
     CompilationUnitTree getRoot() {
         return root;
-    }
-
-    @Override
-    public void setRoot(CompilationUnitTree root) {
-        super.setRoot(root);
     }
 
     @Override

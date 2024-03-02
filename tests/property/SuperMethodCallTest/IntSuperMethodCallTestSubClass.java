@@ -14,26 +14,17 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-import java.util.*;
 import edu.kit.kastel.property.subchecker.lattice.qual.*;
 
-interface MultiInheritanceA {
+public class IntSuperMethodCallTestSubClass extends IntSuperMethodCallTestBaseClass {
+
+    @Override
+    public void foo(IntSuperMethodCallTestSubClass this, @Interval(min="0", max="1") int arg) { }
     
-    @Length(len="1") List foo(@Length(len="0") List a);
-}
+    public void bar(IntSuperMethodCallTestSubClass this) {
+        this.foo(1);
 
-interface MultiInheritanceB {
-    
-    @Length(len="2") List foo(@Length(len="0") List a);
-}
-
-abstract class A implements MultiInheritanceA {
-
-    public abstract @Length(len="1") List foo(@Length(len="0") List a);
-}
-
-abstract class B implements MultiInheritanceA, MultiInheritanceB {
-
-    // :: error: length.override.return.invalid :: error: length.override.param.invalid
-    public abstract @Length(len="1") List foo(@Length(len="0") List a);
+        // :: error: interval.argument.type.incompatible
+        super.foo(1);
+    }
 }

@@ -29,7 +29,7 @@ public final class List {
     @JMLClause("ensures this.head == head && this.tail == tail;")
     @JMLClause("assignable \\nothing;")
     // :: error: length.inconsistent.constructor.type :: error: length.contracts.postcondition.not.satisfied
-    public @Unique @Length(len="n+1") List(int head,  @Length(len="n") List tail, int n) {
+    public @Unique @Length(len="n+1") List(int head, @Nullable @Length(len="n") List tail, int n) {
         this.head = head;
         this.tail = tail;
         this.size = tail == null ? 1 : tail.size + 1;
@@ -47,11 +47,11 @@ public final class List {
             int n
     ) {
         Packing.unpack(this, List.class);
-        if (tail == null) {
+        if (this.tail == null) {
             this.tail = new List(head);
         } else {
-            // :: error: length.argument.type.incompatible :: error: nullness.argument.type.incompatible
-            this.tail = new List(head, tail, n - 1);
+            // :: error: length.argument.type.incompatible
+            this.tail = new List(this.head, this.tail, n - 1);
         }
         this.head = newHead;
         ++this.size;

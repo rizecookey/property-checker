@@ -5,9 +5,12 @@ import edu.kit.kastel.property.packing.qual.*;
 import org.checkerframework.checker.initialization.qual.*;
 import org.checkerframework.dataflow.qual.*;
 
-public class Obj {
+public class BasicPackingA {
 
-    public @NonNull Obj() {
-        Packing.pack(this, Obj.class);
+    @Unique Object aField;
+
+    BasicPackingA() {
+        aField = new Obj();
+        Packing.pack(this, BasicPackingA.class);
     }
 }

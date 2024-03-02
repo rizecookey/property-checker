@@ -14,21 +14,10 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-package edu.kit.kastel.property.subchecker.lattice.case_study_mutable_qual;
+import java.util.*;
+import edu.kit.kastel.property.subchecker.lattice.qual.*;
 
-import org.checkerframework.framework.qual.DefaultFor;
-import org.checkerframework.framework.qual.RelevantJavaTypes;
-import org.checkerframework.framework.qual.SubtypeOf;
-import org.checkerframework.framework.qual.TypeKind;
-
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-
-@RelevantJavaTypes({Object.class})
-@SubtypeOf({NullTop.class})
-@Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.TYPE_USE})
-@DefaultFor(typeKinds = {TypeKind.NULL})
-public @interface Nullable {}
+public interface MultiInheritanceA {
+    
+    @Length(len="1") List foo(@Length(len="0") List a);
+}

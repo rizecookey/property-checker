@@ -48,6 +48,18 @@ public final class ExclusivityAnnotatedTypeFactory
     }
 
     @Override
+    public AnnotationMirror getDefaultStringQualifier() {
+        return MAYBE_ALIASED;
+    }
+
+    @Override
+    public AnnotatedTypeMirror.AnnotatedNullType getAnnotatedNullType(Set<? extends AnnotationMirror> annotations) {
+        AnnotatedTypeMirror.AnnotatedNullType result = super.getAnnotatedNullType(annotations);
+        result.replaceAnnotation(getDefaultPrimitiveQualifier());
+        return result;
+    }
+
+    @Override
     public ExclusivityTransfer createFlowTransferFunction(CFAbstractAnalysis<ExclusivityValue, ExclusivityStore, ExclusivityTransfer> analysis) {
         return new ExclusivityTransfer((ExclusivityAnalysis) analysis, this);
     }

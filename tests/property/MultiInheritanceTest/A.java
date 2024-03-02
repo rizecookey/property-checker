@@ -14,22 +14,10 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+import java.util.*;
 import edu.kit.kastel.property.subchecker.lattice.qual.*;
 
-class BaseClass {
+public abstract class A implements MultiInheritanceA {
 
-    public void foo(BaseClass this, @Interval(min="0", max="0") int arg) { }
-}
-
-class SubClass extends BaseClass {
-
-    @Override
-    public void foo(SubClass this, @Interval(min="0", max="1") int arg) { }
-    
-    public void bar(SubClass this) {
-        this.foo(1);
-
-        // :: error: argument.type.incompatible
-        super.foo(1);
-    }
+    public abstract @Length(len="1") List foo(@Length(len="0") List a);
 }
