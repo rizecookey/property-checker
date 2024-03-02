@@ -66,13 +66,11 @@ public final class ExclusivityAnnotatedTypeFactory
 
     public AnnotationMirror getExclusivityAnnotation(Collection<? extends AnnotationMirror> qualifiers) {
         for (AnnotationMirror qualifier : qualifiers) {
-            try {
-                if (qualHierarchy.isSubtypeQualifiersOnly(qualifier, READ_ONLY)) {
-                    return qualifier;
-                }
-            } catch (BugInCF b) {
-                // Thrown by NoElementQualifierHierarchy::isSubtype if qualifier
-                // is not an exclusivity annotation. Can be ignored.
+            if (AnnotationUtils.areSame(READ_ONLY, qualifier)
+                    || AnnotationUtils.areSame(MAYBE_ALIASED, qualifier)
+                    || AnnotationUtils.areSame(UNIQUE, qualifier)
+                    || AnnotationUtils.areSame(EXCL_BOTTOM, qualifier)) {
+                return qualifier;
             }
         }
         return null;
