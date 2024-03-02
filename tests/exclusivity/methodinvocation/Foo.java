@@ -14,4 +14,6 @@ class Foo {
     }
 
     public void mth(@ReadOnly @NullTop Foo this) {}
+
+    public void mthUnique(@Unique @NullTop Foo this) {}
 }

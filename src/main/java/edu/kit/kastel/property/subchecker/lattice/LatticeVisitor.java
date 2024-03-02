@@ -26,6 +26,7 @@ import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
 import edu.kit.kastel.property.checker.PropertyChecker;
 import edu.kit.kastel.property.lattice.EvaluatedPropertyAnnotation;
 import edu.kit.kastel.property.lattice.Lattice;
+import edu.kit.kastel.property.lattice.PropertyAnnotation;
 import edu.kit.kastel.property.lattice.PropertyAnnotationType;
 import edu.kit.kastel.property.packing.PackingClientStore;
 import edu.kit.kastel.property.packing.PackingClientVisitor;
@@ -300,9 +301,13 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
         if (!success && valueTree instanceof LiteralTree) {
             LiteralTree literal = (LiteralTree) valueTree;
-            EvaluatedPropertyAnnotation epa = getLatticeSubchecker().getTypeFactory().getLattice().getEvaluatedPropertyAnnotation(varType);
+            Lattice lattice = getLatticeSubchecker().getTypeFactory().getLattice();
+            PropertyAnnotation pa = lattice.getPropertyAnnotation(varType);
+            EvaluatedPropertyAnnotation epa = lattice.getEvaluatedPropertyAnnotation(varType);
 
-            if (epa != null) {
+            if (valueType.getUnderlyingType().toString().equals("java.lang.String") && pa.getAnnotationType().isNonNull()) {
+                success = true;
+            } else if (epa != null) {
                 PropertyAnnotationType pat = epa.getAnnotationType();
 
                 Class<?> literalClass = ClassUtils.literalKindToClass(literal.getKind());

@@ -1,14 +1,13 @@
 package edu.kit.kastel.property.subchecker.exclusivity.rules;
 
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnalysis;
+import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityStore;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityValue;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.cfg.node.*;
 import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.framework.type.QualifierHierarchy;
-
-import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 import org.checkerframework.javacutil.AnnotationMirrorSet;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.TreeUtils;
@@ -88,7 +87,7 @@ abstract class AbstractTypeRule<N extends Node> implements TypeRule {
         }
 
         if (checkValidity) {
-            canUpdateType(getAdaptedTypeAnnotation(node), refinedType);
+            canUpdateType(node, refinedType);
         }
 
         if (store != null && analysis != null) {
@@ -109,6 +108,15 @@ abstract class AbstractTypeRule<N extends Node> implements TypeRule {
                 return true;
             default:
                 return TreeUtils.isTypeTree(node.getTree());
+        }
+    }
+
+    protected final void canUpdateType(Node node, AnnotationMirror refinedType)
+            throws RuleNotApplicable {
+        // Local variables have a declared type that's only used to determine what rule to use when assigning to them.
+        // It can be violated.
+        if (!(node instanceof LocalVariableNode)) {
+            canUpdateType(getAdaptedTypeAnnotation(node), refinedType);
         }
     }
 

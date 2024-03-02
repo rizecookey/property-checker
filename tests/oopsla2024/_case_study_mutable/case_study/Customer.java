@@ -7,7 +7,7 @@ import edu.kit.kastel.property.subchecker.lattice.case_study_mutable_qual.*;
 import edu.kit.kastel.property.packing.qual.*;
 import org.checkerframework.checker.initialization.qual.*;
 
-public class Customer {
+public final class Customer {
     
     public final String name;
     public final @Interval(min="14", max="150") int age;

@@ -221,6 +221,9 @@ public class JavaJMLPrinter extends PrettyPrinter {
                                         getPackedCondition(
                                                 propertyFactory.getAnnotatedType(field).getAnnotationInHierarchy(propertyFactory.getInitialized()),
                                                 field.getSimpleName().toString())));
+                                printlnAligned(String.format(
+                                        "//@ public static invariant_free \\invariant_free_for(%s);",
+                                        field.getSimpleName().toString()));
                             } else {
                                 printlnAligned(String.format(
                                         "//@ public invariant_free packed <: %s ==> %s;",
@@ -228,6 +231,9 @@ public class JavaJMLPrinter extends PrettyPrinter {
                                         getPackedCondition(
                                                 propertyFactory.getAnnotatedType(field).getAnnotationInHierarchy(propertyFactory.getInitialized()),
                                                 field.getSimpleName().toString())));
+                                printlnAligned(String.format(
+                                        "//@ public invariant_free \\invariant_free_for(%s);",
+                                        field.getSimpleName().toString()));
                             }
                         }
                     }

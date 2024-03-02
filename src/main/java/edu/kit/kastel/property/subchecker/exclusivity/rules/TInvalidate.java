@@ -1,15 +1,13 @@
 package edu.kit.kastel.property.subchecker.exclusivity.rules;
 
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnalysis;
+import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityStore;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityValue;
 import org.checkerframework.dataflow.cfg.node.Node;
+import org.checkerframework.dataflow.cfg.node.ValueLiteralNode;
 import org.checkerframework.dataflow.expression.JavaExpression;
-
-import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 import org.checkerframework.javacutil.AnnotationMirrorSet;
-
-import java.util.Collections;
 
 public class TInvalidate implements TypeRule {
     protected final ExclusivityStore store;
@@ -24,6 +22,10 @@ public class TInvalidate implements TypeRule {
 
     @Override
     public void apply(Node node) {
+        if (node instanceof ValueLiteralNode) {
+            return;
+        }
+
         ExclusivityValue abstractValue = analysis.createAbstractValue(
                 AnnotationMirrorSet.singleton(factory.EXCL_BOTTOM), node.getType());
         store.replaceValue(JavaExpression.fromNode(node), abstractValue);

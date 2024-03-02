@@ -30,7 +30,6 @@ public class TRefCopyPrimitive extends AssignmentRule {
             throw new RuleNotApplicable(getName(), rhsNode, "not primitive");
         }
 
-        canUpdateType(lhsType, getNewLhsTypeAnnotation());
         updateType(rhsNode, getNewRhsTypeAnnotation());
     }
 

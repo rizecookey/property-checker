@@ -91,6 +91,11 @@ public abstract class PackingClientVisitor<
     }
 
     @Override
+    protected void checkThisConstructorCall(MethodInvocationTree thisCall) {
+        // nothing to do
+    }
+
+    @Override
     protected final void checkConstructorResult(AnnotatedTypeMirror.AnnotatedExecutableType constructorType, ExecutableElement constructorElement) {
         // Explicit constructurs are treated by ::checkExplicitConstructorResult, which is called directly by visitMethod.
         checkImplicitConstructorResult(constructorType, constructorElement);

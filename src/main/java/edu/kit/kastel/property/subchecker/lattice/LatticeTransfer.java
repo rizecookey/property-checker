@@ -16,7 +16,6 @@
  */
 package edu.kit.kastel.property.subchecker.lattice;
 
-import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.MethodTree;
 import edu.kit.kastel.property.packing.PackingClientTransfer;
 import edu.kit.kastel.property.util.Packing;
@@ -28,7 +27,6 @@ import org.checkerframework.dataflow.cfg.node.MethodAccessNode;
 import org.checkerframework.dataflow.cfg.node.MethodInvocationNode;
 import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
-import org.checkerframework.javacutil.AnnotationBuilder;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
 
@@ -69,11 +67,6 @@ public final class LatticeTransfer extends PackingClientTransfer<LatticeValue, L
         }
 
         return super.visitMethodInvocation(node, in);
-    }
-
-    @Override
-    protected void processPostconditions(Node invocationNode, LatticeStore store, ExecutableElement executableElement, ExpressionTree invocationTree) {
-        super.processPostconditions(invocationNode, store, executableElement, invocationTree);
     }
 
     @Override

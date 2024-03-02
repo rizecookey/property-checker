@@ -131,8 +131,10 @@ public abstract class PackingClientTransfer<
             exclFactory = analysis.getTypeFactory().getTypeFactoryOfSubchecker(ExclusivityChecker.class);
         }
 
+        boolean sideEffectFree;
         StringToJavaExpression stringToJavaExpr = null;
         if (invocationNode instanceof MethodInvocationNode) {
+            sideEffectFree = analysis.getTypeFactory().isSideEffectFree(((MethodInvocationNode) invocationNode).getTarget().getMethod());
             stringToJavaExpr =
                     stringExpr ->
                             StringToJavaExpression.atMethodInvocation(
@@ -154,7 +156,11 @@ public abstract class PackingClientTransfer<
                 V receiverDefaultValue = analysis.createAbstractValue(
                         receiverType.getAnnotations(),
                         receiverType.getUnderlyingType());
-                store.insertValue(JavaExpression.fromNode(receiver), receiverDefaultValue);
+                if (sideEffectFree) {
+                    store.insertOrRefine(JavaExpression.fromNode(receiver), receiverDefaultValue.getAnnotations().first());
+                } else {
+                    store.insertValue(JavaExpression.fromNode(receiver), receiverDefaultValue);
+                }
             }
 
             // Set parameter output types to input type by default (unless param is @ReadOnly or primitive).
@@ -166,14 +172,21 @@ public abstract class PackingClientTransfer<
                     V paramDefaultValue = analysis.createAbstractValue(
                             paramType.getAnnotations(),
                             paramType.getUnderlyingType());
-                    store.insertValue(
-                            JavaExpression.fromNode(((MethodInvocationNode) invocationNode).getArgument(i)),
-                            paramDefaultValue);
+                    if (sideEffectFree) {
+                        store.insertOrRefine(
+                                JavaExpression.fromNode(((MethodInvocationNode) invocationNode).getArgument(i)),
+                                paramDefaultValue.getAnnotations().first());
+                    } else {
+                        store.insertValue(
+                                JavaExpression.fromNode(((MethodInvocationNode) invocationNode).getArgument(i)),
+                                paramDefaultValue);
+                    }
                 }
 
                 ++i;
             }
         } else if (invocationNode instanceof ObjectCreationNode) {
+            sideEffectFree = false;
             stringToJavaExpr =
                     stringExpr ->
                             StringToJavaExpression.atConstructorInvocation(
@@ -222,8 +235,8 @@ public abstract class PackingClientTransfer<
                 // This is done because we use postconditions to implement output types for the parameters, which may
                 // be incompatible with the input types. If a parameter has no explicit output type, we use its input
                 // type as default, which is implemented above.
-                if (p.kind == Contract.Kind.CONDITIONALPOSTCONDITION) {
-                    store.insertValue(je, anno);
+                if (sideEffectFree) {
+                    store.insertOrRefine(je, anno);
                 } else {
                     store.insertValue(je, anno);
                 }

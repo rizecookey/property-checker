@@ -7,7 +7,7 @@ import edu.kit.kastel.property.subchecker.lattice.case_study_mutable_qual.*;
 import edu.kit.kastel.property.packing.qual.*;
 import org.checkerframework.checker.initialization.qual.*;
 
-public class Product {
+public final class Product {
     
     public final String title;
     public final @Interval(min="0", max="2147483647") int price;

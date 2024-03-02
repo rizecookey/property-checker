@@ -35,7 +35,7 @@ public class CaseStudyMutableTest extends PropertyCheckerTest {
                         + ",tests/oopsla2024/_case_study_mutable/lattice_okasaki"
                         + ",tests/oopsla2024/_case_study_mutable/lattice_sign",
                 "tests/oopsla2024/_case_study_mutable/",
-                "edu.kit.kastel.property.subchecker.lattice.case_study_qual");
+                "edu.kit.kastel.property.subchecker.lattice.case_study_mutable_qual");
     }
 
     @Parameters

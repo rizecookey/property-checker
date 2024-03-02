@@ -1,24 +1,18 @@
 package edu.kit.kastel.property.subchecker.exclusivity.rules;
 
-import com.sun.source.tree.MethodTree;
-import com.sun.tools.javac.code.Type;
-
 import edu.kit.kastel.property.packing.PackingFieldAccessAnnotatedTypeFactory;
 import edu.kit.kastel.property.packing.PackingFieldAccessSubchecker;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnalysis;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
-
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityStore;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityValue;
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
-import org.checkerframework.dataflow.cfg.node.ExplicitThisNode;
 import org.checkerframework.dataflow.cfg.node.MethodInvocationNode;
 import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.dataflow.cfg.node.ThisNode;
 import org.checkerframework.dataflow.expression.FieldAccess;
 import org.checkerframework.framework.flow.CFValue;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
-import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
 
@@ -26,7 +20,6 @@ import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
-import java.util.List;
 import java.util.Set;
 
 public class TMethodInvocation extends AbstractTypeRule<MethodInvocationNode> {
@@ -71,7 +64,7 @@ public class TMethodInvocation extends AbstractTypeRule<MethodInvocationNode> {
         }*/
 
         // Remove possibly invalidated refinements
-        if (store != null && analysis != null) {
+        if (store != null && analysis != null && !factory.isSideEffectFree(node.getTarget().getMethod())) {
             boolean thisPassedAsArgument = receiverTypeAnno != null &&
                     receiver instanceof ThisNode &&
                     hierarchy.isSubtypeQualifiersOnly(receiverTypeAnno, factory.MAYBE_ALIASED);

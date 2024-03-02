@@ -1,26 +1,28 @@
 package edu.kit.kastel.property.subchecker.exclusivity;
 
-import com.sun.source.tree.*;
-
+import com.sun.source.tree.Tree;
+import com.sun.source.tree.VariableTree;
 import edu.kit.kastel.property.packing.PackingClientAnnotatedTypeFactory;
 import edu.kit.kastel.property.packing.PackingFieldAccessTreeAnnotator;
-import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
-
+import edu.kit.kastel.property.subchecker.exclusivity.qual.ExclBottom;
+import edu.kit.kastel.property.subchecker.exclusivity.qual.MaybeAliased;
+import edu.kit.kastel.property.subchecker.exclusivity.qual.ReadOnly;
+import edu.kit.kastel.property.subchecker.exclusivity.qual.Unique;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.dataflow.cfg.node.*;
 import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.dataflow.expression.Unknown;
-import org.checkerframework.framework.flow.*;
+import org.checkerframework.framework.flow.CFAbstractAnalysis;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
-import org.checkerframework.framework.type.treeannotator.LiteralTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
-import org.checkerframework.javacutil.*;
+import org.checkerframework.javacutil.AnnotationBuilder;
+import org.checkerframework.javacutil.AnnotationMirrorSet;
+import org.checkerframework.javacutil.AnnotationUtils;
 
 import javax.lang.model.element.AnnotationMirror;
-
 import java.util.*;
 
 public final class ExclusivityAnnotatedTypeFactory
@@ -155,7 +157,6 @@ public final class ExclusivityAnnotatedTypeFactory
         List<TreeAnnotator> treeAnnotators = new ArrayList<>(2);
         treeAnnotators.add(new PackingFieldAccessTreeAnnotator(this, false));
         treeAnnotators.add(new ExclusivityPropagationTreeAnnotator(this));
-        treeAnnotators.add(new LiteralTreeAnnotator(this).addStandardLiteralQualifiers());
         if (dependentTypesHelper.hasDependentAnnotations()) {
             treeAnnotators.add(dependentTypesHelper.createDependentTypesTreeAnnotator());
         }

@@ -5,11 +5,15 @@ import edu.kit.kastel.property.packing.qual.*;
 import org.checkerframework.checker.initialization.qual.*;
 import org.checkerframework.dataflow.qual.*;
 
-class Foo {
+public class Foo {
 
     int i;
 
     @NonNull Foo() {
         Packing.pack(this, Foo.class);
     }
+
+    public void mth(@ReadOnly @NullTop Foo this) {}
+
+    public void mthUnique(@Unique Foo this) {}
 }

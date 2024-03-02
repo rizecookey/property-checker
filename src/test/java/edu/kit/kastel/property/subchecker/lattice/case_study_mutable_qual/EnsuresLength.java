@@ -9,14 +9,17 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD, ElementType.CONSTRUCTOR})
 @InheritedAnnotation
-@PostconditionAnnotation(qualifier =  edu.kit.kastel.property.subchecker.lattice.qual.Length.class)
+@PostconditionAnnotation(qualifier = Length.class)
 @Repeatable(EnsuresLength.List.class)
 public @interface EnsuresLength {
 
     String[] value() default {"this"};
 
-    @QualifierArgument("len")
-    String len();
+    @QualifierArgument("min")
+    String min();
+
+    @QualifierArgument("max")
+    String max();
 
     @Documented
     @Retention(RetentionPolicy.RUNTIME)

@@ -7,35 +7,32 @@ import edu.kit.kastel.property.subchecker.lattice.case_study_mutable_qual.*;
 import edu.kit.kastel.property.packing.qual.*;
 import org.checkerframework.checker.initialization.qual.*;
 
-public class Shop {
+public final class Shop {
     
-    public static Shop instance = new Shop();
+    private @Unique @Okasaki Queue orders;
 
-    @JMLClauseTranslationOnly("ensures \\result == instance;")
-    @JMLClauseTranslationOnly("assignable \\nothing;")
-    public static Shop getInstance() {
-        return instance;
-    }
-    
-    private @Okasaki Queue orders;
-
-    private Shop() {
+    public Shop() {
         this.orders = new Queue();
         Packing.pack(this, Shop.class);
     }
 
     @JMLClauseTranslationOnly("assignable this.orders;")
-    public void addOrder(Shop this, Order order) {
+    public void addOrder(@Unique Shop this, Order order) {
+        Packing.unpack(this, Shop.class);
         this.orders.insert(order);
         this.orders.toOkasaki();
+        Packing.pack(this, Shop.class);
     }
 
-    public boolean processNextOrder(Shop this) {
+    public boolean processNextOrder(@Unique Shop this) {
+        Packing.unpack(this, Shop.class);
         if (this.orders.size() > 0) {
             this.orders.removeIfPresent();
             this.orders.toOkasaki();
+            Packing.pack(this, Shop.class);
             return true;
         } else {
+            Packing.pack(this, Shop.class);
             return false;
         }
     }

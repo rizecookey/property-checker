@@ -39,8 +39,8 @@ class ReferenceSplitting {
 
         x = new Foo();  // x is refined to @Unique
         a = x;          // x is updated to @ReadOnly
+        x.mth();          // valid, x is not @ExclBottom
         // :: error: exclusivity.type.invalidated
-        b = x;          // invalid, x is not @Unique anymore
-        c = x;          // valid, x is not @ExclBottom
+        x.mthUnique();          // invalid, x is not @Unique anymore
     }
 }

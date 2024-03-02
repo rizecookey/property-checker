@@ -17,7 +17,6 @@
 package edu.kit.kastel.property.subchecker.lattice.case_study_mutable_qual;
 
 import org.checkerframework.framework.qual.DefaultFor;
-import org.checkerframework.framework.qual.RelevantJavaTypes;
 import org.checkerframework.framework.qual.SubtypeOf;
 import org.checkerframework.framework.qual.TypeKind;
 
@@ -26,9 +25,9 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@RelevantJavaTypes({Object.class})
-@SubtypeOf({NullTop.class})
+@DefaultFor(
+        typeKinds = {TypeKind.BOOLEAN, TypeKind.BYTE, TypeKind.CHAR, TypeKind.DOUBLE, TypeKind.FLOAT, TypeKind.INT, TypeKind.LONG, TypeKind.NULL})
+@SubtypeOf({})
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE_USE})
-@DefaultFor(typeKinds = {TypeKind.NULL})
 public @interface Nullable {}

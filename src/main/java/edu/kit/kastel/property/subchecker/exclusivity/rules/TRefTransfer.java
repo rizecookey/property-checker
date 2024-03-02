@@ -19,9 +19,8 @@ public class TRefTransfer extends AssignmentRule {
         checkRhsTypeAnno(rhsNode);
 
         if (hierarchy.isSubtypeQualifiersOnly(getRefinedTypeAnnotation(rhsNode), factory.UNIQUE)
-                && !hierarchy.isSubtypeQualifiersOnly(getUnadaptedTypeAnnotation(lhsNode), factory.MAYBE_ALIASED)) {
-            // Apply TRefCopyRo instead
-            throw new RuleNotApplicable(getName(), rhsNode, "copy as ReadOnly instead of transferring");
+                && !hierarchy.isSubtypeQualifiersOnly(getUnadaptedTypeAnnotation(lhsNode), factory.UNIQUE)) {
+            throw new RuleNotApplicable(getName(), rhsNode, "split or copy-ro instead");
         }
 
         updateType(lhsNode, getNewLhsTypeAnnotation());
@@ -33,9 +32,8 @@ public class TRefTransfer extends AssignmentRule {
         checkRhsTypeAnno(rhsNode);
 
         if (hierarchy.isSubtypeQualifiersOnly(getRefinedTypeAnnotation(rhsNode), factory.UNIQUE)
-                && !hierarchy.isSubtypeQualifiersOnly(lhsType, factory.MAYBE_ALIASED)) {
-            // Apply TRefCopyRo instead
-            throw new RuleNotApplicable(getName(), rhsNode, "copy as ReadOnly instead of transferring");
+                && !hierarchy.isSubtypeQualifiersOnly(lhsType, factory.UNIQUE)) {
+            throw new RuleNotApplicable(getName(), rhsNode, "split or copy-ro instead");
         }
 
         canUpdateType(lhsType, getNewLhsTypeAnnotation());

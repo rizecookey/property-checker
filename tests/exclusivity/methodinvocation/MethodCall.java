@@ -15,43 +15,45 @@ final class MethodCall {
 
     void mthRO(@UnknownInitialization @ReadOnly @NullTop MethodCall this) {}
 
-    void mthUnique(@UnknownInitialization @Unique MethodCall this) {}
+    void mthUnique(@UnknownInitialization @Unique @NullTop MethodCall this) {}
 
-    void mthMA(@UnknownInitialization @MaybeAliased MethodCall this) {}
+    void mthMA(@UnknownInitialization @MaybeAliased @NullTop MethodCall this) {}
 
-    void mthParam(@UnknownInitialization @MaybeAliased MethodCall this, @UnknownInitialization @MaybeAliased Foo arg) {}
+    void mthParam(@UnknownInitialization @MaybeAliased @NullTop MethodCall this, @UnknownInitialization @MaybeAliased @NullTop Foo arg) {}
 
-    @Unique Foo mthret(@MaybeAliased MethodCall this) {
+    @Unique Foo mthret(@MaybeAliased @NullTop MethodCall this) {
         return new Foo();
     }
 
     @EnsuresUnknownInit(targetValue=Object.class)
-    void invoke(@MaybeAliased MethodCall this) {
+    void invoke(@MaybeAliased @NullTop MethodCall this) {
         @ReadOnly Foo x;
         @Unique Foo a;
         x = new Foo();   // x is refined to @Unique
+        x.mthUnique();
         this.mthParam(x);     // x is refined to @MaybeAliased
-        // :: error: exclusivity.type.invalidated
-        a = x;           // invalid, x is not @Unique anymore
+        // :: error: exclusivity.type.invalidated :: error: packing.method.invocation.invalid
+        x.mthUnique();     // invalid, x is not @Unique anymore
     }
 
     // :: error: exclusivity.postcondition.not.satisfied
-    void invokeAssign(@Unique MethodCall this) {
+    void invokeAssign(@Unique @NullTop MethodCall this) {
         @Unique Foo b;
         b = this.mthret();
     }
 
-    void invalidate1(@Unique MethodCall this) {
+    void invalidate1(@Unique @NullTop MethodCall this) {
         Packing.unpack(this, MethodCall.class);
         @Unique Foo a;
         this.field = new Foo(); // field is refined to @Unique
+        this.field.mthUnique();
         this.mthUnique();
         // :: error: exclusivity.type.invalidated
-        a = this.field; // invalid, refinement of field has been forgotten
+        this.field.mthUnique(); // invalid, refinement of field has been forgotten
         Packing.pack(this, MethodCall.class);
     }
 
-    void dontInvalidate(@Unique MethodCall this) {
+    void dontInvalidate(@Unique @NullTop MethodCall this) {
         Packing.unpack(this, MethodCall.class);
         @Unique Foo recv = new Foo();
         @Unique Foo a;
