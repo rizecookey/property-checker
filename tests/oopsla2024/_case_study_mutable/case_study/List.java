@@ -67,7 +67,6 @@ public final class List {
         Packing.pack(this, List.class);
     }
 
-    @JMLClause("assignable this.*;")
     @EnsuresReadOnly(value="#1")
     @EnsuresLength(value="this", min="n+l", max="m+k")
     // :: error: length.contracts.postcondition.not.satisfied
@@ -81,11 +80,20 @@ public final class List {
         if (tail == null) {
             this.tail = other;
         } else {
-            // :: error: length.method.invocation.invalid :: error: nullness.method.invocation.invalid :: error: length.argument.type.incompatible :: error: sign.argument.type.incompatible
-            this.tail.appendBack(other, n - 1 >= 0 ? n - 1 : 0, m - 1 >= 0 ? m - 1 : 0, l, k);
+            // :: error: length.method.invocation.invalid :: error: nullness.method.invocation.invalid :: error: length.argument.type.incompatible
+            this.tail.appendBack(other, clampTo0(n), clampTo0(m), l, k);
         }
         // :: error: initialization.fields.uninitialized
         Packing.pack(this, List.class);
+    }
+
+
+    @JMLClause("ensures i >= 0 ==> \\result == i;")
+    @JMLClause("ensures i <= 0 ==> \\result == 0;")
+    @JMLClause("assignable \\strictly_nothing;") @Pure
+    private static @NonNegative int clampTo0(int i) {
+        // :: error: sign.return.type.incompatible
+        return i >= 0 ? i : 0;
     }
 
     @JMLClause("ensures \\result == this.head;")

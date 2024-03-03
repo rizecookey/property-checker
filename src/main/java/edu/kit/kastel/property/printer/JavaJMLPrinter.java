@@ -37,6 +37,9 @@ import edu.kit.kastel.property.lattice.Checkable;
 import edu.kit.kastel.property.lattice.Lattice;
 import edu.kit.kastel.property.lattice.PropertyAnnotation;
 import edu.kit.kastel.property.lattice.PropertyAnnotationType;
+import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
+import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
+import edu.kit.kastel.property.subchecker.exclusivity.qual.Unique;
 import edu.kit.kastel.property.subchecker.lattice.LatticeAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.lattice.LatticeVisitor;
 import edu.kit.kastel.property.util.TypeUtils;
@@ -56,6 +59,7 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static com.sun.tools.javac.code.Flags.*;
 import static com.sun.tools.javac.tree.JCTree.Tag.SELECT;
@@ -87,6 +91,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
 
     protected List<LatticeVisitor.Result> results;
     protected PropertyAnnotatedTypeFactory propertyFactory;
+    protected ExclusivityAnnotatedTypeFactory exclFactory;
     
     protected int assertions = 0;
     protected int assumptions = 0;
@@ -107,6 +112,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
         super(out, true);
         this.results = results;
         this.propertyFactory = propertyChecker.getPropertyFactory();
+        this.exclFactory = propertyFactory.getTypeFactoryOfSubchecker(ExclusivityChecker.class);
         
         String translationOnlyOption = propertyChecker.getOption(Config.TRANSLATION_ONLY_OPTION);
         
@@ -206,37 +212,67 @@ public class JavaJMLPrinter extends PrettyPrinter {
 
                 println();
 
-                for (LatticeVisitor.Result wellTypedness : results) {
-                    Lattice lattice = wellTypedness.getLattice();
+                List<VariableElement> allFields = enclClass.type == null
+                        ? List.of()
+                        : ElementFilter.fieldsIn(TypesUtils.getTypeElement(enclClass.type).getEnclosedElements());
 
-                    List<VariableElement> allFields = enclClass.type == null
-                            ? List.of()
-                            : ElementFilter.fieldsIn(TypesUtils.getTypeElement(enclClass.type).getEnclosedElements());
-                    for (VariableElement field : allFields) {
-                        if (!field.asType().getKind().isPrimitive()) {
+                getJMLClauseValues(enclClass.sym).forEach(this::printlnAligned);
+                if (TRANSLATION_RAW) {
+                    getJMLClauseValuesTranslationOnly(enclClass.sym).forEach(this::printlnAligned);
+                }
+
+                for (VariableElement field : allFields) {
+                    if (!field.asType().getKind().isPrimitive()) {
+                        if (ElementUtils.isStatic(field)) {
+                            printlnAligned(String.format(
+                                    "//@ public static invariant_free packed <: %s ==> %s;",
+                                    containingClassName,
+                                    getPackedCondition(
+                                            propertyFactory.getAnnotatedType(field).getAnnotationInHierarchy(propertyFactory.getInitialized()),
+                                            field.getSimpleName().toString())));
+                            printlnAligned(String.format(
+                                    "//@ public static invariant_free \\invariant_free_for(%s);",
+                                    field.getSimpleName().toString()));
+                        } else {
+                            printlnAligned(String.format(
+                                    "//@ public invariant_free packed <: %s ==> %s;",
+                                    containingClassName,
+                                    getPackedCondition(
+                                            propertyFactory.getAnnotatedType(field).getAnnotationInHierarchy(propertyFactory.getInitialized()),
+                                            field.getSimpleName().toString())));
+                            printlnAligned(String.format(
+                                    "//@ public invariant_free \\invariant_free_for(%s);",
+                                    field.getSimpleName().toString()));
+                        }
+                    }
+                }
+
+                for (VariableElement field : allFields) {
+                    if (!field.asType().getKind().isPrimitive() && exclFactory.getAnnotatedType(field).hasAnnotation(Unique.class)) {
+                        List<VariableElement> otherFields = allFields.stream()
+                                .filter(f -> !f.asType().getKind().isPrimitive())
+                                .filter(f -> ElementUtils.isStatic(f) || !ElementUtils.isStatic(field))
+                                .filter(f -> !f.getSimpleName().equals(field.getSimpleName()))
+                                .collect(Collectors.toList());
+
+                        StringJoiner sj = new StringJoiner(" && ");
+                        otherFields.forEach(f -> sj.add(String.format("%s != %s", field.getSimpleName(), f.getSimpleName())));
+
+                        if (sj.length() != 0) {
                             if (ElementUtils.isStatic(field)) {
-                                printlnAligned(String.format(
-                                        "//@ public static invariant_free packed <: %s ==> %s;",
-                                        containingClassName,
-                                        getPackedCondition(
-                                                propertyFactory.getAnnotatedType(field).getAnnotationInHierarchy(propertyFactory.getInitialized()),
-                                                field.getSimpleName().toString())));
-                                printlnAligned(String.format(
-                                        "//@ public static invariant_free \\invariant_free_for(%s);",
-                                        field.getSimpleName().toString()));
+                                printlnAligned(String.format("//@ public static invariant_free %s;", sj));
                             } else {
                                 printlnAligned(String.format(
                                         "//@ public invariant_free packed <: %s ==> %s;",
                                         containingClassName,
-                                        getPackedCondition(
-                                                propertyFactory.getAnnotatedType(field).getAnnotationInHierarchy(propertyFactory.getInitialized()),
-                                                field.getSimpleName().toString())));
-                                printlnAligned(String.format(
-                                        "//@ public invariant_free \\invariant_free_for(%s);",
-                                        field.getSimpleName().toString()));
+                                        sj));
                             }
                         }
                     }
+                }
+
+                for (LatticeVisitor.Result wellTypedness : results) {
+                    Lattice lattice = wellTypedness.getLattice();
 
                     for (LatticeVisitor.Invariant invariant : wellTypedness.getStaticInvariants(containingClassName)) {
                         PropertyAnnotation pa = lattice.getPropertyAnnotation(invariant.getType());
@@ -323,6 +359,48 @@ public class JavaJMLPrinter extends PrettyPrinter {
                     if (!tree.getParameters().get(i).type.getKind().isPrimitive()) {
                         jmlContract.addClause(String.format("requires_free %s;", getPackedCondition(inputPackingTypes.get(i + 1), paramNames.get(i))));
                         jmlContract.addClause(String.format("ensures_free %s;", getPackedCondition(outputPackingTypes.get(i + 1), paramNames.get(i))));
+                    }
+                }
+            }
+
+            {
+                AnnotatedExecutableType exclMethodType = exclFactory.getAnnotatedType(tree);
+
+                {
+                    AnnotatedTypeMirror recvType = exclMethodType.getReceiverType();
+                    if (recvType != null && recvType.hasAnnotation(Unique.class)) {
+
+                        List<String> otherParams = IntStream.range(0, paramNames.size())
+                                .filter(j -> !exclMethodType.getParameterTypes().get(j).getKind().isPrimitive())
+                                .mapToObj(j -> paramNames.get(j))
+                                .collect(Collectors.toList());
+
+                        StringJoiner sj = new StringJoiner(" && ");
+                        otherParams.forEach(p -> sj.add(String.format("this != %s", p)));
+
+                        if (sj.length() != 0) {
+                            jmlContract.addClause(String.format("requires_free %s;", sj));
+                        }
+                    }
+                }
+
+                for (int i = 0; i < exclMethodType.getParameterTypes().size(); ++i) {
+                    AnnotatedTypeMirror paramType = exclMethodType.getParameterTypes().get(i);
+                    String paramName = paramNames.get(i);
+                    if (!paramType.getKind().isPrimitive() && paramType.hasAnnotation(Unique.class)) {
+
+                        List<String> otherParams = IntStream.range(0, paramNames.size())
+                                .filter(j -> !exclMethodType.getParameterTypes().get(j).getKind().isPrimitive())
+                                .filter(j -> !paramNames.get(j).equals(paramName))
+                                .mapToObj(j -> paramNames.get(j))
+                                .collect(Collectors.toList());
+
+                        StringJoiner sj = new StringJoiner(" && ");
+                        otherParams.forEach(p -> sj.add(String.format("%s != %s", paramName, p)));
+
+                        if (sj.length() != 0) {
+                            jmlContract.addClause(String.format("requires_free %s;", sj));
+                        }
                     }
                 }
             }
@@ -614,10 +692,18 @@ public class JavaJMLPrinter extends PrettyPrinter {
                 AssertionSequence assertionsSeq = new AssertionSequence();
 
                 println();
+
+                List<VariableElement> allFields = enclClass.type == null
+                        ? List.of()
+                        : ElementFilter.fieldsIn(TypesUtils.getTypeElement(enclClass.type).getEnclosedElements());
+                for (VariableElement field : allFields) {
+                    if (!field.asType().getKind().isPrimitive()) {
+                        printlnAligned(String.format(
+                                "//@ assume \\invariant_free_for(%s);",
+                                field.getSimpleName()));
+                    }
+                }
                 for (LatticeVisitor.Result result : results) {
-                    List<VariableElement> allFields = enclClass.type == null
-                            ? List.of()
-                            : ElementFilter.fieldsIn(TypesUtils.getTypeElement(enclClass.type).getEnclosedElements());
                     List<VariableElement> uninitFields = result.getUninitializedFields(tree);
                     for (VariableElement field : allFields) {
                         if (!field.asType().getKind().isPrimitive()) {
@@ -1032,7 +1118,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
         }
 
         if (isConstructor(tree)) {
-            jmlContract.addClause("ensures \\result != null && \\fresh(\\result);");
+            jmlContract.addClause("ensures \\result != null && \\fresh(\\result) && \\invariant_free_for(\\result);");
         }
 
         ExecutableElement element = propertyFactory.getAnnotatedType(tree).getElement();
@@ -1204,7 +1290,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
     }
     
     @SuppressWarnings("unchecked")
-    protected List<String> getJMLClauseValues(ExecutableElement element) {
+    protected List<String> getJMLClauseValues(Element element) {
         AnnotationMirror jmlClauses = propertyFactory.getDeclAnnotation(element, JMLClauses.class);
         AnnotationMirror jmlClause = propertyFactory.getDeclAnnotation(element, JMLClause.class);
         
@@ -1223,7 +1309,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
     }
     
     @SuppressWarnings("unchecked")
-    protected List<String> getJMLClauseValuesTranslationOnly(ExecutableElement element) {
+    protected List<String> getJMLClauseValuesTranslationOnly(Element element) {
         AnnotationMirror jmlClauses = propertyFactory.getDeclAnnotation(element, JMLClausesTranslationOnly.class);
         AnnotationMirror jmlClause = propertyFactory.getDeclAnnotation(element, JMLClauseTranslationOnly.class);
         

@@ -16,7 +16,6 @@ public final class Shop {
         Packing.pack(this, Shop.class);
     }
 
-    @JMLClauseTranslationOnly("assignable this.orders;")
     public void addOrder(@Unique Shop this, Order order) {
         Packing.unpack(this, Shop.class);
         this.orders.insert(order);

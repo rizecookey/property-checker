@@ -31,7 +31,6 @@ public final class Queue {
     }
 
     @JMLClause("ensures \\old(this.front) != null || \\old(this.back) != null ==> this.front != null;")
-    @JMLClause("assignable this.*;")
     @EnsuresOkasaki("this")
     // :: error: okasaki.contracts.postcondition.not.satisfied
     private void rotate(
@@ -69,7 +68,6 @@ public final class Queue {
 
 
     @JMLClause("ensures \\old(this.front) != null || \\old(this.back) != null ==> this.front != null;")
-    @JMLClause("assignable this.*;")
     @EnsuresOkasaki("this")
     // :: error: okasaki.contracts.postcondition.not.satisfied
     public void toOkasaki(@Unique Queue this) {
