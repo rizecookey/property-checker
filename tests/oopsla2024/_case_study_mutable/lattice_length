@@ -18,7 +18,7 @@ ident length;
 annotation UnknownLength() any :<==> "true" for "true";
 annotation BottomLength() any :<==> "false" for "true";
 
-annotation Length(int min, int max) case_study.List
+annotation Length(int min, int max) case_study.Node
     :<==> "(§subject§ == null && §min§ <= 0 && §max§ >= 0) || (§subject§ != null && §subject§.size >= §min§ && §subject§.size <= §max§)"
     for "§min§ >= 0 && §min§ <= §max§";
 

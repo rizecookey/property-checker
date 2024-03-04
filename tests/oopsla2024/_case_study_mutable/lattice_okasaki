@@ -19,15 +19,15 @@ annotation TopOkasaki() any :<==> "true" for "true";
 annotation BottomOkasaki() any :<==> "false" for "true";
 
 annotation Okasaki() case_study.Queue
-    :<==> "§subject§ != null && (§subject§.back == null || (§subject§.front != null && §subject§.front.size >= §subject§.back.size))"
+    :<==> "§subject§ != null && §subject§.front != null && §subject§.back != null && §subject§.front.size >= §subject§.back.size"
     for "true";
 
 annotation FrontNonEmpty() case_study.Queue
-    :<==> "§subject§ != null && §subject§.front != null"
+    :<==> "§subject§ != null && §subject§.front != null && §subject§.front.size > 0"
     for "true";
 
 annotation OkasakiNonEmpty() case_study.Queue
-    :<==> "§subject§ != null && §subject§.front != null && (§subject§.back == null || (§subject§.front != null && §subject§.front.size >= §subject§.back.size))"
+    :<==> "§subject§ != null && §subject§.front != null && §subject§.back != null && §subject§.front.size >= §subject§.back.size && §subject§.front.size > 0"
     for "true";
 
 relation FrontNonEmpty() <: TopOkasaki() :<==> "true";

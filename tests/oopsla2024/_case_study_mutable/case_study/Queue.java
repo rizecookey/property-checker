@@ -10,92 +10,93 @@ import org.checkerframework.dataflow.qual.*;
 
 public final class Queue {
     
-    public @Unique @Nullable List front;
-    public @Unique @Nullable List back;
+    public @Unique List front;
+    public @Unique List back;
+    public @Unique List acc;
 
-    @JMLClause("ensures this.front == null && this.back == null;")
+    @JMLClause("ensures \\fresh(this.front) && \\fresh(this.back) && \\fresh(this.acc);")
     @JMLClause("assignable \\nothing;")
     // :: error: okasaki.inconsistent.constructor.type
     public @Okasaki Queue() {
-        this(null, null);
+        this(new List(), new List());
     }
 
-    @JMLClause("ensures this.front == front && this.back == back;")
+    @JMLClause("ensures this.front == front && this.back == back && \\fresh(this.acc);")
     @JMLClause("assignable \\nothing;")
     @EnsuresReadOnly(value="#1")
     @EnsuresReadOnly(value="#2")
-    public Queue(@Unique @Nullable List front, @Unique @Nullable List back) {
+    public Queue(@Unique List front, @Unique List back) {
         this.front = front;
         this.back = back;
+        this.acc = new List();
         Packing.pack(this, Queue.class);
     }
 
-    @JMLClause("ensures \\old(this.front) != null || \\old(this.back) != null ==> this.front != null;")
+    @JMLClause("ensures \\old(this.front).size > 0 || \\old(this.back).size > 0 ==> this.front.size > 0;")
     @EnsuresOkasaki("this")
     // :: error: okasaki.contracts.postcondition.not.satisfied
     private void rotate(
             @Unique Queue this) {
-        Packing.unpack(this, Queue.class);
+        if (this.front.size() == 0 && this.back.size() == 0) {
+            Packing.unpack(this, Queue.class);
+            this.front = this.acc;
+            this.back = new List();
+            this.acc = new List();
+            Packing.pack(this, Queue.class);
+        } else if (this.front.size() == 0) {
+            Packing.unpack(this, Queue.class);
+            this.acc.insertFront(this.back.removeFront(this.back.size()));
+            Packing.pack(this, Queue.class);
 
-        @Unique List acc = null;
-        while (this.back != null) {
-            if (acc == null) {
-                // :: error: nullness.method.invocation.invalid
-                Object backHead = this.back.getHead();
-                acc = new List(backHead);
-            } else {
-                // :: error: nullness.method.invocation.invalid
-                int accSize = acc.size();
-                // :: error: nullness.method.invocation.invalid
-                Object backHead = this.back.getHead();
-                // :: error: length.method.invocation.invalid
-                acc.insertFront(backHead, accSize, accSize);
-            }
-            this.back = this.back.stealTail();
+            rotate();
+        } else if (this.back.size() == 0) {
+            Packing.unpack(this, Queue.class);
+            Object h = this.front.removeFront(this.front.size());
+            Packing.pack(this, Queue.class);
+
+            rotate();
+
+            Packing.unpack(this, Queue.class);
+            this.front.insertFront(h);
+            Packing.pack(this, Queue.class);
+        } else {
+            Packing.unpack(this, Queue.class);
+            Object h = this.front.removeFront(this.front.size());
+            this.acc.insertFront(this.back.removeFront(this.back.size()));
+            Packing.pack(this, Queue.class);
+
+            rotate();
+
+            Packing.unpack(this, Queue.class);
+            this.front.insertFront(h);
+            Packing.pack(this, Queue.class);
         }
-
-        // :: error: nullness.method.invocation.invalid
-        int frontSize = this.front.size();
-        if (acc != null) {
-            // :: error: nullness.method.invocation.invalid
-            int accSize = acc.size();
-            // :: error: length.method.invocation.invalid :: error: length.argument.type.incompatible
-            this.front.appendBack(acc, frontSize, frontSize, accSize, accSize);
-        }
-
-        Packing.pack(this, Queue.class);
     }
 
-
-    @JMLClause("ensures \\old(this.front) != null || \\old(this.back) != null ==> this.front != null;")
+    @JMLClause("ensures \\old(this.front).size > 0 || \\old(this.back).size > 0 ==> this.front.size > 0;")
     @EnsuresOkasaki("this")
     // :: error: okasaki.contracts.postcondition.not.satisfied
     public void toOkasaki(@Unique Queue this) {
-        if (this.back == null) {
+        if (this.back.size() == 0) {
             return;
         }
 
-        if (this.front != null) {
-            // :: error: nullness.method.invocation.invalid
-            int f = this.front.size();
-            // :: error: nullness.method.invocation.invalid
-            int b = this.back.size();
-            if (f >= b) {
-                return;
-            }
+        // :: error: nullness.method.invocation.invalid
+        int f = this.front.size();
+        // :: error: nullness.method.invocation.invalid
+        int b = this.back.size();
+        if (f >= b) {
+            return;
         }
 
         this.rotate();
     }
 
-    @JMLClause("ensures this.front == null && this.back == null ==> \\result == 0;")
-    @JMLClause("ensures this.front == null && this.back != null ==> \\result == this.back.size;")
-    @JMLClause("ensures this.front != null && this.back == null ==> \\result == this.front.size;")
-    @JMLClause("ensures this.front != null && this.back != null ==> \\result == this.front.size + this.back.size;")
+    @JMLClause("ensures \\result == this.front.size + this.back.size;")
     @JMLClause("assignable \\strictly_nothing;") @Pure
     public @NonNegative int size(@Unique Queue this) {
         // :: error: sign.return.type.incompatible
-        return List.size(this.front) + List.size(this.back);
+        return this.front.size() + this.back.size();
     }
 
     @JMLClause("assignable \\strictly_nothing;") @Pure
@@ -114,15 +115,15 @@ public final class Queue {
     @EnsuresTopOkasaki("this")
     public void remove(@Unique @FrontNonEmpty Queue this) {
         Packing.unpack(this, Queue.class);
-        // :: error: nullness.method.invocation.invalid
-        this.front = this.front.stealTail();
+        // :: error: length.method.invocation.invalid
+        this.front.removeFront(this.front.size());
         Packing.pack(this, Queue.class);
     }
 
     @JMLClause("assignable this.front;")
     public void removeIfPresent(@Unique Queue this) {
         if (this.size() > 0) {
-            if (this.front == null) {
+            if (this.front.size() < this.back.size()) {
                 this.toOkasaki();
             }
             // :: error: okasaki.method.invocation.invalid
