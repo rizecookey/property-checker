@@ -41,24 +41,12 @@ import java.util.Set;
 
 public final class LatticeStore extends PackingClientStore<LatticeValue, LatticeStore> {
 
-	private final boolean assumeSideEffectFree;
-
-	private final boolean assumePureGetters;
-
 	public LatticeStore(CFAbstractAnalysis<LatticeValue, LatticeStore, ?> analysis, boolean sequentialSemantics) {
 		super(analysis, sequentialSemantics);
-		assumeSideEffectFree =
-				analysis.getTypeFactory().getChecker().hasOption("assumeSideEffectFree")
-						|| analysis.getTypeFactory().getChecker().hasOption("assumePure");
-		assumePureGetters = analysis.getTypeFactory().getChecker().hasOption("assumePureGetters");
 	}
 
 	public LatticeStore(LatticeStore other) {
 		super(other);
-		assumeSideEffectFree =
-				analysis.getTypeFactory().getChecker().hasOption("assumeSideEffectFree")
-						|| analysis.getTypeFactory().getChecker().hasOption("assumePure");
-		assumePureGetters = analysis.getTypeFactory().getChecker().hasOption("assumePureGetters");
 	}
 
 	@Override

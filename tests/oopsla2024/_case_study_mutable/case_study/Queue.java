@@ -17,7 +17,7 @@ public final class Queue {
     @JMLClause("ensures \\fresh(this.front) && \\fresh(this.back) && \\fresh(this.acc);")
     @JMLClause("assignable \\nothing;")
     // :: error: okasaki.inconsistent.constructor.type
-    public @Okasaki Queue() {
+    public  @Okasaki Queue() {
         this(new List(), new List());
     }
 
@@ -33,47 +33,61 @@ public final class Queue {
     }
 
     @JMLClause("ensures \\old(this.front).size > 0 || \\old(this.back).size > 0 ==> this.front.size > 0;")
+    @JMLClause("ensures \\old(this.front).size + \\old(this.back).size == this.front.size + this.back.size;")
     @EnsuresOkasaki("this")
     // :: error: okasaki.contracts.postcondition.not.satisfied
     private void rotate(
             @Unique Queue this) {
-        if (this.front.size() == 0 && this.back.size() == 0) {
+        @NonNegative int frontSize = this.front.size();
+        @NonNegative int backSize = this.back.size();
+        if (frontSize == 0 && backSize == 0) {
             Packing.unpack(this, Queue.class);
             this.front = this.acc;
             this.back = new List();
             this.acc = new List();
             Packing.pack(this, Queue.class);
-        } else if (this.front.size() == 0) {
+        } else if (frontSize == 0) {
             Packing.unpack(this, Queue.class);
-            this.acc.insertFront(this.back.removeFront(this.back.size()));
+            // :: error: length.method.invocation.invalid :: error: sign.argument.type.incompatible
+            Object backHead = this.back.removeFront(backSize, backSize);
+            // :: error: length.method.invocation.invalid :: error: sign.argument.type.incompatible
+            this.acc.insertFront(backHead, frontSize, frontSize);
             Packing.pack(this, Queue.class);
 
-            rotate();
-        } else if (this.back.size() == 0) {
+            this.rotate();
+        } else if (backSize == 0) {
             Packing.unpack(this, Queue.class);
-            Object h = this.front.removeFront(this.front.size());
+            // :: error: length.method.invocation.invalid :: error: sign.argument.type.incompatible
+            Object h = this.front.removeFront(frontSize, frontSize);
             Packing.pack(this, Queue.class);
 
-            rotate();
+            this.rotate();
 
             Packing.unpack(this, Queue.class);
-            this.front.insertFront(h);
+            // :: error: length.method.invocation.invalid :: error: sign.argument.type.incompatible
+            this.front.insertFront(h, frontSize - 1, frontSize - 1);
             Packing.pack(this, Queue.class);
         } else {
             Packing.unpack(this, Queue.class);
-            Object h = this.front.removeFront(this.front.size());
-            this.acc.insertFront(this.back.removeFront(this.back.size()));
+            // :: error: length.method.invocation.invalid :: error: sign.argument.type.incompatible
+            Object h = this.front.removeFront(frontSize, frontSize);
+            // :: error: length.method.invocation.invalid :: error: sign.argument.type.incompatible
+            Object backHead = this.back.removeFront(backSize, backSize);
+            // :: error: length.method.invocation.invalid :: error: sign.argument.type.incompatible
+            this.acc.insertFront(backHead, frontSize - 1, frontSize - 1);
             Packing.pack(this, Queue.class);
 
-            rotate();
+            this.rotate();
 
             Packing.unpack(this, Queue.class);
-            this.front.insertFront(h);
+            // :: error: length.method.invocation.invalid :: error: sign.argument.type.incompatible
+            this.front.insertFront(h, frontSize, frontSize);
             Packing.pack(this, Queue.class);
         }
     }
 
     @JMLClause("ensures \\old(this.front).size > 0 || \\old(this.back).size > 0 ==> this.front.size > 0;")
+    @JMLClause("ensures \\old(this.front).size + \\old(this.back).size == this.front.size + this.back.size;")
     @EnsuresOkasaki("this")
     // :: error: okasaki.contracts.postcondition.not.satisfied
     public void toOkasaki(@Unique Queue this) {
@@ -81,9 +95,7 @@ public final class Queue {
             return;
         }
 
-        // :: error: nullness.method.invocation.invalid
         int f = this.front.size();
-        // :: error: nullness.method.invocation.invalid
         int b = this.back.size();
         if (f >= b) {
             return;
@@ -101,26 +113,27 @@ public final class Queue {
 
     @JMLClause("assignable \\strictly_nothing;") @Pure
     public Object peekUnique(@Unique @FrontNonEmpty Queue this) {
-        // :: error: nullness.method.invocation.invalid
-        return this.front.getHead();
+        int frontSize = this.front.size();
+        // :: error: length.method.invocation.invalid :: error: sign.argument.type.incompatible
+        return this.front.getHead(frontSize, frontSize);
     }
 
     @JMLClause("assignable \\strictly_nothing;") @Pure
     public Object peekMaybeAliased(@MaybeAliased @FrontNonEmpty Queue this) {
-        // :: error: nullness.method.invocation.invalid
-        return this.front.getHead();
+        int frontSize = this.front.size();
+        // :: error: length.method.invocation.invalid :: error: sign.argument.type.incompatible
+        return this.front.getHead(frontSize, frontSize);
     }
 
-    @JMLClause("assignable this.front.packed, this.front, this.packed;")
     @EnsuresTopOkasaki("this")
     public void remove(@Unique @FrontNonEmpty Queue this) {
         Packing.unpack(this, Queue.class);
-        // :: error: length.method.invocation.invalid
-        this.front.removeFront(this.front.size());
+        int frontSize = this.front.size();
+        // :: error: length.method.invocation.invalid :: error: sign.argument.type.incompatible
+        this.front.removeFront(frontSize, frontSize);
         Packing.pack(this, Queue.class);
     }
 
-    @JMLClause("assignable this.front;")
     public void removeIfPresent(@Unique Queue this) {
         if (this.size() > 0) {
             if (this.front.size() < this.back.size()) {
@@ -136,7 +149,6 @@ public final class Queue {
             @Unique Queue this,
             Object o) {
         Packing.unpack(this, Queue.class);
-        // :: error: nullness.method.invocation.invalid
         int size = this.back.size();
         // :: error: length.method.invocation.invalid
         this.back.insertFront(o, size, size);

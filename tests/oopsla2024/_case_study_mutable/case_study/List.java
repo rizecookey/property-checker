@@ -13,16 +13,13 @@ public final class List {
     public
     @Unique
     @Nullable @Length(min="this.size", max="this.size")
-    List first;
+    Node first;
 
     public @NonNegative int size;
 
     @JMLClause("ensures this.first == null && this.size == 0;")
     @JMLClause("assignable \\nothing;")
-    public
-    @Unique @Length(min="0", max="0")
-    // :: error: length.inconsistent.constructor.type
-    List() {
+    public List() {
         this.size = 0;
         this.first = null;
         // :: error: initialization.fields.uninitialized
@@ -42,7 +39,7 @@ public final class List {
             this.first = new Node(newHead);
         } else {
             // :: error: nullness.argument.type.incompatible
-            this.first = new List(newHead, this.first);
+            this.first = new Node(newHead, this.first);
         }
         ++this.size;
         // :: error: initialization.fields.uninitialized
@@ -50,16 +47,17 @@ public final class List {
     }
 
     @JMLClause("ensures \\old(this.first).head == \\result;")
-    @JMLClause("assignable this.*;")
+    @JMLClause("assignable this.*, this.first.packed;")
     @EnsuresLength(value="this", min="n-1", max="m-1")
     // :: error: length.contracts.postcondition.not.satisfied
     public Object removeFront(
             @Unique @Length(min="n", max="m") List this,
-            Object newHead,
             @Positive int n, @Positive int m) {
+        // :: error: nullness.method.invocation.invalid
         Object result = this.first.getHead();
         Packing.unpack(this, List.class);
         this.first = this.first.stealTail();
+        --this.size;
         // :: error: initialization.fields.uninitialized
         Packing.pack(this, List.class);
         return result;
@@ -69,9 +67,9 @@ public final class List {
     @JMLClause("assignable \\strictly_nothing;") @Pure
     public @MaybeAliased Object getHead(
             @Unique @Length(min="n", max="m") List this,
-            Object newHead,
             @Positive int n, @Positive int m) {
-        return this.first.head;
+        // :: error: nullness.method.invocation.invalid
+        return this.first.getHead();
     }
 
     @JMLClause("ensures \\result == this.size;")

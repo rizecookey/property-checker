@@ -41,6 +41,8 @@ public abstract class PackingClientAnnotatedTypeFactory<
 
     protected PackingClientAnnotatedTypeFactory(BaseTypeChecker checker) {
         super(checker);
+        // Unrefined aliases are handled by the Exclusivity Checker, so we deactivate the imprecise default handling.
+        sideEffectsUnrefineAliases = false;
     }
 
     public void setUseInputTypeLhs(boolean useInputTypeLhs) {

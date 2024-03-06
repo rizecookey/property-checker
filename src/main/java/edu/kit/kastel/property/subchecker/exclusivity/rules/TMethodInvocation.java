@@ -32,6 +32,7 @@ public class TMethodInvocation extends AbstractTypeRule<MethodInvocationNode> {
         Node receiver = node.getTarget().getReceiver();
         TypeMirror receiverType = node.getTarget().getMethod().getReceiverType();
         AnnotationMirror receiverTypeAnno = null;
+        boolean sideEffectFree = factory.isSideEffectFree(node.getTarget().getMethod());
 
         if (!ElementUtils.isStatic(TreeUtils.elementFromUse(node.getTree()))
                 && !node.getTarget().getMethod().getSimpleName().contentEquals("<init>")) {
@@ -44,7 +45,11 @@ public class TMethodInvocation extends AbstractTypeRule<MethodInvocationNode> {
             // "param_0 = arg_0"
             //System.out.printf("%s(", node.getTarget().getMethod().getSimpleName());
             receiverTypeAnno = factory.getExclusivityAnnotation(factory.getAnnotatedType(node.getTarget().getMethod()).getReceiverType());
-            new TAssign(store, factory, analysis).applyOrInvalidate(receiverTypeAnno, receiver);
+            if (sideEffectFree) {
+                new TAssign(store, factory, analysis).applyWithoutInvalidation(receiverTypeAnno, receiver);
+            } else {
+                new TAssign(store, factory, analysis).applyOrInvalidate(receiverTypeAnno, receiver);
+            }
         }
 
         // "param_i = arg_i;"
@@ -52,7 +57,11 @@ public class TMethodInvocation extends AbstractTypeRule<MethodInvocationNode> {
             VariableElement paramDecl = node.getTarget().getMethod().getParameters().get(i);
             Node paramValue = node.getArgument(i);
             AnnotationMirror paramTypeAnno = factory.getExclusivityAnnotation(factory.getAnnotatedType(paramDecl));
-            new TAssign(store, factory, analysis).applyOrInvalidate(paramTypeAnno, paramValue);
+            if (sideEffectFree) {
+                new TAssign(store, factory, analysis).applyWithoutInvalidation(paramTypeAnno, paramValue);
+            } else {
+                new TAssign(store, factory, analysis).applyOrInvalidate(paramTypeAnno, paramValue);
+            }
         }
         //System.out.print(")");
 
@@ -64,7 +73,7 @@ public class TMethodInvocation extends AbstractTypeRule<MethodInvocationNode> {
         }*/
 
         // Remove possibly invalidated refinements
-        if (store != null && analysis != null && !factory.isSideEffectFree(node.getTarget().getMethod())) {
+        if (store != null && analysis != null && !sideEffectFree) {
             boolean thisPassedAsArgument = receiverTypeAnno != null &&
                     receiver instanceof ThisNode &&
                     hierarchy.isSubtypeQualifiersOnly(receiverTypeAnno, factory.MAYBE_ALIASED);
@@ -78,8 +87,7 @@ public class TMethodInvocation extends AbstractTypeRule<MethodInvocationNode> {
             }
 
             // Clear field values if they were possibly changed
-            if (!factory.isSideEffectFree(node.getTarget().getMethod())
-                    && thisPassedAsArgument) {
+            if (!sideEffectFree && thisPassedAsArgument) {
                 PackingFieldAccessAnnotatedTypeFactory packingFactory =
                         factory.getTypeFactoryOfSubcheckerOrNull(PackingFieldAccessSubchecker.class);
 

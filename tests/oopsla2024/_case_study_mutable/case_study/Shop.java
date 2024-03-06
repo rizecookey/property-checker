@@ -24,14 +24,13 @@ public final class Shop {
     }
 
     public boolean processNextOrder(@Unique Shop this) {
-        Packing.unpack(this, Shop.class);
         if (this.orders.size() > 0) {
+            Packing.unpack(this, Shop.class);
             this.orders.removeIfPresent();
             this.orders.toOkasaki();
             Packing.pack(this, Shop.class);
             return true;
         } else {
-            Packing.pack(this, Shop.class);
             return false;
         }
     }

@@ -1,14 +1,9 @@
 package edu.kit.kastel.property.subchecker.exclusivity.rules;
 
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnalysis;
+import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityStore;
 import org.checkerframework.dataflow.cfg.node.Node;
-import org.checkerframework.framework.flow.CFAbstractAnalysis;
-import org.checkerframework.framework.flow.CFStore;
-import org.checkerframework.framework.flow.CFTransfer;
-import org.checkerframework.framework.flow.CFValue;
-
-import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 
 import javax.lang.model.element.AnnotationMirror;
 
@@ -27,6 +22,22 @@ public class TAssign extends AssignmentRule {
     protected void applyInternal(AnnotationMirror lhsType, Node rhsNode) throws RuleNotApplicable {
         ChainRule<AssignmentRule> rules = getAssignmentRules();
         rules.apply(lhsType, rhsNode);
+    }
+
+    public void applyWithoutInvalidation(Node lhsNode, Node rhsNode) {
+        try {
+            applyInternal(lhsNode, rhsNode);
+        } catch (RuleNotApplicable ignored) {
+            // ignore
+        }
+    }
+
+    public void applyWithoutInvalidation(AnnotationMirror lhsType, Node rhsNode) {
+        try {
+            applyInternal(lhsType, rhsNode);
+        } catch (RuleNotApplicable ignored) {
+            // ignore
+        }
     }
 
     public void applyOrInvalidate(Node lhsNode, Node rhsNode) {
