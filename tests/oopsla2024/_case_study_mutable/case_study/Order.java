@@ -6,6 +6,7 @@ import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
 import edu.kit.kastel.property.subchecker.lattice.case_study_mutable_qual.*;
 import edu.kit.kastel.property.packing.qual.*;
 import org.checkerframework.checker.initialization.qual.*;
+import org.checkerframework.dataflow.qual.*;
 
 public final class Order {
     
@@ -14,7 +15,7 @@ public final class Order {
     public final @AllowedFor(age="witness") Product product;
 
     @JMLClause("ensures this.customer == customer && this.product == product && this.witness == witness;")
-    @JMLClause("assignable \\nothing;")
+    @JMLClause("assignable \\nothing;") @Pure
     // :: error: agedover.contracts.postcondition.not.satisfied :: error: allowedfor.contracts.postcondition.not.satisfied
     public Order(int witness, @AgedOver(age="witness") Customer customer, @AllowedFor(age="witness") Product product) {
         this.witness = witness;
@@ -24,8 +25,14 @@ public final class Order {
         Packing.pack(this, Order.class);
     }
 
+    @JMLClause("ensures \\result == this.product.price;")
+    @JMLClause("assignable \\strictly_nothing;") @Pure
+    public int getPrice(@MaybeAliased Order this) {
+        return product.getPrice();
+    }
+
     @JMLClause("ensures \\result.customer == customer && \\result.product == product && \\result.witness == 18;")
-    @JMLClause("assignable \\nothing;")
+    @JMLClause("assignable \\nothing;") @Pure
     // :: error: agedover.contracts.postcondition.not.satisfied :: error: allowedfor.contracts.postcondition.not.satisfied
     public static Order order18(@AgedOver(age="18") Customer customer, @AllowedFor(age="18") Product product) {
         // :: error: agedover.argument.type.incompatible :: error: allowedfor.argument.type.incompatible
@@ -33,7 +40,7 @@ public final class Order {
     }
 
     @JMLClause("ensures \\result.customer == customer && \\result.product == product && \\result.witness == 14;")
-    @JMLClause("assignable \\nothing;")
+    @JMLClause("assignable \\nothing;") @Pure
     // :: error: agedover.contracts.postcondition.not.satisfied :: error: allowedfor.contracts.postcondition.not.satisfied
     public static Order order14(@AgedOver(age="14") Customer customer, @AllowedFor(age="14") Product product) {
         // :: error: agedover.argument.type.incompatible :: error: allowedfor.argument.type.incompatible

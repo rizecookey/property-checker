@@ -31,9 +31,9 @@ public class CaseStudyMutableTest extends PropertyCheckerTest {
                         + ",tests/oopsla2024/_case_study_mutable/lattice_agedover"
                 		+ ",tests/oopsla2024/_case_study_mutable/lattice_allowedfor"
                         + ",tests/oopsla2024/_case_study_mutable/lattice_interval"
-                        + ",tests/oopsla2024/_case_study_mutable/lattice_length"
-                        + ",tests/oopsla2024/_case_study_mutable/lattice_okasaki"
-                        + ",tests/oopsla2024/_case_study_mutable/lattice_sign",
+                        + ",tests/oopsla2024/_case_study_mutable/lattice_empty"
+                        + ",tests/oopsla2024/_case_study_mutable/lattice_sign"
+                        + ",tests/oopsla2024/_case_study_mutable/lattice_sorted",
                 "tests/oopsla2024/_case_study_mutable/",
                 "edu.kit.kastel.property.subchecker.lattice.case_study_mutable_qual");
     }

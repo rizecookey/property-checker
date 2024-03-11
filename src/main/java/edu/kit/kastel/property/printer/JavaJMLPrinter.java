@@ -216,9 +216,9 @@ public class JavaJMLPrinter extends PrettyPrinter {
                         ? List.of()
                         : ElementFilter.fieldsIn(TypesUtils.getTypeElement(enclClass.type).getEnclosedElements());
 
-                getJMLClauseValues(enclClass.sym).forEach(this::printlnAligned);
+                getJMLClauseValues(enclClass.sym).forEach(c -> printlnAligned("//@ " + c));
                 if (TRANSLATION_RAW) {
-                    getJMLClauseValuesTranslationOnly(enclClass.sym).forEach(this::printlnAligned);
+                    getJMLClauseValuesTranslationOnly(enclClass.sym).forEach(c -> printlnAligned("//@ " + c));
                 }
 
                 for (VariableElement field : allFields) {
@@ -336,7 +336,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
             enclMethod = tree;
 
             JMLContract jmlContract = new JMLContract(Flags.asFlagSet(tree.mods.flags));
-            jmlContract.addClause("diverges true;");
+            //jmlContract.addClause("diverges true;");
 
             List<String> paramNames = tree.params.stream().map(JCVariableDecl::getName).map(Object::toString).collect(Collectors.toList());
             {
@@ -989,7 +989,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
         AnnotatedExecutableType propertyMethodType = propertyFactory.getAnnotatedType(tree);
 
         JMLContract jmlContract = new JMLContract(EnumSet.of(Flag.PUBLIC));
-        jmlContract.addClause("diverges true;");
+        //jmlContract.addClause("diverges true;");
 
         {
             List<AnnotationMirror> inputPackingTypes = propertyFactory.getInputPackingTypes(tree);
@@ -1629,7 +1629,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
         @Override
         public String toString() {
             StringBuilder sb = new StringBuilder();
-            sb.append(String.format("/*@ %s behavior\n", getVisibilityString(flags)));
+            sb.append(String.format("/*@ %s normal_behavior\n", getVisibilityString(flags)));
             
             requiresClauses.forEach(c -> sb.append(String.format("  @ %s\n", c)));
             requiresFreeClauses.forEach(c -> sb.append(String.format("  @ %s\n", c)));
