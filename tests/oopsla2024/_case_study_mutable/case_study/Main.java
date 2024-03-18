@@ -35,12 +35,12 @@ public final class Main {
         shop.processNextOrder();
     }
 
-    @JMLClauseTranslationOnly("assignable Shop.instance.orders;")
+    @JMLClauseTranslationOnly("assignable shop.orders.*, \\infinite_union(Node n; n.*);")
     public static void addOrder18(@Unique Shop shop, @AgedOver(age="18") Customer customer, @AllowedFor(age="18") Product product) {
         shop.addOrder(Order.order18(customer, product));
     }
 
-    @JMLClauseTranslationOnly("assignable Shop.instance.orders;")
+    @JMLClauseTranslationOnly("assignable shop.orders.*, \\infinite_union(Node n; n.*);")
     public static void addOrder14(@Unique Shop shop, @AgedOver(age="14") Customer customer, @AllowedFor(age="14") Product product) {
         shop.addOrder(Order.order14(customer, product));
     }

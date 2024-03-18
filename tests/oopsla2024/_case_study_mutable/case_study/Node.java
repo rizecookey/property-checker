@@ -85,6 +85,7 @@ public final class Node {
     @JMLClause("requires newHead.product.price >= this.head.product.price;")
     @JMLClause("ensures this.head == \\old(this.head);")
     @JMLClause("ensures this.size == \\old(this.size) + 1;")
+    @JMLClauseTranslationOnly("ensures this.tail == \\old(this.tail) || \\fresh(this.tail);")
     @JMLClause("assignable \\infinite_union(Node n; n.*);")
     // :: error: sorted.contracts.postcondition.not.satisfied
     private void insertTail(
@@ -110,6 +111,7 @@ public final class Node {
     @JMLClause("requires newHead.product.price >= this.head.product.price;")
     @JMLClause("ensures this.head == \\old(this.head);")
     @JMLClause("ensures this.size == \\old(this.size) + 1;")
+    @JMLClauseTranslationOnly("ensures this.tail == \\old(this.tail);")
     @JMLClause("assignable this.*, this.tail.*;")
     // :: error: sorted.contracts.postcondition.not.satisfied
     private void insertTailHead(
@@ -129,6 +131,7 @@ public final class Node {
     @JMLClause("requires newHead.product.price >= this.head.product.price;")
     @JMLClause("ensures this.head == \\old(this.head);")
     @JMLClause("ensures this.size == \\old(this.size) + 1;")
+    @JMLClauseTranslationOnly("ensures this.tail == \\old(this.tail);")
     @JMLClause("assignable \\infinite_union(Node n; n.*);")
     // :: error: sorted.contracts.postcondition.not.satisfied
     private void insertTailTail(

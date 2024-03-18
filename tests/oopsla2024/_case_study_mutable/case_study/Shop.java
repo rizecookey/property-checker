@@ -18,12 +18,14 @@ public final class Shop {
         Packing.pack(this, Shop.class);
     }
 
+    @JMLClauseTranslationOnly("assignable this.orders.*, \\infinite_union(Node n; n.*);")
     public void addOrder(@Unique Shop this, Order order) {
         Packing.unpack(this, Shop.class);
         this.orders.insert(order);
         Packing.pack(this, Shop.class);
     }
 
+    @JMLClauseTranslationOnly("assignable this.orders.*, this.orders.first.packed, \\infinite_union(Node n; n.*);")
     public boolean processNextOrder(@Unique Shop this) {
         Packing.unpack(this, Shop.class);
         Order result = this.orders.removeIfPresent();

@@ -98,8 +98,7 @@ test {
     //jvmArgs "-XX:MaxPermSize=256m"
     
     inputs.files("tests/property")
-    
-    systemProperty 'jmlDialect', System.getProperty('jmlDialect')
+
     systemProperty 'translationOnly', System.getProperty('translationOnly')
     
     if (!JavaVersion.current().java9Compatible) {
