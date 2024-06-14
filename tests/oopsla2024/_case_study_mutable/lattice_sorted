@@ -18,8 +18,8 @@ ident sorted;
 annotation PossiblyUnsorted() any :<==> "true" for "true";
 annotation BottomSorted() any :<==> "false" for "true";
 
-annotation Sorted() case_study.Node
-    :<==> "§subject§ == null || (§subject§.tail == null && §subject§.size == 1) || (§subject§.tail != null &&§subject§.tail.head.product.price >= §subject§.head.product.price && §subject§.size == §subject§.tail.size + 1)"
+annotation Sorted() case_study.SortedListNode
+    :<==> "§subject§ == null ||  (§subject§.tail == null && §subject§.size == 1) || (§subject§.tail != null && §subject§.tail.head >= §subject§.head && §subject§.size == §subject§.tail.size + 1)"
     for "true";
 
 relation Sorted() <: PossiblyUnsorted() :<==> "true";

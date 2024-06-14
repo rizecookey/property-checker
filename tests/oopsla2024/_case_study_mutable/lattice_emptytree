@@ -13,19 +13,19 @@
 # You should have received a copy of the GNU General Public License version
 # 2 along with this work; if not, write to the Free Software Foundation,
 # Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
-ident length;
+ident empty;
 
-annotation UnknownLength() any :<==> "true" for "true";
-annotation BottomLength() any :<==> "false" for "true";
+annotation TopEmptyMinHeap() any :<==> "true" for "true";
+annotation BottomEmptyMinHeap() any :<==> "false" for "true";
 
-annotation Length(int len) java.util.List
-    :<==> "(§subject§ == null && §len§ == 0) || (§subject§ != null && §subject§.size() == §len§)"
-    for "§len§ >= 0";
+annotation PossiblyEmptyMinHeap() case_study.MinHeap
+    :<==> "§subject§ != null && ((§subject§.size == 0 && §subject§.root == null) || (§subject§.root != null && §subject§.root.size == §subject§.size))"
+    for "true";
 
-relation Length(a) <: Length(b) :<==> "§a§ == §b§";
+annotation NonEmptyMinHeap() case_study.MinHeap
+    :<==> "§subject§ != null && §subject§.root != null && §subject§.root.size == §subject§.size"
+    for "true";
 
-relation Length(a) <: UnknownLength() :<==> "true";
-relation BottomLength() <: Length(a) :<==> "true";
-
-join Length(a), Length(b) := UnknownLength();
-meet Length(a), Length(b) := BottomLength();
+relation NonEmptyMinHeap() <: PossiblyEmptyMinHeap() :<==> "true";
+relation BottomEmptyMinHeap() <: NonEmptyMinHeap() :<==> "true";
+relation BottomEmptyMinHeap() <: PossiblyEmptyMinHeap() :<==> "true";

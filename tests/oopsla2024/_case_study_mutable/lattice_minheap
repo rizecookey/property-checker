@@ -13,19 +13,15 @@
 # You should have received a copy of the GNU General Public License version
 # 2 along with this work; if not, write to the Free Software Foundation,
 # Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
-ident length;
+ident minheap;
 
-annotation UnknownLength() any :<==> "true" for "true";
-annotation BottomLength() any :<==> "false" for "true";
+annotation UnknownHeapProperty() any :<==> "true" for "true";
+annotation BottomHeapProperty() any :<==> "false" for "true";
 
-annotation Length(int len) java.util.List
-    :<==> "(§subject§ == null && §len§ == 0) || (§subject§ != null && §subject§.size() == §len§)"
-    for "§len§ >= 0";
+annotation HeapProperty() case_study.MinHeapNode
+    :<==> "§subject§ == null || ( (§subject§.left == null || §subject§.left.datum > §subject§.datum) && (§subject§.right == null || §subject§.right.datum > §subject§.datum)) && §subject§.size == 1 + (§subject§.left == null ? 0 : §subject§.left.size) + (§subject§.right == null ? 0 : §subject§.right.size)"
+    for "true";
 
-relation Length(a) <: Length(b) :<==> "§a§ == §b§";
-
-relation Length(a) <: UnknownLength() :<==> "true";
-relation BottomLength() <: Length(a) :<==> "true";
-
-join Length(a), Length(b) := UnknownLength();
-meet Length(a), Length(b) := BottomLength();
+relation HeapProperty() <: UnknownHeapProperty() :<==> "true";
+relation BottomHeapProperty() <: HeapProperty() :<==> "true";
+relation BottomHeapProperty() <: UnknownHeapProperty() :<==> "true";

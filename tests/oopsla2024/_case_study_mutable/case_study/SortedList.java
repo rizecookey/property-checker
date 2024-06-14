@@ -10,7 +10,7 @@ import org.checkerframework.dataflow.qual.*;
 
 public final class SortedList {
 
-    public @Unique @Nullable @Sorted Node first;
+    public @Unique @Nullable @Sorted SortedListNode first;
 
     public @NonNegative int size;
 
@@ -25,14 +25,14 @@ public final class SortedList {
     }
 
     @EnsuresNonEmpty(value="this")
-    @JMLClause("assignable this.*, \\infinite_union(Node n; n.*);")
+    @JMLClause("assignable this.*, \\infinite_union(SortedListNode n; n.*);")
     // :: error: empty.contracts.postcondition.not.satisfied
     public void insert(
             @Unique @PossiblyEmpty SortedList this,
-            Order newHead) {
+            int newHead) {
         Packing.unpack(this, SortedList.class);
         if (first == null) {
-            this.first = new Node(newHead);
+            this.first = new SortedListNode(newHead);
         } else {
             // :: error: nullness.method.invocation.invalid
             this.first.insert(newHead);
@@ -46,9 +46,9 @@ public final class SortedList {
     @JMLClause("assignable this.*, this.first.packed;")
     @EnsuresPossiblyEmpty(value="this")
     // :: error: empty.contracts.postcondition.not.satisfied
-    public Order remove(@Unique @NonEmpty SortedList this) {
+    public int remove(@Unique @NonEmpty SortedList this) {
         // :: error: nullness.method.invocation.invalid
-        Order result = this.first.getHead();
+        int result = this.first.getHead();
         Packing.unpack(this, SortedList.class);
         this.first = this.first.stealTail();
         --this.size;
@@ -58,20 +58,20 @@ public final class SortedList {
     }
 
     @JMLClause("ensures \\old(this.first) != null ==> \\result == \\old(this.first).head;")
-    @JMLClause("ensures \\old(this.first) == null ==> \\result == null;")
+    @JMLClause("ensures \\old(this.first) == null ==> \\result == -1;")
     @JMLClause("assignable this.*, this.first.packed;")
-    public @Nullable Order removeIfPresent(@Unique @PossiblyEmpty SortedList this) {
+    public @Nullable int removeIfPresent(@Unique @PossiblyEmpty SortedList this) {
         if (this.first != null) {
             // :: error: empty.method.invocation.invalid
             return this.remove();
         } else {
-            return null;
+            return -1;
         }
     }
 
     @JMLClause("ensures \\result == this.first.head;")
     @JMLClause("assignable \\strictly_nothing;") @Pure
-    public @MaybeAliased Order getHead(@Unique @NonEmpty SortedList this) {
+    public @MaybeAliased int getHead(@Unique @NonEmpty SortedList this) {
         // :: error: nullness.method.invocation.invalid
         return this.first.getHead();
     }
