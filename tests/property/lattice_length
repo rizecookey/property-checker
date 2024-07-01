@@ -28,4 +28,6 @@ relation Length(a) <: UnknownLength() :<==> "true";
 relation BottomLength() <: Length(a) :<==> "true";
 
 join Length(a), Length(b) := UnknownLength();
+
+# non-overlapping
 meet Length(a), Length(b) := BottomLength();

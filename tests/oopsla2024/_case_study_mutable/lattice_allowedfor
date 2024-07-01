@@ -13,15 +13,15 @@
 # You should have received a copy of the GNU General Public License version
 # 2 along with this work; if not, write to the Free Software Foundation,
 # Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
-ident sorted;
+ident allowedfor;
 
-annotation PossiblyUnsorted() any :<==> "true" for "true";
-annotation BottomSorted() any :<==> "false" for "true";
+annotation AllowedForEveryone() any :<==> "true" for "true";
+annotation AllowedForNoone() any :<==> "false" for "true";
 
-annotation Sorted() case_study.Node
-    :<==> "§subject§ == null || (§subject§.tail == null && §subject§.size == 1) || (§subject§.tail != null &&§subject§.tail.head.product.price >= §subject§.head.product.price && §subject§.size == §subject§.tail.size + 1)"
-    for "true";
+annotation AllowedFor(int age) case_study.Product
+    :<==> "§subject§ != null && §subject§.ageRestriction <= §age§"
+    for "§age§ >= 0";
 
-relation Sorted() <: PossiblyUnsorted() :<==> "true";
-relation BottomSorted() <: Sorted() :<==> "true";
-relation BottomSorted() <: PossiblyUnsorted() :<==> "true";
+relation AllowedForNoone() <: AllowedFor(y) :<==> "true";
+relation AllowedFor(x) <: AllowedForEveryone() :<==> "true";
+relation AllowedFor(x) <: AllowedFor(y) :<==> "§x§ < §y§";
