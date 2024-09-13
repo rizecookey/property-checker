@@ -13,15 +13,22 @@
 # You should have received a copy of the GNU General Public License version
 # 2 along with this work; if not, write to the Free Software Foundation,
 # Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
-ident sorted;
+ident empty;
 
-annotation PossiblyUnsorted() any :<==> "true" for "true";
-annotation BottomSorted() any :<==> "false" for "true";
+annotation TopEmpty() any :<==> "true" for "true";
+annotation BottomEmpty() any :<==> "false" for "true";
 
-annotation Sorted() case_study.Node
-    :<==> "§subject§ == null || (§subject§.tail == null && §subject§.size == 1) || (§subject§.tail != null &&§subject§.tail.head.product.price >= §subject§.head.product.price && §subject§.size == §subject§.tail.size + 1)"
+annotation PossiblyEmpty() case_study.SortedList
+    :<==> "§subject§ != null && ((§subject§.size == 0 && §subject§.first == null) || (§subject§.first != null))"
     for "true";
 
-relation Sorted() <: PossiblyUnsorted() :<==> "true";
-relation BottomSorted() <: Sorted() :<==> "true";
-relation BottomSorted() <: PossiblyUnsorted() :<==> "true";
+annotation NonEmpty() case_study.SortedList
+    :<==> "§subject§ != null && §subject§.first != null"
+    for "true";
+
+relation PossiblyEmpty() <: TopEmpty() :<==> "true";
+relation NonEmpty() <: TopEmpty() :<==> "true";
+relation NonEmpty() <: PossiblyEmpty() :<==> "true";
+relation BottomEmpty() <: NonEmpty() :<==> "true";
+relation BottomEmpty() <: PossiblyEmpty() :<==> "true";
+relation BottomEmpty() <: TopEmpty() :<==> "true";

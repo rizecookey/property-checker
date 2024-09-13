@@ -315,6 +315,11 @@ public class PackingVisitor
     }
 
     @Override
+    public Void visitAnnotation(AnnotationTree tree, Void p) {
+        return null;
+    }
+
+    @Override
     protected boolean commonAssignmentCheck(Tree varTree, ExpressionTree valueExp, @CompilerMessageKey String errorKey, Object... extraArgs) {
         // field write of the form x.f = y
         if (TreeUtils.isFieldAccess(varTree)) {
@@ -334,6 +339,51 @@ public class PackingVisitor
             }
         }
         return super.commonAssignmentCheck(varTree, valueExp, errorKey, extraArgs);
+    }
+
+    @Override
+    public Void visitVariable(VariableTree tree, Void p) {
+        //warnAboutTypeAnnotationsTooEarly(tree, tree.getModifiers());
+
+        // VariableTree#getType returns null for binding variables from a DeconstructionPatternTree.
+        if (tree.getType() != null) {
+            visitAnnotatedType(tree.getModifiers().getAnnotations(), tree.getType());
+        }
+
+        AnnotatedTypeMirror variableType;
+        if (getCurrentPath().getParentPath() != null
+                && getCurrentPath().getParentPath().getLeaf().getKind()
+                == Tree.Kind.LAMBDA_EXPRESSION) {
+            // Calling getAnnotatedTypeLhs on a lambda parameter tree is possibly expensive
+            // because caching is turned off.  This should be fixed by #979.
+            // See https://github.com/typetools/checker-framework/issues/2853 for an example.
+            variableType = atypeFactory.getAnnotatedType(tree);
+        } else {
+            variableType = atypeFactory.getAnnotatedTypeLhs(tree);
+        }
+
+        atypeFactory.getDependentTypesHelper().checkTypeForErrorExpressions(variableType, tree);
+        Element varEle = TreeUtils.elementFromDeclaration(tree);
+        if (varEle.getKind() == ElementKind.ENUM_CONSTANT) {
+            commonAssignmentCheck(
+                    tree, tree.getInitializer(), "enum.declaration.type.incompatible");
+        } else if (tree.getInitializer() != null) {
+            if (!TreeUtils.isVariableTreeDeclaredUsingVar(tree)) {
+                // If there is no assignment in this variable declaration or it is declared using
+                // `var`, skip it.
+                // For a `var` declaration, TypeFromMemberVisitor#visitVariable already uses the
+                // type of the initializer for the variable type, so it would be redundant to check
+                // for compatibility here.
+                commonAssignmentCheck(tree, tree.getInitializer(), "assignment.type.incompatible");
+            }
+        } else {
+            // commonAssignmentCheck validates the type of `tree`,
+            // so only validate if commonAssignmentCheck wasn't called
+            validateTypeOf(tree);
+        }
+        validateVariablesTargetLocation(tree, variableType);
+        warnRedundantAnnotations(tree, variableType);
+        return super.visitVariable(tree, p);
     }
 
     @Override

@@ -1,18 +1,16 @@
 package edu.kit.kastel.property.packing;
 
-import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.NewClassTree;
 import com.sun.source.util.TreePath;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.tree.JCTree;
 import org.checkerframework.checker.initialization.InitializationFieldAccessAbstractAnnotatedTypeFactory;
+import org.checkerframework.checker.initialization.InitializationFieldAccessTreeAnnotator;
 import org.checkerframework.checker.initialization.InitializationParentAnnotatedTypeFactory;
-import org.checkerframework.checker.initialization.qual.Initialized;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.flow.CFAbstractAnalysis;
 import org.checkerframework.framework.flow.CFValue;
-import org.checkerframework.framework.qual.TypeUseLocation;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.LiteralTreeAnnotator;
@@ -21,7 +19,6 @@ import org.checkerframework.framework.type.typeannotator.IrrelevantTypeAnnotator
 import org.checkerframework.framework.type.typeannotator.ListTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.PropagationTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
-import org.checkerframework.framework.util.defaults.QualifierDefaults;
 import org.checkerframework.javacutil.*;
 
 import javax.lang.model.element.AnnotationMirror;
@@ -29,7 +26,6 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
-import javax.lang.model.util.Types;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -95,6 +91,47 @@ public class PackingFieldAccessAnnotatedTypeFactory
 
         computingUninitializedFields = wasComputingUninitializedFields;
         return result;
+    }
+
+    @Override
+    public void postAsMemberOf(
+            AnnotatedTypeMirror type, AnnotatedTypeMirror owner, Element element) {
+        if (element.getKind().isField()) {
+            Collection<? extends AnnotationMirror> declaredFieldAnnotations =
+                    getDeclAnnotations(element);
+            AnnotatedTypeMirror fieldAnnotations = getAnnotatedType(element);
+            computeFieldAccessInitializationType(
+                    type, declaredFieldAnnotations, owner, fieldAnnotations);
+        }
+    }
+
+    /**
+     * Adapts the initialization type of a field access (implicit or explicit) based on the receiver
+     * type and the declared annotations for the field.
+     *
+     * <p>To adapt the type in the target checker's hierarchy, see the {@link
+     * InitializationFieldAccessTreeAnnotator} instead.
+     *
+     * @param type type of the field access expression
+     * @param declaredFieldAnnotations declared annotations on the field
+     * @param receiverType inferred annotations of the receiver
+     * @param fieldType inferred annotations of the field
+     */
+    private void computeFieldAccessInitializationType(
+            AnnotatedTypeMirror type,
+            Collection<? extends AnnotationMirror> declaredFieldAnnotations,
+            AnnotatedTypeMirror receiverType,
+            AnnotatedTypeMirror fieldType) {
+        // Primitive values have no fields and are thus always @Initialized.
+        if (TypesUtils.isPrimitive(type.getUnderlyingType())) {
+            return;
+        }
+        // not necessary if there is an explicit UnknownInitialization
+        // annotation on the field
+        if (AnnotationUtils.containsSameByName(
+                fieldType.getAnnotations(), UNKNOWN_INITIALIZATION)) {
+            return;
+        }
     }
 
     @Override

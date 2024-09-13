@@ -14,7 +14,7 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-package tests.oopsla2024;
+package tests.esop2025;
 
 import org.junit.runners.Parameterized.Parameters;
 import tests.property.PropertyCheckerTest;
@@ -27,19 +27,20 @@ public class CaseStudyMutableTest extends PropertyCheckerTest {
     public CaseStudyMutableTest(List<File> testFiles) {
         super(
                 testFiles,
-                "tests/oopsla2024/_case_study_mutable/lattice_nullness"
-                        + ",tests/oopsla2024/_case_study_mutable/lattice_agedover"
-                		+ ",tests/oopsla2024/_case_study_mutable/lattice_allowedfor"
-                        + ",tests/oopsla2024/_case_study_mutable/lattice_interval"
-                        + ",tests/oopsla2024/_case_study_mutable/lattice_empty"
-                        + ",tests/oopsla2024/_case_study_mutable/lattice_sign"
-                        + ",tests/oopsla2024/_case_study_mutable/lattice_sorted",
-                "tests/oopsla2024/_case_study_mutable/",
+                "tests/esop2025/_case_study_mutable/lattice_nullness"
+                        + ",tests/esop2025/_case_study_mutable/lattice_agedover"
+                		+ ",tests/esop2025/_case_study_mutable/lattice_allowedfor"
+                        + ",tests/esop2025/_case_study_mutable/lattice_interval"
+                        + ",tests/esop2025/_case_study_mutable/lattice_empty"
+                        + ",tests/esop2025/_case_study_mutable/lattice_empty_doublylinked"
+                        + ",tests/esop2025/_case_study_mutable/lattice_sign"
+                        + ",tests/esop2025/_case_study_mutable/lattice_sorted",
+                "tests/esop2025/_case_study_mutable/",
                 "edu.kit.kastel.property.subchecker.lattice.case_study_mutable_qual");
     }
 
     @Parameters
     public static String[] getTestDirs() {
-        return new String[] {"oopsla2024/_case_study_mutable"};
+        return new String[] {"esop2025/_case_study_mutable"};
     }
 }

@@ -120,9 +120,6 @@ public class PackingFieldAccessTreeAnnotator extends InitializationFieldAccessTr
         if (!isReceiverInitToOwner
                 && fieldDeclarationTree != null
                 && TreeUtils.isSelfAccess(tree)) {
-            // The receiver is not initialized for this frame and the type being computed is
-            // not a LHS.
-            // Replace all annotations with the top annotation for that hierarchy.
             type.clearAnnotations();
             type.addAnnotations(factory.getQualifierHierarchy().getTopAnnotations());
         }

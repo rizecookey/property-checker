@@ -745,6 +745,13 @@ public class JavaJMLPrinter extends PrettyPrinter {
                 return;
             }
 
+            if (tree.meth.toString().equals("Ghost.set")) {
+                TypeElement name = (TypeElement) TreeUtils.elementFromUse(((MemberSelectTree) tree.args.get(0)).getExpression());
+                TypeElement value = (TypeElement) TreeUtils.elementFromUse(((MemberSelectTree) tree.args.get(1)).getExpression());
+                print(String.format("//@ set %s = %s;", name, value));
+                return;
+            }
+
             AnnotatedExecutableType invokedMethod = propertyFactory.methodFromUse(tree).executableType;
             StringJoiner booleanArgs = new StringJoiner(", ");
 

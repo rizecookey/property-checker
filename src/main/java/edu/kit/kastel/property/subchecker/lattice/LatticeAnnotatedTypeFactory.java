@@ -16,6 +16,7 @@
  */
 package edu.kit.kastel.property.subchecker.lattice;
 
+import com.sun.source.tree.IdentifierTree;
 import edu.kit.kastel.property.config.Config;
 import edu.kit.kastel.property.lattice.*;
 import edu.kit.kastel.property.lattice.compiler.ClassBuilder;
@@ -27,6 +28,7 @@ import edu.kit.kastel.property.util.ClassUtils;
 import edu.kit.kastel.property.util.UnorderedPair;
 import org.apache.commons.lang3.StringUtils;
 import org.checkerframework.common.basetype.BaseTypeChecker;
+import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.ElementQualifierHierarchy;
 import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
@@ -34,6 +36,7 @@ import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
 import org.checkerframework.framework.util.DefaultQualifierKindHierarchy;
 import org.checkerframework.framework.util.QualifierKindHierarchy;
 import org.checkerframework.framework.util.dependenttypes.DependentTypesHelper;
+import org.checkerframework.javacutil.AnnotationBuilder;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.BugInCF;
 import org.checkerframework.javacutil.Pair;
@@ -164,7 +167,36 @@ public final class LatticeAnnotatedTypeFactory
     protected TreeAnnotator createTreeAnnotator() {
         List<TreeAnnotator> treeAnnotators = new ArrayList<>(1);
         treeAnnotators.add(new PackingFieldAccessTreeAnnotator(this));
+        treeAnnotators.add(new ThisNonNullTreeAnnotator(this));
         return new ListTreeAnnotator(treeAnnotators);
+    }
+
+    /**
+     * {@code this} is always {@code @NonNull}
+     */
+    public static class ThisNonNullTreeAnnotator extends TreeAnnotator {
+
+        Class<? extends Annotation> nonNullAnno;
+        AnnotationMirror nonNull;
+
+        protected ThisNonNullTreeAnnotator(LatticeAnnotatedTypeFactory atypeFactory) {
+            super(atypeFactory);
+
+            Optional<Class<? extends Annotation>> anno = atypeFactory.getSupportedTypeQualifiers().stream().filter(q -> q.getSimpleName().equals("NonNull")).findAny();
+
+            if (anno.isPresent()) {
+                nonNullAnno = anno.get();
+                nonNull = AnnotationBuilder.fromClass(atypeFactory.elements, nonNullAnno);
+            }
+        }
+
+        @Override
+        public Void visitIdentifier(IdentifierTree node, AnnotatedTypeMirror annotatedTypeMirror) {
+            if (node.getName().contentEquals("this") && nonNullAnno != null) {
+                annotatedTypeMirror.replaceAnnotation(nonNull);
+            }
+            return null;
+        }
     }
 
     @Override

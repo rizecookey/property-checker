@@ -5,8 +5,9 @@ import com.sun.source.tree.NewClassTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.util.TreePath;
 import com.sun.tools.javac.tree.JCTree;
-import org.checkerframework.checker.initialization.*;
-import org.checkerframework.checker.initialization.qual.HoldsForDefaultValue;
+import org.checkerframework.checker.initialization.InitializationAbstractAnnotatedTypeFactory;
+import org.checkerframework.checker.initialization.InitializationChecker;
+import org.checkerframework.checker.initialization.InitializationFieldAccessTreeAnnotator;
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -17,8 +18,6 @@ import org.checkerframework.framework.flow.CFAbstractAnalysis;
 import org.checkerframework.framework.flow.CFAbstractStore;
 import org.checkerframework.framework.flow.CFAbstractValue;
 import org.checkerframework.framework.flow.CFValue;
-import org.checkerframework.framework.qual.MonotonicQualifier;
-import org.checkerframework.framework.qual.PolymorphicQualifier;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
 import org.checkerframework.framework.type.QualifierHierarchy;
@@ -29,14 +28,13 @@ import org.checkerframework.framework.type.typeannotator.IrrelevantTypeAnnotator
 import org.checkerframework.framework.type.typeannotator.ListTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.PropagationTypeAnnotator;
 import org.checkerframework.framework.type.typeannotator.TypeAnnotator;
-import org.checkerframework.framework.util.AnnotatedTypes;
 import org.checkerframework.framework.util.QualifierKind;
 import org.checkerframework.javacutil.*;
 
 import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.Element;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
-import java.lang.annotation.Annotation;
 import java.util.*;
 
 public class PackingAnnotatedTypeFactory
@@ -213,12 +211,54 @@ public class PackingAnnotatedTypeFactory
     }
 
     @Override
+    public void postAsMemberOf(
+            AnnotatedTypeMirror type, AnnotatedTypeMirror owner, Element element) {
+        if (element.getKind().isField()) {
+            Collection<? extends AnnotationMirror> declaredFieldAnnotations =
+                    getDeclAnnotations(element);
+            AnnotatedTypeMirror fieldAnnotations = getAnnotatedType(element);
+            computeFieldAccessInitializationType(
+                    type, declaredFieldAnnotations, owner, fieldAnnotations);
+        }
+    }
+
+    /**
+     * Adapts the initialization type of a field access (implicit or explicit) based on the receiver
+     * type and the declared annotations for the field.
+     *
+     * <p>To adapt the type in the target checker's hierarchy, see the {@link
+     * InitializationFieldAccessTreeAnnotator} instead.
+     *
+     * @param type type of the field access expression
+     * @param declaredFieldAnnotations declared annotations on the field
+     * @param receiverType inferred annotations of the receiver
+     * @param fieldType inferred annotations of the field
+     */
+    private void computeFieldAccessInitializationType(
+            AnnotatedTypeMirror type,
+            Collection<? extends AnnotationMirror> declaredFieldAnnotations,
+            AnnotatedTypeMirror receiverType,
+            AnnotatedTypeMirror fieldType) {
+        // Primitive values have no fields and are thus always @Initialized.
+        if (TypesUtils.isPrimitive(type.getUnderlyingType())) {
+            return;
+        }
+        // not necessary if there is an explicit UnknownInitialization
+        // annotation on the field
+        if (AnnotationUtils.containsSameByName(
+                fieldType.getAnnotations(), UNKNOWN_INITIALIZATION)) {
+            return;
+        }
+    }
+
+    @Override
     protected TreeAnnotator createTreeAnnotator() {
         List<TreeAnnotator> treeAnnotators = new ArrayList<>(2);
         treeAnnotators.add(new LiteralTreeAnnotator(this).addStandardLiteralQualifiers());
         if (dependentTypesHelper.hasDependentAnnotations()) {
             treeAnnotators.add(dependentTypesHelper.createDependentTypesTreeAnnotator());
         }
+        treeAnnotators.add(new PackingFieldAccessTreeAnnotator(this, false));
         treeAnnotators.add(getFieldAccessFactory().new PackingTreeAnnotator(this));
         return new ListTreeAnnotator(treeAnnotators);
     }

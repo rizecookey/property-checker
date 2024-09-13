@@ -57,6 +57,10 @@ public abstract class PackingClientVisitor<
                 inferredAnno = qualHierarchy.findAnnotationInSameHierarchy(annos, annotation);
             }
             if (!checkContract(expression, annotation, inferredAnno, exitStore)) {
+                // TODO: There's a better way of doing this.
+                if (expression.toString().equals("this") && annotation.getAnnotationType().asElement().getSimpleName().contentEquals("NonNull")) {
+                    return;
+                }
                 checker.reportError(
                         methodTree,
                         getContractPostconditionNotSatisfiedMessage(),
@@ -198,6 +202,10 @@ public abstract class PackingClientVisitor<
             AnnotatedTypeMirror declType = atypeFactory.getAnnotatedTypeLhs(param);
 
             if (!typeHierarchy.isSubtype(currentType, declType)) {
+                // TODO: There's a better way of doing this.
+                if (paramExpr instanceof ThisReference && declType.getAnnotations().stream().anyMatch(a -> a.getAnnotationType().asElement().getSimpleName().contentEquals("NonNull"))) {
+                    return;
+                }
                 checker.reportError(
                         methodTree,
                         getContractPostconditionNotSatisfiedMessage(),

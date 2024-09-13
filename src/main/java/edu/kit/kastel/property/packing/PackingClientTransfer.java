@@ -156,7 +156,13 @@ public abstract class PackingClientTransfer<
                 V receiverDefaultValue = analysis.createAbstractValue(
                         receiverType.getAnnotations(),
                         receiverType.getUnderlyingType());
-                if (sideEffectFree) {
+
+                AnnotationMirror nonNull = receiverType.getAnnotations().stream()
+                        .filter(a -> a.getAnnotationType().asElement().getSimpleName().contentEquals("NonNull"))
+                        .findAny().orElse(null);
+                if (nonNull != null) {
+                    store.insertOrRefine(JavaExpression.fromNode(receiver), nonNull);
+                } else if (sideEffectFree) {
                     store.insertOrRefine(JavaExpression.fromNode(receiver), receiverDefaultValue.getAnnotations().first());
                 } else {
                     store.insertValue(JavaExpression.fromNode(receiver), receiverDefaultValue);
