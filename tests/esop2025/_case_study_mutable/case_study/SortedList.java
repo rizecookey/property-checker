@@ -10,9 +10,9 @@ import org.checkerframework.checker.initialization.qual.*;
 import org.checkerframework.dataflow.qual.*;
 
 @JMLClause("public ghost \\locset footprint;")
-@JMLClause("public accessible footprint: footprint;")
+@JMLClause("public accessible \\inv: footprint;")
 // packed field not included in footprint
-@JMLClause("public invariant this.footprint == \\set_union(\\singleton(this.first), \\singleton(this.size), this.first == null ? \\empty : this.first.footprint);")
+@JMLClause("public invariant this.footprint == \\set_union(\\singleton(this.first), \\singleton(this.size), \\singleton(this.footprint), this.first == null ? \\empty : this.first.footprint);")
 @JMLClause("public invariant this.first == null || \\invariant_for(this.first);")
 @JMLClause("public invariant this.first != null ==> \\disjoint(this.*, this.first.footprint);")
 public final class SortedList {
@@ -30,11 +30,10 @@ public final class SortedList {
         this.first = null;
         // :: error: initialization.fields.uninitialized
         Packing.pack(this, SortedList.class);
-        Ghost.set("footprint", "\\set_union(\\singleton(this.first), \\singleton(this.size)");
+        Ghost.set("footprint", "\\set_union(\\singleton(this.first), \\singleton(this.size), \\singleton(this.footprint))");
     }
 
     @EnsuresNonEmpty(value="this")
-    @JMLClause("ensures \\new_elems_fresh(this.footprint);")
     @JMLClause("assignable this.footprint;")
     // :: error: empty.contracts.postcondition.not.satisfied
     public void insert(
@@ -50,11 +49,10 @@ public final class SortedList {
         ++this.size;
         // :: error: initialization.fields.uninitialized
         Packing.pack(this, SortedList.class);
-        Ghost.set("footprint", "\\set_union(\\singleton(this.first), \\singleton(this.size), this.first.footprint)");
+        Ghost.set("footprint", "\\set_union(\\singleton(this.first), \\singleton(this.size), \\singleton(this.footprint), this.first.footprint)");
     }
 
     @JMLClause("ensures \\old(this.first).head == \\result;")
-    @JMLClause("ensures \\new_elems_fresh(this.footprint);")
     @JMLClause("assignable this.footprint, this.first.packed;")
     @EnsuresPossiblyEmpty(value="this")
     // :: error: empty.contracts.postcondition.not.satisfied
@@ -66,13 +64,12 @@ public final class SortedList {
         --this.size;
         // :: error: initialization.fields.uninitialized
         Packing.pack(this, SortedList.class);
-        Ghost.set("footprint", "\\set_union(\\singleton(this.first), \\singleton(this.size), this.first.footprint)");
+        Ghost.set("footprint", "\\set_union(\\singleton(this.first), \\singleton(this.size), \\singleton(this.footprint), this.first == null ? \\empty : this.first.footprint)");
         return result;
     }
 
     @JMLClause("ensures \\old(this.first) != null ==> \\result == \\old(this.first).head;")
     @JMLClause("ensures \\old(this.first) == null ==> \\result == null;")
-    @JMLClause("ensures \\new_elems_fresh(this.footprint);")
     @JMLClause("assignable this.footprint, this.first.packed;")
     public @Nullable Order removeIfPresent(@Unique @PossiblyEmpty SortedList this) {
         if (this.first != null) {

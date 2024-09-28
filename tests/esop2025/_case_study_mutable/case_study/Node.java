@@ -1,6 +1,7 @@
 package case_study;
 
 import edu.kit.kastel.property.util.Packing;
+import edu.kit.kastel.property.util.Ghost;
 import edu.kit.kastel.property.checker.qual.*;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
 import edu.kit.kastel.property.subchecker.lattice.case_study_mutable_qual.*;
@@ -9,15 +10,17 @@ import org.checkerframework.checker.initialization.qual.*;
 import org.checkerframework.dataflow.qual.*;
 
 @JMLClause("public ghost \\locset footprint;")
-@JMLClause("public accessible footprint: footprint;")
+@JMLClause("public accessible \\inv: footprint;")
 // packed field not included in footprint
-@JMLClause("public invariant this.footprint == \\set_union(\\singleton(this.head), \\singleton(this.tail), this.tail == null ? \\empty : this.tail.footprint);")
+@JMLClause("public invariant this.footprint == \\set_union(\\singleton(this.head), \\singleton(this.tail), \\singleton(this.footprint), this.tail == null ? \\empty : this.tail.footprint);")
 @JMLClause("public invariant this.tail != null ==> \\disjoint(this.*, this.tail.footprint);")
+@JMLClause("public invariant this.tail == null || \\invariant_for(this.tail);")
 public final class Node {
 
     public @MaybeAliased Order head;
     public @Unique @Nullable @Sorted Node tail;
 
+    @JMLClause("requires \\invariant_for(tail);")
     @JMLClause("requires head.product.price <= tail.head.product.price;")
     @JMLClause("ensures this.tail == tail && this.head == head;")
     @JMLClause("assignable \\nothing;") @Pure
@@ -29,7 +32,7 @@ public final class Node {
         this.head = head;
         this.tail = tail;
         Packing.pack(this, Node.class);
-        Ghost.set("footprint", "\\set_union(\\singleton(this.head), \\singleton(this.tail), this.tail.footprint");
+        Ghost.set("footprint", "\\set_union(\\singleton(this.head), \\singleton(this.tail), \\singleton(this.footprint), this.tail.footprint)");
     }
 
     @JMLClause("ensures this.head == head && this.tail == null;")
@@ -42,9 +45,10 @@ public final class Node {
         this.tail = null;
         // :: error: initialization.fields.uninitialized
         Packing.pack(this, Node.class);
-        Ghost.set("footprint", "\\set_union(\\singleton(this.head), \\singleton(this.tail)");
+        Ghost.set("footprint", "\\set_union(\\singleton(this.head), \\singleton(this.tail), \\singleton(this.footprint))");
     }
 
+    @JMLClause("ensures this.head == \\old(this.head) || this.head == newHead;")
     @JMLClause("ensures \\new_elems_fresh(this.footprint);")
     @JMLClause("assignable this.footprint;")
     public void insert(
@@ -75,10 +79,10 @@ public final class Node {
         this.head = newHead;
 
         Packing.pack(this, Node.class);
-        Ghost.set("footprint", "footprint + this.tail.footprint");
+        Ghost.set("footprint", "\\set_union(\\singleton(this.head), \\singleton(this.tail), \\singleton(this.footprint), this.tail.footprint)");
     }
 
-    @JMLClause("requires newHead.product.price >= this.head.product.price;")
+    @JMLClause("requires this.head.product.price <= newHead.product.price;")
     @JMLClause("ensures this.head == \\old(this.head);")
     @JMLClause("ensures \\new_elems_fresh(this.footprint);")
     @JMLClause("assignable this.footprint;")
@@ -91,14 +95,10 @@ public final class Node {
             this.tail = new Node(newHead);
         } else {
             // :: error: nullness.method.invocation.invalid
-            if (newHead.getPrice() <= this.tail.getHead().getPrice()) {
-                this.tail.insertHead(newHead);
-            } else {
-                this.tail.insertTail(newHead);
-            }
+            this.tail.insert(newHead);
         }
         Packing.pack(this, Node.class);
-        Ghost.set("footprint", "footprint + this.tail.footprint");
+        Ghost.set("footprint", "\\set_union(\\singleton(this.head), \\singleton(this.tail), \\singleton(this.footprint), this.tail.footprint)");
     }
 
     @JMLClause("ensures \\result == this.head;")

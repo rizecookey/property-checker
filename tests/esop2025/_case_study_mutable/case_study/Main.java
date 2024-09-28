@@ -44,9 +44,9 @@ public final class Main {
         @AgedOver(age="18") Customer customer18 = Customer.customer18("Alice");
         @AgedOver(age="14") Customer customer14 = Customer.customer14("Bob");
 
-        addOrder18(shop, customer18, product18);
-        addOrder14(shop, customer18, product6);
-        addOrder14(shop, customer14, product6);
+        addOrder18DoublyLinked(shop, customer18, product18);
+        addOrder14DoublyLinked(shop, customer18, product6);
+        addOrder14DoublyLinked(shop, customer14, product6);
 
         shop.processNextOrder();
         shop.processNextOrder();
@@ -66,12 +66,12 @@ public final class Main {
     }
 
     @JMLClause("assignable shop.orders.footprint;")
-    public static void addOrder18(@Unique DoublyLinkedShop shop, @AgedOver(age="18") Customer customer, @AllowedFor(age="18") Product product) {
+    public static void addOrder18DoublyLinked(@Unique DoublyLinkedShop shop, @AgedOver(age="18") Customer customer, @AllowedFor(age="18") Product product) {
         shop.addOrder(Order.order18(customer, product));
     }
 
     @JMLClause("assignable shop.orders.footprint;")
-    public static void addOrder14(@Unique DoublyLinkedShop shop, @AgedOver(age="14") Customer customer, @AllowedFor(age="14") Product product) {
+    public static void addOrder14DoublyLinked(@Unique DoublyLinkedShop shop, @AgedOver(age="14") Customer customer, @AllowedFor(age="14") Product product) {
         shop.addOrder(Order.order14(customer, product));
     }
 }

@@ -746,9 +746,9 @@ public class JavaJMLPrinter extends PrettyPrinter {
             }
 
             if (tree.meth.toString().equals("Ghost.set")) {
-                TypeElement name = (TypeElement) TreeUtils.elementFromUse(((MemberSelectTree) tree.args.get(0)).getExpression());
-                TypeElement value = (TypeElement) TreeUtils.elementFromUse(((MemberSelectTree) tree.args.get(1)).getExpression());
-                print(String.format("//@ set %s = %s;", name, value));
+                JCLiteral name = (JCLiteral) tree.args.get(0);
+                JCLiteral value = (JCLiteral) tree.args.get(1);
+                print(String.format("//@ set %s = %s", name.getValue(), value.getValue()));
                 return;
             }
 
@@ -1125,7 +1125,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
         }
 
         if (isConstructor(tree)) {
-            jmlContract.addClause("ensures \\result != null && \\fresh(\\result) && \\invariant_free_for(\\result);");
+            jmlContract.addClause("ensures \\result != null && \\fresh(\\result) && \\invariant_free_for(\\result) && \\invariant_for(\\result);");
         }
 
         ExecutableElement element = propertyFactory.getAnnotatedType(tree).getElement();
