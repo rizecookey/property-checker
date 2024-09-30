@@ -19,7 +19,7 @@ annotation TopEmpty() any :<==> "true" for "true";
 annotation BottomEmpty() any :<==> "false" for "true";
 
 annotation PossiblyEmpty() case_study.SortedList
-    :<==> "§subject§ != null && ((§subject§.size == 0 && §subject§.first == null) || (§subject§.first != null))"
+    :<==> "§subject§ != null && ((§subject§.first == null) || (§subject§.first != null))"
     for "true";
 
 annotation NonEmpty() case_study.SortedList

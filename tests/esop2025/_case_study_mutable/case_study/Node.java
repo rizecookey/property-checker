@@ -1,7 +1,6 @@
 package case_study;
 
-import edu.kit.kastel.property.util.Packing;
-import edu.kit.kastel.property.util.Ghost;
+import edu.kit.kastel.property.util.*;
 import edu.kit.kastel.property.checker.qual.*;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
 import edu.kit.kastel.property.subchecker.lattice.case_study_mutable_qual.*;
@@ -91,14 +90,28 @@ public final class Node {
             @Unique @Sorted Node this,
             Order newHead) {
         Packing.unpack(this, Node.class);
-        if (this.tail == null) {
-            this.tail = new Node(newHead);
+
+        @Unique Node tail = this.tail;
+        Order head = this.head;
+
+        if (tail == null) {
+            tail = new Node(newHead);
         } else {
             // :: error: nullness.method.invocation.invalid
-            this.tail.insert(newHead);
+            tail.insert(newHead);
         }
+
+        this.tail = tail;
+        this.head = head;
+
         Packing.pack(this, Node.class);
+
         Ghost.set("footprint", "\\set_union(\\singleton(this.head), \\singleton(this.tail), \\singleton(this.footprint), this.tail.footprint)");
+
+        // The assumptions follow from Node::head being immutable, which follows from the typing "Node::head: @MaybeAliased @Packed".
+        Assert._assume("this.head == \\old(this.head) ==> this.head.product.price == \\old(this.head.product.price)");
+        Assert._assume("this.tail.head == \\old(this.tail.head) ==> this.tail.head.product.price == \\old(this.tail.head.product.price)");
+        Assert._assume("this.tail.head == newHead ==> this.tail.head.product.price == \\old(newHead.product.price)");
     }
 
     @JMLClause("ensures \\result == this.head;")

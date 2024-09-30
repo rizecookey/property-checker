@@ -8,6 +8,9 @@ import edu.kit.kastel.property.packing.qual.*;
 import org.checkerframework.checker.initialization.qual.*;
 import org.checkerframework.dataflow.qual.*;
 
+@JMLClause("public accessible \\inv: this.orders, this.orders.footprint;")
+@JMLClause("public invariant this.orders != null ==> \\invariant_for(this.orders);")
+@JMLClause("public invariant this.orders != null ==> \\disjoint(this.*, this.orders.footprint);")
 public final class Shop {
     
     private @Unique @PossiblyEmpty SortedList orders;
@@ -18,14 +21,14 @@ public final class Shop {
         Packing.pack(this, Shop.class);
     }
 
-    @JMLClauseTranslationOnly("assignable this.orders.*, \\infinite_union(Node n; n.*);")
+    @JMLClause("assignable this.orders, this.orders.footprint;")
     public void addOrder(@Unique Shop this, Order order) {
         Packing.unpack(this, Shop.class);
         this.orders.insert(order);
         Packing.pack(this, Shop.class);
     }
 
-    @JMLClauseTranslationOnly("assignable this.orders.*, this.orders.first.packed, \\infinite_union(Node n; n.*);")
+    @JMLClause("assignable this.orders, this.orders.footprint;")
     public boolean processNextOrder(@Unique Shop this) {
         Packing.unpack(this, Shop.class);
         Order result = this.orders.removeIfPresent();

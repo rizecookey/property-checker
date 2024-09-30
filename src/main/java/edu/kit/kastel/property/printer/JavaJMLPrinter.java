@@ -752,6 +752,18 @@ public class JavaJMLPrinter extends PrettyPrinter {
                 return;
             }
 
+            if (tree.meth.toString().equals("Assert._assert")) {
+                JCLiteral assertion = (JCLiteral) tree.args.get(0);
+                print(String.format("//@ assert %s", assertion.getValue()));
+                return;
+            }
+
+            if (tree.meth.toString().equals("Assert._assume")) {
+                JCLiteral assertion = (JCLiteral) tree.args.get(0);
+                print(String.format("//@ assume %s", assertion.getValue()));
+                return;
+            }
+
             AnnotatedExecutableType invokedMethod = propertyFactory.methodFromUse(tree).executableType;
             StringJoiner booleanArgs = new StringJoiner(", ");
 

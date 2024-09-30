@@ -19,11 +19,11 @@ annotation TopEmptyDoublyLinked() any :<==> "true" for "true";
 annotation BottomEmptyDoublyLinked() any :<==> "false" for "true";
 
 annotation PossiblyEmptyDoublyLinked() case_study.DoublyLinkedSortedList
-    :<==> "§subject§ != null && ((§subject§.size == 0 && §subject§.first == null && §subject§.last == null) || (§subject§.first != null && §subject§.last != null))"
+    :<==> "§subject§ != null && ((§subject§.first == null && §subject§.last == null) || (§subject§.first != null && §subject§.last != null))"
     for "true";
 
 annotation NonEmptyDoublyLinked() case_study.DoublyLinkedSortedList
-    :<==> "§subject§ != null && §subject§.size != 0 && §subject§.first != null && §subject§.last != null"
+    :<==> "§subject§ != null && §subject§.first != null && §subject§.last != null"
     for "true";
 
 relation PossiblyEmptyDoublyLinked() <: TopEmptyDoublyLinked() :<==> "true";
