@@ -10,12 +10,10 @@ import org.checkerframework.checker.initialization.qual.*;
 import org.checkerframework.dataflow.qual.*;
 
 @JMLClause("public ghost \\locset footprint;")
-@JMLClause("public ghost \\seq nodeseq;")
 @JMLClause("public accessible \\inv: footprint;")
 // packed field not included in footprint
-@JMLClause("public invariant this.footprint == (\\infinite_union; int i; 0 <= i < nodeseq.length; \\set_union(\\singleton(((Node)nodeseq)[i].head), \\singleton(((Node)nodeseq)[i].tail), \\singleton(((Node)nodeseq)[i].footprint));")
-@JMLClause("public invariant this.tail != null ==> this.tail.nodeseq == this.nodeseq[1..this.nodeseq.length] && \\disjoint(this.*, this.tail.footprint);")
-@JMLClause("public invariant (\\forall int i; 0 <= i < nodeseq.length; ((Node)nodeseq)[i] != null);")
+@JMLClause("public invariant this.footprint == \\set_union(\\singleton(this.head), \\singleton(this.tail), \\singleton(this.footprint), this.tail == null ? \\empty : this.tail.footprint);")
+@JMLClause("public invariant this.tail != null ==> \\disjoint(this.*, this.tail.footprint);")
 @JMLClause("public invariant this.tail == null || \\invariant_for(this.tail);")
 public final class Node {
 
@@ -34,8 +32,7 @@ public final class Node {
         this.head = head;
         this.tail = tail;
         Packing.pack(this, Node.class);
-        Ghost.set("nodeseq", "\\seq_concat(\\seq_singleton(this.tail), this.tail.nodeseq)");
-        Ghost.set("footprint", "(\\infinite_union; int i; 0 <= i < nodeseq.length; \\set_union(\\singleton(((Node)nodeseq)[i].head), \\singleton(((Node)nodeseq)[i].tail), \\singleton(((Node)nodeseq)[i].footprint)))");
+        Ghost.set("footprint", "\\set_union(\\singleton(this.head), \\singleton(this.tail), \\singleton(this.footprint), this.tail.footprint)");
     }
 
     @JMLClause("ensures this.head == head && this.tail == null;")
@@ -48,8 +45,7 @@ public final class Node {
         this.tail = null;
         // :: error: initialization.fields.uninitialized
         Packing.pack(this, Node.class);
-        Ghost.set("nodeseq", "\\seq_empty");
-        Ghost.set("footprint", "(\\infinite_union; int i; 0 <= i < nodeseq.length; \\set_union(\\singleton(((Node)nodeseq)[i].head), \\singleton(((Node)nodeseq)[i].tail), \\singleton(((Node)nodeseq)[i].footprint)))");
+        Ghost.set("footprint", "\\set_union(\\singleton(this.head), \\singleton(this.tail), \\singleton(this.footprint))");
     }
 
     @JMLClause("ensures this.head == \\old(this.head) || this.head == newHead;")
@@ -83,8 +79,7 @@ public final class Node {
         this.head = newHead;
 
         Packing.pack(this, Node.class);
-        Ghost.set("nodeseq", "\\seq_concat(\\seq_singleton(this.tail), this.tail.nodeseq)");
-        Ghost.set("footprint", "(\\infinite_union; int i; 0 <= i < nodeseq.length; \\set_union(\\singleton(((Node)nodeseq)[i].head), \\singleton(((Node)nodeseq)[i].tail), \\singleton(((Node)nodeseq)[i].footprint)))");
+        Ghost.set("footprint", "\\set_union(\\singleton(this.head), \\singleton(this.tail), \\singleton(this.footprint), this.tail.footprint)");
     }
 
     @JMLClause("requires this.head.product.price <= newHead.product.price;")
@@ -103,8 +98,7 @@ public final class Node {
             this.tail.insert(newHead);
         }
         Packing.pack(this, Node.class);
-        Ghost.set("nodeseq", "\\seq_concat(\\seq_singleton(this.tail), this.tail.nodeseq)");
-        Ghost.set("footprint", "(\\infinite_union; int i; 0 <= i < nodeseq.length; \\set_union(\\singleton(((Node)nodeseq)[i].head), \\singleton(((Node)nodeseq)[i].tail), \\singleton(((Node)nodeseq)[i].footprint)))");
+        Ghost.set("footprint", "\\set_union(\\singleton(this.head), \\singleton(this.tail), \\singleton(this.footprint), this.tail.footprint)");
     }
 
     @JMLClause("ensures \\result == this.head;")
