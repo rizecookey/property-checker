@@ -28,7 +28,7 @@ public final class Shop {
         Packing.pack(this, Shop.class);
     }
 
-    @JMLClause("assignable this.orders, this.orders.footprint;")
+    @JMLClause("assignable this.orders, this.orders.footprint, this.orders.first.packed;")
     public boolean processNextOrder(@Unique Shop this) {
         Packing.unpack(this, Shop.class);
         Order result = this.orders.removeIfPresent();

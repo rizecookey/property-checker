@@ -55,22 +55,30 @@ public final class Main {
         shop.processNextOrder();
     }
 
-    @JMLClauseTranslationOnly("assignable shop.orders.footprint;")
+    @JMLClause("requires \\invariant_for(shop);")
+    @JMLClause("ensures \\invariant_for(shop);")
+    @JMLClause("assignable shop.orders, shop.orders.footprint;")
     public static void addOrder18(@Unique Shop shop, @AgedOver(age="18") Customer customer, @AllowedFor(age="18") Product product) {
         shop.addOrder(Order.order18(customer, product));
     }
 
-    @JMLClauseTranslationOnly("assignable shop.orders.footprint;")
+    @JMLClause("requires \\invariant_for(shop);")
+    @JMLClause("ensures \\invariant_for(shop);")
+    @JMLClause("assignable shop.orders, shop.orders.footprint;")
     public static void addOrder14(@Unique Shop shop, @AgedOver(age="14") Customer customer, @AllowedFor(age="14") Product product) {
         shop.addOrder(Order.order14(customer, product));
     }
 
-    @JMLClause("assignable shop.orders.footprint;")
+    @JMLClause("requires \\invariant_for(shop);")
+    @JMLClause("ensures \\invariant_for(shop);")
+    @JMLClause("assignable shop.orders, shop.orders.footprint;")
     public static void addOrder18DoublyLinked(@Unique DoublyLinkedShop shop, @AgedOver(age="18") Customer customer, @AllowedFor(age="18") Product product) {
         shop.addOrder(Order.order18(customer, product));
     }
 
-    @JMLClause("assignable shop.orders.footprint;")
+    @JMLClause("requires \\invariant_for(shop);")
+    @JMLClause("ensures \\invariant_for(shop);")
+    @JMLClause("assignable shop.orders, shop.orders.footprint;")
     public static void addOrder14DoublyLinked(@Unique DoublyLinkedShop shop, @AgedOver(age="14") Customer customer, @AllowedFor(age="14") Product product) {
         shop.addOrder(Order.order14(customer, product));
     }
