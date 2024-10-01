@@ -752,6 +752,33 @@ public class JavaJMLPrinter extends PrettyPrinter {
                 return;
             }
 
+            if (tree.meth.toString().equals("Assert.immutableFieldUnchanged") ||
+                    (tree.meth.toString().equals("Assert.immutableFieldUnchanged_TranslationOnly") && TRANSLATION_RAW)) {
+                JCLiteral immutableObject = (JCLiteral) tree.args.get(0);
+                JCLiteral unchangedField = (JCLiteral) tree.args.get(1);
+                print(String.format("//@ assume %s == \\old(%s) ==> %s == \\old(%s)",
+                        immutableObject.getValue(), immutableObject.getValue(),
+                        unchangedField.getValue(), unchangedField.getValue()));
+                return;
+            }
+
+            if (tree.meth.toString().equals("Assert.immutableFieldEqual") ||
+                    (tree.meth.toString().equals("Assert.immutableFieldEqual_TranslationOnly") && TRANSLATION_RAW)) {
+                JCLiteral immutableObject0 = (JCLiteral) tree.args.get(0);
+                JCLiteral immutableObject1 = (JCLiteral) tree.args.get(1);
+                JCLiteral equalField0 = (JCLiteral) tree.args.get(2);
+                JCLiteral equalField1 = (JCLiteral) tree.args.get(3);
+                print(String.format("//@ assume %s == \\old(%s) ==> %s == \\old(%s)",
+                        immutableObject0.getValue(), immutableObject1.getValue(),
+                        equalField0.getValue(), equalField1.getValue()));
+                return;
+            }
+
+            if ((tree.meth.toString().equals("Assert.immutableFieldUnchanged_TranslationOnly") && !TRANSLATION_RAW) ||
+                    (tree.meth.toString().equals("Assert.immutableFieldEqual_TranslationOnly") && !TRANSLATION_RAW)) {
+                return;
+            }
+
             if (tree.meth.toString().equals("Assert._assert")) {
                 JCLiteral assertion = (JCLiteral) tree.args.get(0);
                 print(String.format("//@ assert %s", assertion.getValue()));

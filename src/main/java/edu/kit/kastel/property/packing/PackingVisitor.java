@@ -5,6 +5,7 @@ import com.sun.tools.javac.code.TargetType;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.tree.TreeInfo;
+import edu.kit.kastel.property.util.Assert;
 import edu.kit.kastel.property.util.Packing;
 import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
 import org.checkerframework.checker.initialization.InitializationAbstractVisitor;
@@ -35,12 +36,17 @@ public class PackingVisitor
     private final ExecutableElement packMethod;
     private final ExecutableElement unpackMethod;
 
+    private final ExecutableElement unchangedFieldMethod;
+    private final ExecutableElement equalFieldMethod;
+
     private Set<JavaExpression> paramsInContract = new HashSet<>();
 
     public PackingVisitor(BaseTypeChecker checker) {
         super(checker);
         packMethod = TreeUtils.getMethod(Packing.class, "pack", 2, atypeFactory.getProcessingEnv());
         unpackMethod = TreeUtils.getMethod(Packing.class, "unpack", 2, atypeFactory.getProcessingEnv());
+        unchangedFieldMethod = TreeUtils.getMethod(Assert.class, "immutableFieldUnchanged", 2, atypeFactory.getProcessingEnv());
+        equalFieldMethod = TreeUtils.getMethod(Assert.class, "immutableFieldEqual", 4, atypeFactory.getProcessingEnv());
     }
 
     @Override
@@ -137,6 +143,9 @@ public class PackingVisitor
                 checkFieldsInitializedUpToFrame(node, newTypeFrame);
             }
 
+            return null;
+        } else if (ElementUtils.isMethod(invokedMethod, unchangedFieldMethod, env) || ElementUtils.isMethod(invokedMethod, equalFieldMethod, env)) {
+            // TODO!
             return null;
         } else {
             return super.visitMethodInvocation(node, p);

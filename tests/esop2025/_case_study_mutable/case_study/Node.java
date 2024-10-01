@@ -108,10 +108,9 @@ public final class Node {
 
         Ghost.set("footprint", "\\set_union(\\singleton(this.head), \\singleton(this.tail), \\singleton(this.footprint), this.tail.footprint)");
 
-        // The assumptions follow from Node::head being immutable, which follows from the typing "Node::head: @MaybeAliased @Packed".
-        Assert._assume("this.head == \\old(this.head) ==> this.head.product.price == \\old(this.head.product.price)");
-        Assert._assume("this.tail.head == \\old(this.tail.head) ==> this.tail.head.product.price == \\old(this.tail.head.product.price)");
-        Assert._assume("this.tail.head == newHead ==> this.tail.head.product.price == \\old(newHead.product.price)");
+        Assert.immutableFieldUnchanged("this.head", "this.head.product.price");
+        Assert.immutableFieldUnchanged("this.tail.head", "this.tail.head.product.price");
+        Assert.immutableFieldEqual("this.tail.head", "newHead", "this.tail.head.product.price", "newHead.product.price");
     }
 
     @JMLClause("ensures \\result == this.head;")

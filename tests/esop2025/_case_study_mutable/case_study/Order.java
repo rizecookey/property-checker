@@ -32,6 +32,7 @@ public final class Order {
     }
 
     @JMLClause("ensures \\result.customer == customer && \\result.product == product && \\result.witness == 18;")
+    @JMLClause("ensures \\fresh(\\result);")
     @JMLClause("assignable \\nothing;") @Pure
     // :: error: agedover.contracts.postcondition.not.satisfied :: error: allowedfor.contracts.postcondition.not.satisfied
     public static Order order18(@AgedOver(age="18") Customer customer, @AllowedFor(age="18") Product product) {
@@ -40,6 +41,7 @@ public final class Order {
     }
 
     @JMLClause("ensures \\result.customer == customer && \\result.product == product && \\result.witness == 14;")
+    @JMLClause("ensures \\fresh(\\result);")
     @JMLClause("assignable \\nothing;") @Pure
     // :: error: agedover.contracts.postcondition.not.satisfied :: error: allowedfor.contracts.postcondition.not.satisfied
     public static Order order14(@AgedOver(age="14") Customer customer, @AllowedFor(age="14") Product product) {
