@@ -12,12 +12,13 @@ import org.checkerframework.dataflow.qual.*;
 @JMLClause("public accessible \\inv: footprint;")
 // packed field not included in footprint
 @JMLClause("public invariant this.footprint == \\set_union(\\singleton(this.head), \\singleton(this.tail), \\singleton(this.footprint), this.tail == null ? \\empty : this.tail.footprint);")
+@JMLClause("public invariant this.tail != null ==> \\invariant_for(this.tail);")
 @JMLClause("public invariant this.tail != null ==> \\disjoint(this.*, this.tail.footprint);")
-@JMLClause("public invariant this.tail == null || \\invariant_for(this.tail);")
+@JMLClause("public invariant this.tail != null ==> this.tail.head.product.price >= this.head.product.price;")
 public final class Node {
 
     public @MaybeAliased Order head;
-    public @Unique @Nullable @Sorted Node tail;
+    public @Unique @Nullable Node tail;
 
     @JMLClause("requires \\invariant_for(tail);")
     @JMLClause("requires head.product.price <= tail.head.product.price;")
@@ -25,9 +26,8 @@ public final class Node {
     @JMLClause("assignable \\nothing;") @Pure
     @EnsuresReadOnly(value="#2")
     public
-    @Unique @Sorted
-    // :: error: sorted.inconsistent.constructor.type
-    Node(Order head, @Unique @Sorted Node tail) {
+    @Unique
+    Node(Order head, @Unique Node tail) {
         this.head = head;
         this.tail = tail;
         Packing.pack(this, Node.class);
@@ -37,12 +37,10 @@ public final class Node {
     @JMLClause("ensures this.head == head && this.tail == null;")
     @JMLClause("assignable \\nothing;") @Pure
     public
-    @Unique @Sorted
-    // :: error: sorted.inconsistent.constructor.type
+    @Unique
     Node(Order head) {
         this.head = head;
         this.tail = null;
-        // :: error: initialization.fields.uninitialized
         Packing.pack(this, Node.class);
         Ghost.set("footprint", "\\set_union(\\singleton(this.head), \\singleton(this.tail), \\singleton(this.footprint))");
     }
@@ -51,7 +49,7 @@ public final class Node {
     @JMLClause("ensures \\new_elems_fresh(this.footprint);")
     @JMLClause("assignable this.footprint;")
     public void insert(
-            @Unique @Sorted Node this,
+            @Unique Node this,
             Order newHead) {
         if (newHead.getPrice() <= this.head.getPrice()) {
             this.insertHead(newHead);
@@ -64,9 +62,8 @@ public final class Node {
     @JMLClause("ensures this.head == newHead;")
     @JMLClause("ensures \\new_elems_fresh(this.footprint);")
     @JMLClause("assignable this.footprint;")
-    // :: error: sorted.contracts.postcondition.not.satisfied
     private void insertHead(
-            @Unique @Sorted Node this,
+            @Unique Node this,
             Order newHead) {
         Packing.unpack(this, Node.class);
         if (this.tail == null) {
@@ -85,29 +82,25 @@ public final class Node {
     @JMLClause("ensures this.head == \\old(this.head);")
     @JMLClause("ensures \\new_elems_fresh(this.footprint);")
     @JMLClause("assignable this.footprint;")
-    // :: error: sorted.contracts.postcondition.not.satisfied
     private void insertTail(
-            @Unique @Sorted Node this,
+            @Unique Node this,
             Order newHead) {
         Packing.unpack(this, Node.class);
 
-        @Unique Node tail = this.tail;
-        Order head = this.head;
-
         if (tail == null) {
-            tail = new Node(newHead);
+            this.tail = new Node(newHead);
         } else {
             // :: error: nullness.method.invocation.invalid
-            tail.insert(newHead);
+            this.tail.insert(newHead);
         }
-
-        this.tail = tail;
-        this.head = head;
 
         Packing.pack(this, Node.class);
 
         Ghost.set("footprint", "\\set_union(\\singleton(this.head), \\singleton(this.tail), \\singleton(this.footprint), this.tail.footprint)");
 
+        // These statements use the uniqueness and packing type systems to tell KeY that certain heap locations are immutable.
+        // E.g., the first statement translates to `//@ assume this.head == \old(this.head) ==> this.head.product.price == \old(this.head.product.price)`,
+        // which is sound because `this.head` is `@MaybeAliased @Packed(Order.class)` and thus immutable.
         Assert.immutableFieldUnchanged("this.head", "this.head.product.price");
         Assert.immutableFieldUnchanged("this.tail.head", "this.tail.head.product.price");
         Assert.immutableFieldEqual("this.tail.head", "newHead", "this.tail.head.product.price", "newHead.product.price");
@@ -126,11 +119,12 @@ public final class Node {
     }
 
     @JMLClause("ensures \\result == this.tail;")
+    @JMLClause("ensures \\invariant_for(\\result);")
     @JMLClause("assignable this.packed;")
     @EnsuresReadOnly("this")
     @EnsuresUnknownInit(value="this", targetValue=Object.class)
     public
-    @Unique @Nullable @Sorted Node
+    @Unique @Nullable Node
     stealTail(@Unique Node this) {
         Packing.unpack(this, Node.class);
         return this.tail;

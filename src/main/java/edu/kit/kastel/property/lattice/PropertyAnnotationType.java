@@ -158,6 +158,11 @@ public final class PropertyAnnotationType {
         return getWFCondition().equals("true") && getProperty().equals("§subject§ != null");
     }
 
+    // Used by JavaJMLPrinter to avoid adding `\invariant_for(this)` where it is implicitly added by the JML semantics
+    public boolean isInv() {
+        return getWFCondition().equals("true") && getProperty().equals("§subject§ != null ==> \\invariant_for(§subject§)");
+    }
+
     @SuppressWarnings("nls")
     public static enum ParameterType {
         CHAR("char", char.class),

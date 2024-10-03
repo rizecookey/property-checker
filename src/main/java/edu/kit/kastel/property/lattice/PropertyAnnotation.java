@@ -16,20 +16,15 @@
  */
 package edu.kit.kastel.property.lattice;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
-
 import com.google.common.collect.Streams;
-
 import edu.kit.kastel.property.checker.PropertyChecker;
 import edu.kit.kastel.property.lattice.PropertyAnnotationType.Parameter;
 import edu.kit.kastel.property.lattice.compiler.ClassBuilder;
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class PropertyAnnotation {
 
@@ -111,6 +106,10 @@ public class PropertyAnnotation {
                 }
 
                 Class<?> cls = compiler.compile(checker.getProjectClassLoader());
+
+                if (cls == null) {
+                    return null;
+                }
 
                 List<Object> evaluatedParams = new ArrayList<>();
 

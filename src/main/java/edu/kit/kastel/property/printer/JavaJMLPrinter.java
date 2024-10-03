@@ -113,7 +113,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
         this.results = results;
         this.propertyFactory = propertyChecker.getPropertyFactory();
         this.exclFactory = propertyFactory.getTypeFactoryOfSubchecker(ExclusivityChecker.class);
-        
+
         String translationOnlyOption = propertyChecker.getOption(Config.TRANSLATION_ONLY_OPTION);
         
         if (Objects.equals(translationOnlyOption, "true")) {
@@ -413,13 +413,14 @@ public class JavaJMLPrinter extends PrettyPrinter {
                 if (method.getReceiverType() != null) {
                     AnnotatedTypeMirror requiredReceiverType = method.getReceiverType();
                     PropertyAnnotation pa = lattice.getPropertyAnnotation(requiredReceiverType);
-                    jmlContract.addClause(new Condition(ConditionType.ASSERTION, ConditionLocation.PRECONDITION, pa, "this"));
+                    if (!pa.getAnnotationType().isInv()) {
+                        jmlContract.addClause(new Condition(ConditionType.ASSERTION, ConditionLocation.PRECONDITION, pa, "this"));
+                    }
                 }
 
                 for (int i = 0; i < method.getParameterTypes().size(); ++i) {
                     AnnotatedTypeMirror paramType = method.getParameterTypes().get(i);
                     String paramName = paramNames.get(i);
-
 
                     if (!AnnotationUtils.areSame(paramType.getAnnotationInHierarchy(factory.getTop()), factory.getTop())) {
                         jmlContract.addClause(
@@ -441,7 +442,9 @@ public class JavaJMLPrinter extends PrettyPrinter {
                     boolean wt = wellTypedness.isWellTypedConstructor(tree);
 
                     PropertyAnnotation pa = lattice.getPropertyAnnotation(receiverType);
-                    jmlContract.addClause(new Condition(wt, ConditionLocation.POSTCONDITION, pa, "this"));
+                    if (!(pa.getAnnotationType().isInv() && !wt)) {
+                        jmlContract.addClause(new Condition(wt, ConditionLocation.POSTCONDITION, pa, "this"));
+                    }
                     if (!wt) {
                         ++assertions;
                     }
@@ -480,12 +483,15 @@ public class JavaJMLPrinter extends PrettyPrinter {
                     boolean wt = !illTypedMethodOutputParams.contains(0);
 
                     if (paramOutputType != null && !AnnotationUtils.areSame(paramOutputType, factory.getTop())) {
-                        jmlContract.addClause(
-                                new Condition(
-                                        wt,
-                                        ConditionLocation.POSTCONDITION,
-                                        lattice.getPropertyAnnotation(paramOutputType),
-                                        paramName));
+                        PropertyAnnotation pa = lattice.getPropertyAnnotation(paramOutputType);
+                        if (!(pa.getAnnotationType().isInv() && !wt)) {
+                            jmlContract.addClause(
+                                    new Condition(
+                                            wt,
+                                            ConditionLocation.POSTCONDITION,
+                                            pa,
+                                            paramName));
+                        }
 
                         if (!wt) {
                             ++methodCallPostconditions;
@@ -654,7 +660,8 @@ public class JavaJMLPrinter extends PrettyPrinter {
                 AnnotatedExecutableType methodType = wellTypedness.getTypeFactory().constructorFromUse(tree).executableType;
 
                 for (int i = 0; i < invokedMethod.getParameterTypes().size(); ++i) {
-                    if (!wellTypedness.getLattice().getPropertyAnnotation(methodType.getParameterTypes().get(i)).getAnnotationType().isTrivial()) {
+                    PropertyAnnotationType pat = wellTypedness.getLattice().getPropertyAnnotation(methodType.getParameterTypes().get(i)).getAnnotationType();
+                    if (!pat.isTrivial()) {
                         args.add(wellTypedness.getIllTypedConstructorParams(tree).contains(i) || TRANSLATION_RAW ? "false" : "true");
                     }
                 }
@@ -798,7 +805,8 @@ public class JavaJMLPrinter extends PrettyPrinter {
                 AnnotatedExecutableType methodType = wellTypedness.getTypeFactory().methodFromUse(tree).executableType;
 
                 if (!ElementUtils.isStatic(invokedMethod.getElement())) {
-                    if (!wellTypedness.getLattice().getPropertyAnnotation(methodType.getReceiverType()).getAnnotationType().isTrivial()) {
+                    PropertyAnnotationType pat = wellTypedness.getLattice().getPropertyAnnotation(methodType.getReceiverType()).getAnnotationType();
+                    if (!pat.isTrivial() && !pat.isInv()) {
                     	if (wellTypedness.getIllTypedMethodReceivers().contains(tree) || TRANSLATION_RAW ) {
                     		booleanArgs.add("false");
                     		++methodCallPreconditions;
@@ -843,7 +851,6 @@ public class JavaJMLPrinter extends PrettyPrinter {
                 print(", ");
             }
             print(booleanArgs);
-
             print(")");
         } catch (IOException e) {
             throw new UncheckedIOException(e);
@@ -1020,9 +1027,11 @@ public class JavaJMLPrinter extends PrettyPrinter {
             AnnotatedTypeMirror requiredReceiverType = methodType.getReceiverType();
             List<AnnotatedTypeMirror> requiredParamTypes = methodType.getParameterTypes();
 
-            if (requiredReceiverType != null
-                    && !lattice.getPropertyAnnotation(requiredReceiverType).getAnnotationType().isTrivial()) {
-                paramStr.add(String.format("boolean %s", trampolineBooleanParamName("this", wellTypedness)));
+            if (requiredReceiverType != null) {
+                PropertyAnnotationType pat = lattice.getPropertyAnnotation(requiredReceiverType).getAnnotationType();
+                if (!pat.isTrivial() && !pat.isInv()) {
+                    paramStr.add(String.format("boolean %s", trampolineBooleanParamName("this", wellTypedness)));
+                }
             }
 
             for (int i = 0; i < paramNames.size(); ++i) {
@@ -1070,7 +1079,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
                 PropertyAnnotation pa = lattice.getPropertyAnnotation(requiredReceiverType);
                 PropertyAnnotationType pat = pa.getAnnotationType();
 
-                if (!pat.isTrivial()) {
+                if (!pat.isTrivial() && !pat.isInv()) {
                     jmlContract.addClause(new Condition(ConditionType.ASSERTION, ConditionLocation.PRECONDITION, pa, "this")
                             .toStringOr(trampolineBooleanParamName("this", wellTypedness)));
                     jmlContract.addClause(new Condition(ConditionType.ASSUMPTION, ConditionLocation.PRECONDITION, pa, "this")
@@ -1102,12 +1111,16 @@ public class JavaJMLPrinter extends PrettyPrinter {
             if (methodType.getReceiverType() != null) {
                 AnnotatedTypeMirror requiredReceiverType = methodType.getReceiverType();
                 PropertyAnnotation pa = lattice.getPropertyAnnotation(requiredReceiverType);
-                jmlContract.addClause(new Condition(ConditionType.ASSUMPTION, ConditionLocation.POSTCONDITION, pa, "this"));
+                if (!pa.getAnnotationType().isTrivial() && !pa.getAnnotationType().isInv()) {
+                    jmlContract.addClause(new Condition(ConditionType.ASSUMPTION, ConditionLocation.POSTCONDITION, pa, "this"));
+                }
             }
 
             for (int i = 0; i < requiredParamTypes.size(); ++i) {
                 PropertyAnnotation pa = lattice.getPropertyAnnotation(requiredParamTypes.get(i));
-                jmlContract.addClause(new Condition(ConditionType.ASSUMPTION, ConditionLocation.POSTCONDITION, pa, paramNames.get(i)));
+                if (!pa.getAnnotationType().isTrivial()) {
+                    jmlContract.addClause(new Condition(ConditionType.ASSUMPTION, ConditionLocation.POSTCONDITION, pa, paramNames.get(i)));
+                }
             }
         }
 

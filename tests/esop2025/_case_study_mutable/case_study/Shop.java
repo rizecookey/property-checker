@@ -8,27 +8,27 @@ import edu.kit.kastel.property.packing.qual.*;
 import org.checkerframework.checker.initialization.qual.*;
 import org.checkerframework.dataflow.qual.*;
 
-@JMLClause("public accessible \\inv: this.orders, this.orders.footprint;")
-@JMLClause("public invariant this.orders != null ==> \\invariant_for(this.orders);")
-@JMLClause("public invariant this.orders != null ==> \\disjoint(this.*, this.orders.footprint);")
+@JMLClauseTranslationOnly("public accessible \\inv: this.orders, this.orders.footprint;")
+@JMLClauseTranslationOnly("public invariant this.orders != null ==> \\invariant_for(this.orders);")
+@JMLClauseTranslationOnly("public invariant this.orders != null ==> \\disjoint(this.*, this.orders.footprint);")
 public final class Shop {
     
-    private @Unique @PossiblyEmpty SortedList orders;
+    private @Unique @PossiblyEmpty @Inv SortedList orders;
 
-    @Pure
+    @JMLClauseTranslationOnly("assignable \\nothing;") @Pure
     public Shop() {
         this.orders = new SortedList();
         Packing.pack(this, Shop.class);
     }
 
-    @JMLClause("assignable this.orders, this.orders.footprint;")
+    @JMLClauseTranslationOnly("assignable this.orders.footprint;")
     public void addOrder(@Unique Shop this, Order order) {
         Packing.unpack(this, Shop.class);
         this.orders.insert(order);
         Packing.pack(this, Shop.class);
     }
 
-    @JMLClause("assignable this.orders, this.orders.footprint, this.orders.first.packed;")
+    @JMLClauseTranslationOnly("assignable this.orders.footprint, this.orders.first.packed;")
     public boolean processNextOrder(@Unique Shop this) {
         Packing.unpack(this, Shop.class);
         Order result = this.orders.removeIfPresent();

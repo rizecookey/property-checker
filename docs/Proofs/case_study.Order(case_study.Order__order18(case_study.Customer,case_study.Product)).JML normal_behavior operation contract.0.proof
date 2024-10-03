@@ -77,7 +77,7 @@
 \javaSource "../../../property-checker-out/case_study";
 
 \proofObligation "#Proof Obligation Settings
-#Tue Oct 01 00:28:23 CEST 2024
+#Thu Oct 03 19:42:16 CEST 2024
 contract=case_study.Order[case_study.Order\\:\\:order18(case_study.Customer,case_study.Product)].JML normal_behavior operation contract.0
 name=case_study.Order[case_study.Order\\:\\:order18(case_study.Customer,case_study.Product)].JML normal_behavior operation contract.0
 class=de.uka.ilkd.key.proof.init.FunctionalOperationContractPO
@@ -86,10 +86,11 @@ class=de.uka.ilkd.key.proof.init.FunctionalOperationContractPO
 \proof {
 (keyLog "0" (keyUser "florian" ) (keyVersion "7ff2d9dc3ea43e071577b3f8d0e3a537f9213982"))
 
-(autoModeTime "5225")
+(autoModeTime "2344")
 
 (branch "dummy ID"
-(rule "qeq_literals" (formula "1") (term "0,0,1,0,0,0,1,1") (newnames "heapAtPre,o,f"))
+ (builtin "One Step Simplification" (formula "1") (newnames "heapAtPre,o,f"))
+(rule "qeq_literals" (formula "1") (term "0,0,1,0,0,0,1,1"))
  (builtin "One Step Simplification" (formula "1"))
 (rule "qeq_literals" (formula "1") (term "0,0,0,0,0,1,1"))
  (builtin "One Step Simplification" (formula "1"))
@@ -133,9 +134,9 @@ class=de.uka.ilkd.key.proof.init.FunctionalOperationContractPO
     (builtin "One Step Simplification" (formula "10"))
    (rule "qeq_literals" (formula "10") (term "0,0,1,1,1,1,1,1,1,1,0,1"))
     (builtin "One Step Simplification" (formula "10"))
-   (rule "qeq_literals" (formula "10") (term "0,0,1,1,1,1,1,0,1"))
-    (builtin "One Step Simplification" (formula "10"))
    (rule "qeq_literals" (formula "10") (term "0,0,1,1,1,1,1,1,0,1"))
+    (builtin "One Step Simplification" (formula "10"))
+   (rule "qeq_literals" (formula "10") (term "0,0,1,1,1,1,1,0,1"))
     (builtin "One Step Simplification" (formula "10"))
    (rule "andLeft" (formula "10"))
    (rule "andLeft" (formula "11"))
@@ -179,16 +180,16 @@ class=de.uka.ilkd.key.proof.init.FunctionalOperationContractPO
     (builtin "One Step Simplification" (formula "14") (ifInst ""  (formula "27")) (ifInst ""  (formula "2")))
    (rule "applyEqReverse" (formula "15") (term "0") (ifseqformula "14"))
    (rule "hideAuxiliaryEq" (formula "14"))
-   (rule "pullOutSelect" (formula "19") (term "0") (inst "selectSK=case_study_Order_customer_0"))
-   (rule "simplifySelectOfAnonEQ" (formula "19") (ifseqformula "10"))
-    (builtin "One Step Simplification" (formula "19") (ifInst ""  (formula "24")) (ifInst ""  (formula "23")))
-   (rule "applyEqReverse" (formula "20") (term "0") (ifseqformula "19"))
-   (rule "hideAuxiliaryEq" (formula "19"))
    (rule "pullOutSelect" (formula "20") (term "0") (inst "selectSK=case_study_Order_product_0"))
    (rule "simplifySelectOfAnonEQ" (formula "20") (ifseqformula "10"))
     (builtin "One Step Simplification" (formula "20") (ifInst ""  (formula "24")) (ifInst ""  (formula "23")))
    (rule "applyEqReverse" (formula "21") (term "0") (ifseqformula "20"))
    (rule "hideAuxiliaryEq" (formula "20"))
+   (rule "pullOutSelect" (formula "19") (term "0") (inst "selectSK=case_study_Order_customer_0"))
+   (rule "simplifySelectOfAnonEQ" (formula "19") (ifseqformula "10"))
+    (builtin "One Step Simplification" (formula "19") (ifInst ""  (formula "24")) (ifInst ""  (formula "23")))
+   (rule "applyEqReverse" (formula "20") (term "0") (ifseqformula "19"))
+   (rule "hideAuxiliaryEq" (formula "19"))
    (rule "pullOutSelect" (formula "14") (term "0") (inst "selectSK=java_lang_Object_packed_2"))
    (rule "simplifySelectOfAnonEQ" (formula "14") (ifseqformula "10"))
     (builtin "One Step Simplification" (formula "14") (ifInst ""  (formula "25")) (ifInst ""  (formula "3")))
@@ -259,23 +260,37 @@ class=de.uka.ilkd.key.proof.init.FunctionalOperationContractPO
                (branch
                   (rule "andRight" (formula "25"))
                   (branch
-                      (builtin "One Step Simplification" (formula "25"))
-                     (rule "replaceKnownSelect_taclet0_6" (formula "25") (term "0"))
-                     (rule "replaceKnownAuxiliaryConstant_taclet0_7" (formula "25") (term "0"))
-                     (rule "close" (formula "25") (ifseqformula "18"))
+                     (rule "andRight" (formula "25"))
+                     (branch
+                         (builtin "One Step Simplification" (formula "25"))
+                        (rule "replaceKnownSelect_taclet0_8" (formula "25") (term "0"))
+                        (rule "replaceKnownAuxiliaryConstant_taclet0_9" (formula "25") (term "0"))
+                        (rule "close" (formula "25") (ifseqformula "18"))
+                     )
+                     (branch
+                         (builtin "One Step Simplification" (formula "25"))
+                        (rule "replaceKnownSelect_taclet0_6" (formula "25") (term "0"))
+                        (rule "replaceKnownAuxiliaryConstant_taclet0_7" (formula "25") (term "0"))
+                        (rule "close" (formula "25") (ifseqformula "19"))
+                     )
                   )
                   (branch
                       (builtin "One Step Simplification" (formula "25"))
-                     (rule "replaceKnownSelect_taclet0_8" (formula "25") (term "0"))
-                     (rule "replaceKnownAuxiliaryConstant_taclet0_9" (formula "25") (term "0"))
-                     (rule "close" (formula "25") (ifseqformula "19"))
+                     (rule "replaceKnownSelect_taclet0_2" (formula "25") (term "0"))
+                     (rule "replaceKnownAuxiliaryConstant_taclet0_3" (formula "25") (term "0"))
+                     (rule "close" (formula "25") (ifseqformula "20"))
                   )
                )
                (branch
-                   (builtin "One Step Simplification" (formula "25"))
-                  (rule "replaceKnownSelect_taclet0_2" (formula "25") (term "0"))
-                  (rule "replaceKnownAuxiliaryConstant_taclet0_3" (formula "25") (term "0"))
-                  (rule "close" (formula "25") (ifseqformula "20"))
+                  (rule "andRight" (formula "25"))
+                  (branch
+                      (builtin "One Step Simplification" (formula "25") (ifInst ""  (formula "21")))
+                     (rule "closeTrue" (formula "25"))
+                  )
+                  (branch
+                      (builtin "One Step Simplification" (formula "25") (ifInst ""  (formula "22")))
+                     (rule "closeTrue" (formula "25"))
+                  )
                )
             )
          )
@@ -300,8 +315,8 @@ class=de.uka.ilkd.key.proof.init.FunctionalOperationContractPO
    )
 )
 (branch "Exceptional Post (__INIT_trampoline)"
-    (builtin "One Step Simplification" (formula "13"))
     (builtin "One Step Simplification" (formula "10"))
+    (builtin "One Step Simplification" (formula "13"))
    (rule "andLeft" (formula "10"))
    (rule "andLeft" (formula "11"))
    (rule "andLeft" (formula "12"))

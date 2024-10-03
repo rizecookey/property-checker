@@ -147,6 +147,10 @@ public final class LatticeAnnotatedTypeFactory
         
         Class<?> cls = compiler.compile(latticeChecker.getProjectClassLoader());
 
+        if (cls == null) {
+            return;
+        }
+
         for (T chk : checkables) {
             try {
                 Class<?>[] paramTypes = chk.getParameterTypes();

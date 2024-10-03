@@ -16,6 +16,14 @@
  */
 package edu.kit.kastel.property.lattice.compiler;
 
+import com.google.common.collect.Streams;
+import edu.kit.kastel.property.config.Config;
+import edu.kit.kastel.property.util.FileUtils;
+
+import javax.tools.JavaCompiler;
+import javax.tools.JavaFileObject;
+import javax.tools.StandardJavaFileManager;
+import javax.tools.ToolProvider;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -24,19 +32,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.List;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
-
-import javax.tools.JavaCompiler;
-import javax.tools.JavaFileObject;
-import javax.tools.StandardJavaFileManager;
-import javax.tools.ToolProvider;
-
-import com.google.common.collect.Streams;
-
-import edu.kit.kastel.property.config.Config;
-import edu.kit.kastel.property.util.FileUtils;
 
 @SuppressWarnings("nls")
 public class ClassBuilder {
@@ -110,12 +107,9 @@ public class ClassBuilder {
     		task.call();
 
     		return classLoader.loadClass(Config.CHECKERS_PACKAGE + "." + className);
-    	} catch (IOException | ClassNotFoundException e) {
-    		e.printStackTrace();
-    		System.exit(1);
+    	} catch (RuntimeException | IOException | ClassNotFoundException e) {
+			return null;
     	}
-    	
-    	throw new AssertionError();
     }
 
     public void addMethod(String returnType, String methodName, String expression, String[] paramTypes, String[] paramNames, String comment) {
