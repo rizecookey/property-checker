@@ -17,7 +17,14 @@ import org.checkerframework.dataflow.qual.*;
 @JMLClause("public invariant this.first != null ==> \\disjoint(this.*, this.first.footprint);")
 public final class SortedList {
 
-    public @Unique @Nullable Node first;
+    // Turning @Sorted into a JML invariant instead of a property type
+    // would be prettier and less confusing than having every Node
+    // be of type @Sorted Node. But it would also mean that the JML invariant
+    // of Node would depend on Node::head.product.price, which makes the framing clauses and
+    // dependency contracts very awkward to prove.
+    // So doing the sortedness as a property type and everything else
+    // (well-formedness of list structure, general framing) as JML is easiest.
+    public @Unique @Nullable @Sorted Node first;
 
     @JMLClause("ensures this.first == null;")
     @JMLClause("ensures \\fresh(this.footprint);")
@@ -26,6 +33,7 @@ public final class SortedList {
     // :: error: inv.inconsistent.constructor.type
     public @PossiblyEmpty @Inv SortedList() {
         this.first = null;
+        // :: error: initialization.fields.uninitialized
         Packing.pack(this, SortedList.class);
         Ghost.set("footprint", "\\set_union(\\singleton(this.first), \\singleton(this.footprint))");
     }

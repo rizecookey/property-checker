@@ -33,6 +33,7 @@ public class CaseStudyMutableTest extends PropertyCheckerTest {
                         + ",tests/esop2025/_case_study_mutable/lattice_interval"
                         + ",tests/esop2025/_case_study_mutable/lattice_empty"
                         + ",tests/esop2025/_case_study_mutable/lattice_sign"
+                        + ",tests/esop2025/_case_study_mutable/lattice_sorted"
                         + ",tests/esop2025/_case_study_mutable/lattice_inv",
                 "tests/esop2025/_case_study_mutable/",
                 "edu.kit.kastel.property.subchecker.lattice.case_study_mutable_qual");
