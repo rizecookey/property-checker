@@ -156,11 +156,12 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         return null;
     }
 
+
     @Override
     public Void visitVariable(VariableTree node, Void p) {
-        localVars.add(node);
         call(() -> super.visitVariable(node, p), () -> result.illTypedVars.add(node));
 
+        localVars.add(node);
         AnnotatedTypeMirror varType = atypeFactory.getAnnotatedTypeLhs(node);
         ExclusivityAnnotatedTypeFactory exclFactory = atypeFactory.getTypeFactoryOfSubchecker(ExclusivityChecker.class);
         AnnotatedTypeMirror exclType = exclFactory.getAnnotatedTypeLhs(node);
