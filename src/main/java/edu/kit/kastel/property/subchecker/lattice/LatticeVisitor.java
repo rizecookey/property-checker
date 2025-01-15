@@ -785,6 +785,11 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         AnnotatedTypeMirror.AnnotatedExecutableType type = atypeFactory.getAnnotatedType(method.getElement());
         TreePath methodPath = trees.getPath(method.getElement());
 
+        if (methodPath == null) {
+            // method source is not available; no context available
+            return new ValueLiteral(types.getPrimitiveType(TypeKind.BOOLEAN), true);
+        }
+
         // parameter elements -> checker framework representation
         Map<VariableElement, FormalParameter> params = JavaExpression.getFormalParameters(method.getElement()).stream()
                 .collect(Collectors.toMap(FormalParameter::getElement, Function.identity()));
@@ -836,6 +841,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         );
     }
 
+    // TODO: add well-formedness condition to refinement
     private String getRefinement(AnnotatedTypeMirror type, Object subject) {
         PropertyAnnotation anno = atypeFactory.getLattice().getPropertyAnnotation(type);
         String refinement = anno.getAnnotationType().getProperty();
