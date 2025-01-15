@@ -30,34 +30,48 @@ import edu.kit.kastel.property.lattice.PropertyAnnotation;
 import edu.kit.kastel.property.lattice.PropertyAnnotationType;
 import edu.kit.kastel.property.packing.PackingClientStore;
 import edu.kit.kastel.property.packing.PackingClientVisitor;
+import edu.kit.kastel.property.smt.JavaToSmtExpression;
+import edu.kit.kastel.property.smt.SmtCompiler;
+import edu.kit.kastel.property.smt.SmtExpression;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
 import edu.kit.kastel.property.util.*;
+import edu.kit.kastel.property.util.CollectionUtils;
 import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.TypeValidator;
-import org.checkerframework.dataflow.expression.JavaExpression;
-import org.checkerframework.dataflow.expression.ThisReference;
+import org.checkerframework.dataflow.expression.*;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
 import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.framework.util.AnnotatedTypes;
-import org.checkerframework.javacutil.ElementUtils;
-import org.checkerframework.javacutil.Pair;
-import org.checkerframework.javacutil.TreeUtils;
+import org.checkerframework.framework.util.JavaExpressionParseUtil;
+import org.checkerframework.framework.util.StringToJavaExpression;
+import org.checkerframework.javacutil.*;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.java_smt.SolverContextFactory;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.SolverException;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.*;
 import javax.lang.model.type.TypeKind;
+import javax.lang.model.type.TypeMirror;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import static org.checkerframework.dataflow.expression.ViewpointAdaptJavaExpression.viewpointAdapt;
 
 public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedTypeFactory> {
 
     private final ExecutableElement packMethod;
     private final ExecutableElement unpackMethod;
+    private final Set<VariableTree> localVars;
+    private final Resolver resolver;
 
     private Result result;
 
@@ -70,6 +84,8 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         super(checker);
         packMethod = TreeUtils.getMethod(Packing.class, "pack", 2, atypeFactory.getProcessingEnv());
         unpackMethod = TreeUtils.getMethod(Packing.class, "unpack", 2, atypeFactory.getProcessingEnv());
+        localVars = new HashSet<>();
+        resolver = new Resolver(checker.getProcessingEnvironment());
 
         result = new Result(getLatticeSubchecker());
     }
@@ -142,6 +158,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
     @Override
     public Void visitVariable(VariableTree node, Void p) {
+        localVars.add(node);
         call(() -> super.visitVariable(node, p), () -> result.illTypedVars.add(node));
 
         AnnotatedTypeMirror varType = atypeFactory.getAnnotatedTypeLhs(node);
@@ -214,7 +231,18 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
         enclMethod = prevEnclMethod;
 
+        resetLocalVarTracking(node);
+
         return null;
+    }
+
+    private void resetLocalVarTracking(MethodTree tree) {
+        localVars.clear();
+        localVars.addAll(tree.getParameters());
+        if (tree.getReceiverParameter() != null) {
+            // TODO: does getParameters() contain receiver parameter already?
+            localVars.add(tree.getReceiverParameter());
+        }
     }
 
     @Override
@@ -285,6 +313,12 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
             scan(passedArgs.get(i), null);
         }
+    }
+
+    // TODO: can we have multiple commonAssignmentCheck overloads next to each other?
+    @Override
+    protected boolean commonAssignmentCheck(AnnotatedTypeMirror varType, ExpressionTree valueExpTree, @CompilerMessageKey String errorKey, Object... extraArgs) {
+        return smtBasedAssignmentCheck(varType, valueExpTree);
     }
 
     @Override
@@ -421,6 +455,9 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         result.uninitializedFields.put(packingStatement, uninitFields);
     }
 
+    // TODO: refactor to include, for each type error, the smt context and goal to discharge it
+    // we need to able to combine the contexts from all sub checkers for a given tree later
+    // (find a suitable data structure for this - map could work)
     public static class Result {
 
         private LatticeSubchecker checker;
@@ -596,4 +633,238 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             return type;
         }
     }
+
+    /* ==== SMT SOLVING CODE ==== */
+
+    private boolean smtBasedAssignmentCheck(AnnotatedTypeMirror varType, ExpressionTree valueExpTree) {
+        System.out.printf("assignment check: expr %s to type %s%n", valueExpTree, varType);
+
+        // TODO: verify that all context formulae are actually boolean
+
+        try (var solverContext = SolverContextFactory.createSolverContext(SolverContextFactory.Solvers.SMTINTERPOL);
+             var proverEnv = solverContext.newProverEnvironment()) {
+            SmtCompiler compiler = new SmtCompiler(solverContext);
+            JavaExpression toProve = StringToJavaExpression.atPath(getRefinement(varType, valueExpTree), getCurrentPath(), checker);
+            JavaToSmtExpression.Result goal = JavaToSmtExpression.convert(toProve);
+            var bmgr = solverContext.getFormulaManager().getBooleanFormulaManager();
+            List<BooleanFormula> conjunction = new ArrayList<>();
+
+            // add goal
+            try {
+                conjunction.add(bmgr.not((BooleanFormula) compiler.compile(goal.smt())));
+            } catch (UnsupportedOperationException e) {
+                System.out.printf("Skipping proof goal %s due to use of unsupported feature: %s%n",
+                        goal.smt(), e.getMessage());
+                return false;
+            }
+
+            Set<SmtExpression> context = context(goal.references());
+            System.out.println("Context: " + context);
+            System.out.println("Goal to prove: " + goal.smt());
+
+            // add context formulae
+            for (SmtExpression expr : context) {
+                try {
+                    conjunction.add((BooleanFormula) compiler.compile(expr));
+                } catch (UnsupportedOperationException e) {
+                    // drop context constraints that aren't representable
+                    System.out.printf("Ignoring context formula %s due to use of unsupported feature: %s%n",
+                            expr, e.getMessage());
+                }
+            }
+
+            // conjunction of context and complement of goal
+            // == (context =/> goal)
+            // if this is unsatisfiable, context => goal is universally valid
+            proverEnv.addConstraint(bmgr.and(conjunction));
+            var assignmentValid = proverEnv.isUnsat();
+            System.out.println("Could be proven? " + assignmentValid);
+            if (assignmentValid) {
+                return true;
+            }
+        } catch (InvalidConfigurationException | InterruptedException | SolverException |
+                 JavaExpressionParseUtil.JavaExpressionParseException e) {
+            throw new RuntimeException(e);
+        }
+
+        return false;
+    }
+
+
+    private Set<SmtExpression> context(Collection<JavaExpression> initialRefs) throws JavaExpressionParseUtil.JavaExpressionParseException {
+        Set<JavaExpression> visited = new HashSet<>();
+        Queue<JavaExpression> refs = new ArrayDeque<>(initialRefs);
+        Set<SmtExpression> context = new HashSet<>();
+
+        Consumer<JavaToSmtExpression.Result> addToContext = result -> {
+            context.add(result.smt());
+            refs.addAll(result.references());
+        };
+
+        // collect all locally available refinements (params + vars)
+        List<JavaExpression> localRefinements = new ArrayList<>();
+        for (VariableTree local : localVars) {
+            if (local != methodTree.getReceiverParameter()
+                    && resolver.findLocalVariableOrParameter(local.getName().toString(), getCurrentPath()) == null) {
+                continue;
+            }
+            AnnotatedTypeMirror type = atypeFactory.getAnnotatedType(local);
+            String refinement = getRefinement(type, local.getName());
+            localRefinements.add(StringToJavaExpression.atPath(refinement, getCurrentPath(), checker));
+        }
+
+        while (!refs.isEmpty()) {
+            // reference is always viewpoint-adapted from original context
+            JavaExpression ref = refs.remove();
+            if (visited.contains(ref) || hasCycle(ref)) {
+                continue;
+            }
+
+            System.out.println("Finding constraints for: " + ref);
+
+            // search in local refinements for mentions of the reference
+            localRefinements.stream()
+                    .filter(expr -> expr.containsSyntacticEqualJavaExpression(ref))
+                    .peek(System.out::println)
+                    .map(JavaToSmtExpression::convert)
+                    .forEach(addToContext);
+
+            // find constraints for reference/expression
+            Collection<JavaExpression> refinements = switch (ref) {
+                case FieldAccess f -> constraintsForField(visited, f);
+                case MethodCall m -> List.of(methodCallClause(m));
+                // constraints for local vars and params have already been added in local refinement search
+                default -> Collections.emptyList();
+            };
+
+            refinements.stream().peek(System.out::println).map(JavaToSmtExpression::convert).forEach(addToContext);
+            visited.add(ref);
+        }
+        return context;
+    }
+
+    // TODO expand all class names to be fully qualified so they work everywhere (and receiver is normalised)
+
+    // this is basically a shortcut for "refinement + external references"
+    private Collection<JavaExpression> constraintsForField(Set<JavaExpression> visited, FieldAccess fieldAccess) throws JavaExpressionParseUtil.JavaExpressionParseException {
+        List<JavaExpression> results = new ArrayList<>();
+
+        // go through all parent receivers of field access to find references
+        // field could be further constrained by other local refinements, but these aren't handled here
+        for (JavaExpression e = fieldAccess; e instanceof FieldAccess fa; e = fa.getReceiver()) {
+            TypeMirror receiverType = fa.getReceiver().getType();
+
+            for (VariableElement field : ElementUtils.getAllFieldsIn(TypesUtils.getTypeElement(receiverType), elements)) {
+                JavaExpression localFieldRef = new FieldAccess(new ThisReference(receiverType), field);
+
+                if (visited.contains(viewpointAdapt(localFieldRef, fa.getReceiver()))) {
+                    // we have already handled this field and all its dependencies
+                    continue;
+                }
+
+                AnnotatedTypeMirror type = atypeFactory.getAnnotatedType(field);
+                String refinement = getRefinement(type, localFieldRef);
+                JavaExpression expr = viewpointAdapt(
+                        StringToJavaExpression.atFieldDecl(refinement, field, checker),
+                        fa.getReceiver()
+                );
+
+                // if refinement references the original field we're interested in, add it to the result
+                if (expr.containsSyntacticEqualJavaExpression(fieldAccess)) {
+                    results.add(expr);
+                }
+            }
+        }
+
+        return results;
+    }
+
+    // TODO: check if method can actually be used
+    private JavaExpression methodCallClause(MethodCall method) throws JavaExpressionParseUtil.JavaExpressionParseException {
+        AnnotatedTypeMirror.AnnotatedExecutableType type = atypeFactory.getAnnotatedType(method.getElement());
+        TreePath methodPath = trees.getPath(method.getElement());
+
+        // parameter elements -> checker framework representation
+        Map<VariableElement, FormalParameter> params = JavaExpression.getFormalParameters(method.getElement()).stream()
+                .collect(Collectors.toMap(FormalParameter::getElement, Function.identity()));
+
+        interface ParsingFunction {
+            JavaExpression parse(String expr) throws JavaExpressionParseUtil.JavaExpressionParseException;
+        }
+
+        JavaExpression receiver = method.getReceiver();
+
+        // Function that parses a declaration-level expression, where parameters are referenced by name
+        ParsingFunction function = refinement -> {
+            // 1. parse refinement in method body scope
+            JavaExpression expression = StringToJavaExpression.atPath(refinement, methodPath, checker);
+            // 2. convert nominal parameter references to FormalParameters
+            expression = expression.accept(new JavaExpressionConverter() {
+                @Override
+                protected JavaExpression visitLocalVariable(LocalVariable localVarExpr, Void unused) {
+                    return params.get(localVarExpr.getElement());
+                }
+            }, null);
+            // 3. viewpoint adapt to call site
+            return viewpointAdapt(expression, receiver, method.getArguments());
+        };
+
+        List<JavaExpression> argRefinements = new ArrayList<>();
+        for (VariableElement parameter : method.getElement().getParameters()) {
+            String refinement = getRefinement(atypeFactory.getAnnotatedType(parameter), parameter.getSimpleName());
+            argRefinements.add(function.parse(refinement));
+        }
+
+        // the input method call with parameters and receiver simplified
+        MethodCall unadaptedReturn = new MethodCall(
+                method.getType(),
+                method.getElement(),
+                receiver instanceof ClassName ? receiver : new ThisReference(receiver.getType()),
+                List.copyOf(JavaExpression.getFormalParameters(method.getElement()))
+        );
+
+        // construct the formula arg refinements => return refinement
+        JavaExpression returnRefinement = function.parse(getRefinement(type.getReturnType(), unadaptedReturn));
+        TypeMirror bool = types.getPrimitiveType(TypeKind.BOOLEAN);
+        JavaExpression argumentConjunction = argRefinements.stream().reduce(new ValueLiteral(bool, true),
+                (l, r) -> new BinaryOperation(bool, Tree.Kind.AND, l, r));
+        return new BinaryOperation(
+                bool, Tree.Kind.OR,
+                new UnaryOperation(bool, Tree.Kind.LOGICAL_COMPLEMENT, argumentConjunction),
+                returnRefinement
+        );
+    }
+
+    private String getRefinement(AnnotatedTypeMirror type, Object subject) {
+        PropertyAnnotation anno = atypeFactory.getLattice().getPropertyAnnotation(type);
+        String refinement = anno.getAnnotationType().getProperty();
+        var actualParams = anno.getActualParameters().iterator();
+        for (PropertyAnnotationType.Parameter param : anno.getAnnotationType().getParameters()) {
+            refinement = refinement.replace("§" + param.getName() + "§", "(" + actualParams.next() + ")");
+        }
+        return refinement.replace("§subject§", "(" + subject + ")");
+    }
+
+    private boolean hasCycle(JavaExpression expr) {
+        Set<Element> visited = new HashSet<>();
+        Element element;
+        // detect when an element reappears in a chain of method calls/fields
+        do {
+            switch (expr) {
+                case MethodCall m -> {
+                    expr = m.getReceiver();
+                    element = m.getElement();
+                }
+                case FieldAccess f -> {
+                    expr = f.getReceiver();
+                    element = f.getField();
+                }
+                default -> {
+                    return false;
+                }
+            }
+        } while (visited.add(element));
+        return true;
+    }
+
 }
