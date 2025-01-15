@@ -841,15 +841,20 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         );
     }
 
-    // TODO: add well-formedness condition to refinement
     private String getRefinement(AnnotatedTypeMirror type, Object subject) {
         PropertyAnnotation anno = atypeFactory.getLattice().getPropertyAnnotation(type);
-        String refinement = anno.getAnnotationType().getProperty();
+        String property = anno.getAnnotationType().getProperty()
+                .replace("§subject§", "(" + subject + ")");
+        String wfCondition = anno.getAnnotationType().getWFCondition()
+                .replace("§subject§", "(" + subject + ")");
         var actualParams = anno.getActualParameters().iterator();
         for (PropertyAnnotationType.Parameter param : anno.getAnnotationType().getParameters()) {
-            refinement = refinement.replace("§" + param.getName() + "§", "(" + actualParams.next() + ")");
+            String actual = "(" + actualParams.next() + ")";
+            String placeholder = "§" + param.getName() + "§";
+            wfCondition = wfCondition.replace(placeholder, actual);
+            property = property.replace(placeholder, actual);
         }
-        return refinement.replace("§subject§", "(" + subject + ")");
+        return String.format("(%s) && (%s)", wfCondition, property);
     }
 
     private boolean hasCycle(JavaExpression expr) {
