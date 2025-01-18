@@ -951,11 +951,11 @@ public class PrettyPrinter extends JCTree.Visitor {
 
     public void visitCase(JCCase tree) {
         try {
-            if (tree.pat == null) {
+            if (tree.guard == null) {
                 print("default");
             } else {
                 print("case ");
-                printExpr(tree.pat);
+                printExpr(tree.guard);
             }
             print(": ");
             println();
@@ -1371,12 +1371,21 @@ public class PrettyPrinter extends JCTree.Visitor {
             open(prec, TreeInfo.ordPrec);
             printExpr(tree.expr, TreeInfo.ordPrec);
             print(" instanceof ");
-            printExpr(tree.clazz, TreeInfo.ordPrec + 1);
+            if (tree.pattern == null) {
+                // standard instanceof (only type identifier)
+                this.prec = TreeInfo.ordPrec + 1;
+                print(tree.type);
+            } else {
+                // instanceof with pattern expression
+                printExpr(tree.pattern, TreeInfo.ordPrec + 1);
+            }
             close(prec, TreeInfo.ordPrec);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }
+
+    // TODO: add missing overrides for new java features
 
     public void visitIndexed(JCArrayAccess tree) {
         try {
