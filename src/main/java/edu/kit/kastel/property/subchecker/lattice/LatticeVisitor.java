@@ -316,12 +316,6 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         }
     }
 
-    // TODO: can we have multiple commonAssignmentCheck overloads next to each other?
-    @Override
-    protected boolean commonAssignmentCheck(AnnotatedTypeMirror varType, ExpressionTree valueExpTree, @CompilerMessageKey String errorKey, Object... extraArgs) {
-        return smtBasedAssignmentCheck(varType, valueExpTree);
-    }
-
     @Override
     protected boolean commonAssignmentCheck(
             AnnotatedTypeMirror varType,
@@ -352,6 +346,10 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                     success = epa.checkProperty(null);
                 }
             }
+        }
+
+        if (!success) {
+            success = smtBasedAssignmentCheck(varType, valueTree);
         }
 
         commonAssignmentCheckEndDiagnostic(success, null, varType, valueType, valueTree);
@@ -637,7 +635,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
     /* ==== SMT SOLVING CODE ==== */
 
-    private boolean smtBasedAssignmentCheck(AnnotatedTypeMirror varType, ExpressionTree valueExpTree) {
+    private boolean smtBasedAssignmentCheck(AnnotatedTypeMirror varType, Tree valueExpTree) {
         System.out.printf("assignment check: expr %s to type %s%n", valueExpTree, varType);
 
         // TODO: verify that all context formulae are actually boolean
@@ -645,6 +643,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         try (var solverContext = SolverContextFactory.createSolverContext(SolverContextFactory.Solvers.SMTINTERPOL);
              var proverEnv = solverContext.newProverEnvironment()) {
             SmtCompiler compiler = new SmtCompiler(solverContext);
+
             JavaExpression toProve = StringToJavaExpression.atPath(getRefinement(varType, valueExpTree), getCurrentPath(), checker);
             JavaToSmtExpression.Result goal = JavaToSmtExpression.convert(toProve);
             var bmgr = solverContext.getFormulaManager().getBooleanFormulaManager();
@@ -683,6 +682,8 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             if (assignmentValid) {
                 return true;
             }
+        } catch (UnsupportedOperationException e) {
+            return false;
         } catch (InvalidConfigurationException | InterruptedException | SolverException |
                  JavaExpressionParseUtil.JavaExpressionParseException e) {
             throw new RuntimeException(e);
