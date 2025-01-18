@@ -12,9 +12,8 @@ public class IntTest {
         
         // :: error: interval.assignment.type.incompatible
         @Interval(min="1", max="2") int l2 = arg1;
-        
-        // This does not work yet. It would require a contract for the + operator.
-        // :: error: interval.assignment.type.incompatible
+
+        // can be verified using SMT
         @Interval(min="4", max="7") int l3 = arg0 + arg1;
         
         // :: error: interval.assignment.type.incompatible
