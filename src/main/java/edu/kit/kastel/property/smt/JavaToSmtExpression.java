@@ -4,7 +4,6 @@ import com.github.javaparser.ast.expr.BinaryExpr;
 import com.github.javaparser.ast.expr.UnaryExpr;
 import org.checkerframework.dataflow.expression.*;
 
-import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -13,11 +12,6 @@ import java.util.stream.Stream;
 // converts JavaExpression -> SmtExpression and collects all java references (field accesses and underlyingMethod calls) made on the way as well
 // things not representable in SMT -> stub variables (unknown type)
 public class JavaToSmtExpression extends JavaExpressionVisitor<SmtExpression, Set<JavaExpression>> {
-
-    private static final Set<BinaryExpr.Operator> BOOL_OPERATORS =
-            EnumSet.of(BinaryExpr.Operator.EQUALS, BinaryExpr.Operator.NOT_EQUALS, BinaryExpr.Operator.GREATER,
-                    BinaryExpr.Operator.GREATER_EQUALS, BinaryExpr.Operator.LESS, BinaryExpr.Operator.LESS_EQUALS,
-                    BinaryExpr.Operator.AND, BinaryExpr.Operator.OR);
 
     @Override
     protected SmtExpression visitArrayAccess(ArrayAccess arrayAccessExpr, Set<JavaExpression> refs) {
@@ -89,11 +83,7 @@ public class JavaToSmtExpression extends JavaExpressionVisitor<SmtExpression, Se
             case EQUAL_TO -> BinaryExpr.Operator.EQUALS;
             default -> throw new UnsupportedOperationException("Don't know how to handle binary operator " + binaryOpExpr.getOperationKind());
         };
-        // FIXME: use SmtType.fromExpression in all cases once this bug is fixed:
-        // https://github.com/typetools/checker-framework/issues/6939
-        return new SmtExpression.BinaryOperation(
-                BOOL_OPERATORS.contains(op) ? SmtType.BOOLEAN : SmtType.fromExpression(binaryOpExpr),
-                op, left, right);
+        return new SmtExpression.BinaryOperation(SmtType.fromExpression(binaryOpExpr), op, left, right);
     }
 
     @Override
