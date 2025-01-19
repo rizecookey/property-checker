@@ -63,6 +63,7 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.checkerframework.dataflow.expression.ViewpointAdaptJavaExpression.viewpointAdapt;
 
@@ -645,16 +646,17 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             SmtCompiler compiler = new SmtCompiler(solverContext);
 
             JavaExpression toProve = StringToJavaExpression.atPath(getRefinement(varType, valueExpTree), getCurrentPath(), checker);
-            JavaToSmtExpression.Result goal = JavaToSmtExpression.convert(toProve);
             var bmgr = solverContext.getFormulaManager().getBooleanFormulaManager();
             List<BooleanFormula> conjunction = new ArrayList<>();
 
+            JavaToSmtExpression.Result goal;
             // add goal
             try {
+                goal = JavaToSmtExpression.convert(toProve);
                 conjunction.add(bmgr.not((BooleanFormula) compiler.compile(goal.smt())));
             } catch (UnsupportedOperationException e) {
                 System.out.printf("Skipping proof goal %s due to use of unsupported feature: %s%n",
-                        goal.smt(), e.getMessage());
+                        toProve, e.getMessage());
                 return false;
             }
 
@@ -698,11 +700,6 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         Queue<JavaExpression> refs = new ArrayDeque<>(initialRefs);
         Set<SmtExpression> context = new HashSet<>();
 
-        Consumer<JavaToSmtExpression.Result> addToContext = result -> {
-            context.add(result.smt());
-            refs.addAll(result.references());
-        };
-
         // collect all locally available refinements (params + vars)
         List<JavaExpression> localRefinements = new ArrayList<>();
         for (VariableTree local : localVars) {
@@ -725,11 +722,8 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             System.out.println("Finding constraints for: " + ref);
 
             // search in local refinements for mentions of the reference
-            localRefinements.stream()
-                    .filter(expr -> expr.containsSyntacticEqualJavaExpression(ref))
-                    .peek(System.out::println)
-                    .map(JavaToSmtExpression::convert)
-                    .forEach(addToContext);
+            Stream<JavaExpression> relevantLocalRefinements =
+                    localRefinements.stream().filter(expr -> expr.containsSyntacticEqualJavaExpression(ref));
 
             // find constraints for reference/expression
             Collection<JavaExpression> refinements = switch (ref) {
@@ -739,7 +733,24 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                 default -> Collections.emptyList();
             };
 
-            refinements.stream().peek(System.out::println).map(JavaToSmtExpression::convert).forEach(addToContext);
+            Stream.concat(relevantLocalRefinements, refinements.stream())
+                    .map(expr -> {
+                        System.out.printf("Constraint: %s", expr);
+                        try {
+                            var smt = JavaToSmtExpression.convert(expr);
+                            System.out.println();
+                            return smt;
+                        } catch (UnsupportedOperationException e) {
+                            System.out.printf(" (skipped because: %s)%n", e.getMessage());
+                            return null;
+                        }
+                    })
+                    .filter(Objects::nonNull)
+                    .forEach(result -> {
+                        System.out.println(result.smt());
+                        context.add(result.smt());
+                        refs.addAll(result.references());
+                    });
             visited.add(ref);
         }
         return context;
