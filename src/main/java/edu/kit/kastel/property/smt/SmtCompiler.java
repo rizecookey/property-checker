@@ -12,7 +12,7 @@ import java.math.BigInteger;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-// TODO implement jdiv/jmod, add support for built-in math methods, simplify overflow calculation
+// TODO implement jdiv/jmod, add support for built-in math methods
 public final class SmtCompiler {
 
     private final SolverContext context;
@@ -172,13 +172,13 @@ public final class SmtCompiler {
         IntegerFormula offset = mgr.makeNumber(BigInteger.ONE.shiftLeft(bits - 1));
         IntegerFormula modulus = mgr.makeNumber(BigInteger.ONE.shiftLeft(bits));
         // below code constructs formula equivalent to the expression:
-        // (modulus + (formula + offset) % modulus) % modulus - offset
+        // (Math.floorMod(formula + offset, modulus) - offset
         // this converts any integer to be in the correct value space.
         // for characters, there is no offset (they are unsigned)
         if (type != SmtType.CHAR) {
             formula = mgr.add(formula, offset);
         }
-        formula = mgr.modulo(mgr.add(modulus, mgr.modulo(formula, modulus)), modulus);
+        formula = mgr.modulo(formula, modulus);
         if (type != SmtType.CHAR) {
             formula = mgr.subtract(formula, offset);
         }
