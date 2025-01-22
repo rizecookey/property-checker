@@ -83,7 +83,7 @@ public final class PropertyVisitor extends PackingVisitor {
                         "Wrote file %s with no remaining proof obligations",
                         checker.getRelativeSourceFileName()));
             } else {
-                JavaJMLPrinter printer = new JavaJMLPrinter(checker.getResults(checker.getAbsoluteSourceFileName()), checker, out);
+                JavaJMLPrinter printer = new JavaJMLPrinter(results, checker, out);
                 printer.printUnit((JCTree.JCCompilationUnit) checker.getVisitor().getPath().getCompilationUnit(), null);
                 System.out.println(String.format(
                         "Wrote file %s with: \n\t%d assertions (to be proven in JML)\n\t%d assumptions (proven by checker)\n\t%d non-free method preconditions (to be proven in JML)\n\t%d free method preconditions (proven by checker)\n\t%d non-free method postconditions (to be proven in JML)\n\t%d free method postconditions (proven by checker)",

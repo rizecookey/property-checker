@@ -16,13 +16,7 @@
  */
 package edu.kit.kastel.property.util;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
@@ -44,6 +38,12 @@ public final class CollectionUtils {
         }
 
         map.get(key).add(elem);
+    }
+
+    public static <K, E, C extends Collection<E>> void removeFromCollectionMap(Map<K, C> map, K key, E elem) {
+        if (map.containsKey(key)) {
+            map.get(key).remove(elem);
+        }
     }
 
     public static <K,E> List<E> getUnmodifiableList(Map<K, List<E>> map, K key) {

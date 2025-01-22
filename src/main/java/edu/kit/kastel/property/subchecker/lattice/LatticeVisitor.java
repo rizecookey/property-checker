@@ -78,11 +78,6 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
      */
     private MethodCallRefinements invocationContext = null;
     /**
-     * Contains the condition (as context => goal) that is sufficient to mend the latest type error.
-     * After a failed commonAssignmentCheck, this should be non-null and can be added to the Result.
-     */
-    private SmtWellTypedCondition wellTypedCondition = null;
-    /**
      * When {@link #invocationContext} is not null (i.e. we're checking a method call), paramIndex indicates
      * the index of the parameter whose type we are currently checking against.
      */
@@ -122,7 +117,6 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
     @Override
     public Void visitReturn(ReturnTree node, Void p) {
-        // TODO: create context using return expr and declared return type in method
         call(() -> super.visitReturn(node, p), () -> result.illTypedMethodResults.add(enclMethod));
         return null;
     }
@@ -154,6 +148,18 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
     }
 
     @Override
+    public Void visitNewClass(NewClassTree tree, Void p) {
+        ExecutableElement invokedConstructor = TreeUtils.elementFromUse(tree);
+        var arguments = tree.getArguments().stream().map(JavaExpression::fromTree).toList();
+        // Construct a pseudo method call. We're "pretending" that the constructor is actually a method so that
+        // we can reuse the logic for getting the parameter refinements.
+        var methodCall = new MethodCall(invokedConstructor.getReturnType(), invokedConstructor, null, arguments);
+        // The resulting invocation context doesn't have a return or receiver refinement.
+        invocationContext = methodCallRefinements(methodCall);
+        return super.visitNewClass(tree, p);
+    }
+
+    @Override
     public Void visitMethodInvocation(MethodInvocationTree tree, Void p) {
         ExecutableElement invokedMethod = TreeUtils.elementFromUse(tree);
         ProcessingEnvironment env = atypeFactory.getProcessingEnv();
@@ -180,14 +186,12 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         };
         var arguments = tree.getArguments().stream().map(JavaExpression::fromTree).toList();
         var methodCall = new MethodCall(invokedMethod.getReturnType(), invokedMethod, receiver, arguments);
-        // TODO: use invocationContext in commonAssignment check to get varType to check against (need to associate param name -> refinement somehow)
         invocationContext = methodCallRefinements(methodCall);
         return super.visitMethodInvocation(tree, p);
     }
 
     @Override
     public Void visitAssignment(AssignmentTree node, Void p) {
-        // TODO: create context using assigned expr and expected type
         call(() -> super.visitAssignment(node, p), () -> result.illTypedAssignments.add(node));
         return null;
     }
@@ -195,7 +199,6 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
     @Override
     public Void visitVariable(VariableTree node, Void p) {
-        // TODO: create context using assigned expr and expected type
         call(() -> super.visitVariable(node, p), () -> result.illTypedVars.add(node));
 
         localVars.add(node);
@@ -325,6 +328,11 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
     }
 
     @Override
+    protected void checkConstructorInvocation(AnnotatedDeclaredType invocation, AnnotatedExecutableType constructor, NewClassTree newClassTree) {
+        super.checkConstructorInvocation(invocation, constructor, newClassTree);
+    }
+
+    @Override
     protected void checkArguments(
             List<? extends AnnotatedTypeMirror> requiredArgs,
             List<? extends ExpressionTree> passedArgs,
@@ -339,7 +347,6 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                             "argument.type.incompatible", //$NON-NLS-1$
                             paramNames.get(paramIndex).toString(),
                             executableName.toString()),
-                    // TODO: create context using parameter with given index on top of method invocation stack
                     () -> {
                         Tree leaf = getCurrentPath().getLeaf();
                         if (leaf instanceof MethodInvocationTree) {
@@ -388,7 +395,11 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         commonAssignmentCheckEndDiagnostic(success, null, varType, valueType, valueTree);
 
         if (!success) {
-            wellTypedCondition = computeWellTypedCondition(varType, valueTree);
+            // compute SMT condition that would remove the type error, and add it to the result
+            result.mendingConditions.put(
+                    TreePath.getPath(checker.getPathToCompilationUnit(), valueTree),
+                    computeWellTypedCondition(varType, valueTree)
+            );
             return super.commonAssignmentCheck(varType, valueType, valueTree, errorKey, extraArgs);
         }
 
@@ -397,7 +408,6 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
     @Override
     protected void checkMethodInvocability(AnnotatedExecutableType method, MethodInvocationTree node) {
-        // TODO: create context using receiver on top of method invocation stack
         AnnotatedDeclaredType expectedType = method.getReceiverType();
         if (expectedType != null && method.getElement().getKind() != ElementKind.CONSTRUCTOR) {
             AnnotatedTypeMirror providedType = atypeFactory.getReceiverType(node);
@@ -472,7 +482,6 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         }
     }
 
-    // TODO add way to pass along context
     protected void call(Runnable callee, Runnable onError) {
         int startErrorCount = getLatticeSubchecker().getErrorCount();
         callee.run();
@@ -504,13 +513,11 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         result.uninitializedFields.put(packingStatement, uninitFields);
     }
 
-    // TODO: refactor to include, for each type error, the smt context and goal to discharge it
-    // we need to able to combine the contexts from all sub checkers for a given tree later
-    // (find a suitable data structure for this - map could work)
     public static class Result {
 
         private LatticeSubchecker checker;
 
+        // TODO question: these sets rely on _identity_, i.e. that every tree object is only ever created once for a given position (right?)
         private Set<AssignmentTree> illTypedAssignments = new HashSet<>();
         private Set<VariableTree> illTypedVars = new HashSet<>();
         private Set<MethodTree> illTypedConstructors = new HashSet<>();
@@ -531,6 +538,13 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         private Map<NewClassTree, Set<Integer>> illTypedConstructorParams = new HashMap<>();
 
         private Map<Tree, List<VariableElement>> uninitializedFields = new HashMap<>();
+
+        /**
+         * Contains a mapping from "path to ill-typed expression" to
+         * "condition that, if proven universally valid, makes the expression well-typed".
+         * @see #removeTypeError(TreePath)
+         */
+        private final Map<TreePath, SmtTypeMendingCondition> mendingConditions = new HashMap<>();
 
         private Result(LatticeSubchecker checker) {
             this.checker = checker;
@@ -642,6 +656,37 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             return CollectionUtils.getUnmodifiableList(uninitializedFields, tree);
         }
 
+        public void removeTypeError(TreePath path) {
+            Tree tree = path.getLeaf();
+            switch (path.getParentPath().getLeaf()) {
+                case AssignmentTree a -> illTypedAssignments.remove(a);
+                case VariableTree v -> illTypedVars.remove(v);
+                case ReturnTree r -> illTypedMethodResults.remove(TreePathUtil.enclosingMethod(path));
+                case MethodInvocationTree m -> {
+                    // tree is either a parameter or a receiver
+                    if (tree.equals(m.getMethodSelect())) {
+                        illTypedMethodReceivers.remove(m);
+                    } else {
+                        // TODO verify that only one argument can match tree
+                        for (int i = 0; i < m.getArguments().size(); i++) {
+                            if (m.getArguments().get(i).equals(tree)) {
+                                CollectionUtils.removeFromCollectionMap(illTypedMethodParams, m, i);
+                            }
+                        }
+                    }
+                }
+                case NewClassTree n -> {
+                    for (int i = 0; i < n.getArguments().size(); i++) {
+                        if (n.getArguments().get(i).equals(tree)) {
+                            CollectionUtils.removeFromCollectionMap(illTypedConstructorParams, n, i);
+                        }
+                    }
+                }
+                default -> throw new UnsupportedOperationException("Type error for path " + path + " cannot be removed");
+            }
+        }
+
+        // TODO: when is this actually called? only when merging results from two checkers of the same kind? shouldn't they produce equal results?
         public void addAll(Result result) {
             illTypedAssignments.addAll(result.illTypedAssignments);
             illTypedVars.addAll(result.illTypedVars);
@@ -671,7 +716,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
      * @param context Formulae providing constraints for the goal.
      * @param goal    Formula that must be proven universally valid in the given context
      */
-    public record SmtWellTypedCondition(Set<SmtExpression> context, SmtExpression goal) {
+    public record SmtTypeMendingCondition(Set<SmtExpression> context, SmtExpression goal) {
 
     }
 
@@ -696,7 +741,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
     /* ==== SMT SOLVING CODE ==== */
 
-    private SmtWellTypedCondition computeWellTypedCondition(AnnotatedTypeMirror varType, Tree valueExpTree) {
+    private SmtTypeMendingCondition computeWellTypedCondition(AnnotatedTypeMirror varType, Tree valueExpTree) {
         // TODO: verify that all context formulae are actually boolean (is this already done elsewhere?)
 
         JavaExpression toProve;
@@ -731,7 +776,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             return null;
         }
 
-        return new SmtWellTypedCondition(context(goal.references()), goal.smt());
+        return new SmtTypeMendingCondition(context(goal.references()), goal.smt());
     }
 
 
@@ -890,6 +935,8 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             return null;
         }
 
+        boolean constructorCall = method.getElement().getKind() != ElementKind.CONSTRUCTOR;
+
         // parameter elements -> checker framework representation
         Map<VariableElement, FormalParameter> params = JavaExpression.getFormalParameters(method.getElement()).stream()
                 .collect(Collectors.toMap(FormalParameter::getElement, Function.identity()));
@@ -926,22 +973,22 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         // Receiver parameter `this` may have refinements too
         // If there is no receiver or it's a constructor, it's just "true" (method can always be called)
         JavaExpression receiverRefinement =
-                type.getReceiverType() == null || method.getElement().getKind() != ElementKind.CONSTRUCTOR
+                type.getReceiverType() == null || constructorCall
                         ? new ValueLiteral(bool, true)
                         : parser.apply(getRefinement(type.getReceiverType(), method.getReceiver()));
 
-        // the input method call with parameters and receiver simplified
-        MethodCall unadaptedReturn = new MethodCall(
-                method.getType(),
-                method.getElement(),
-                receiver instanceof ClassName ? receiver : new ThisReference(receiver.getType()),
-                List.copyOf(JavaExpression.getFormalParameters(method.getElement()))
-        );
-
         // return value refinement, unless the method returns void (equivalent to top type)
-        JavaExpression returnRefinement = type.getReturnType().getKind() == TypeKind.VOID
+        // or it's a constructor (expression syntax doesn't support constructor calls)
+        JavaExpression returnRefinement = type.getReturnType().getKind() == TypeKind.VOID || constructorCall
                 ? new ValueLiteral(bool, true)
-                : parser.apply(getRefinement(type.getReturnType(), unadaptedReturn));
+                : parser.apply(getRefinement(type.getReturnType(),
+                // the input method call with parameters and receiver simplified
+                new MethodCall(
+                        method.getType(),
+                        method.getElement(),
+                        receiver instanceof ClassName ? receiver : new ThisReference(receiver.getType()),
+                        List.copyOf(JavaExpression.getFormalParameters(method.getElement()))
+                )));
         return new MethodCallRefinements(returnRefinement, receiverRefinement, argRefinements);
     }
 
