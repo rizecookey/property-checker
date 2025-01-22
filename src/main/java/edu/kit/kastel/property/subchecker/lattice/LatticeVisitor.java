@@ -155,6 +155,8 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         // we can reuse the logic for getting the parameter refinements.
         var methodCall = new MethodCall(invokedConstructor.getReturnType(), invokedConstructor, null, arguments);
         // The resulting invocation context doesn't have a return or receiver refinement.
+        // receiver refinements don't make sense for constructors, and return refinements are not supported because
+        // the checker framework does not support "new" expressions
         invocationContext = methodCallRefinements(methodCall);
         return super.visitNewClass(tree, p);
     }
@@ -394,19 +396,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
         commonAssignmentCheckEndDiagnostic(success, null, varType, valueType, valueTree);
 
-        JavaToSmtExpression.Result smtGoal = computeSmtGoal(varType, valueTree);
-
-        if (smtGoal != null) {
-            Set<SmtExpression> context = context(smtGoal.references());
-            if (success) {
-                // if we already know that the goal is true (expr is well-typed), we add it to the context
-                context.add(smtGoal.smt());
-            } else {
-                // if expr is ill-typed, we add the proof goal to the mending conditions
-                result.mendingConditions.put(valueTree, smtGoal.smt());
-            }
-            result.contexts.put(valueTree, context);
-        }
+        amendSmtResult(varType, valueTree, success);
 
         if (!success) {
             return super.commonAssignmentCheck(varType, valueType, valueTree, errorKey, extraArgs);
@@ -417,22 +407,21 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
     @Override
     protected void checkMethodInvocability(AnnotatedExecutableType method, MethodInvocationTree node) {
-        AnnotatedDeclaredType expectedType = method.getReceiverType();
-        if (expectedType != null && method.getElement().getKind() != ElementKind.CONSTRUCTOR) {
-            AnnotatedTypeMirror providedType = atypeFactory.getReceiverType(node);
-            // signify that we're checking the receiver type
-            paramIndex = -1;
-            call(
-                    () -> commonAssignmentCheck(
-                            expectedType,
-                            providedType,
-                            node,
-                            "method.invocation.invalid",
-                            method.getElement(),
-                            providedType,
-                            expectedType
-                    ),
-                    () -> result.illTypedMethodReceivers.add(node));
+        if (method.getReceiverType() != null && method.getElement().getKind() != ElementKind.CONSTRUCTOR) {
+            AnnotatedTypeMirror methodReceiver = method.getReceiverType().getErased();
+            AnnotatedTypeMirror treeReceiver = methodReceiver.shallowCopy(false);
+            AnnotatedTypeMirror rcv = this.atypeFactory.getReceiverType(node);
+            treeReceiver.addAnnotations(rcv.getEffectiveAnnotations());
+            call(() -> {
+                this.commonAssignmentCheckStartDiagnostic(methodReceiver, treeReceiver, node);
+                boolean success = this.typeHierarchy.isSubtype(treeReceiver, methodReceiver);
+                paramIndex = -1;
+                amendSmtResult(methodReceiver, node.getMethodSelect(), success);
+                this.commonAssignmentCheckEndDiagnostic(success, null, methodReceiver, treeReceiver, node);
+                if (!success) {
+                    this.reportMethodInvocabilityError(node, treeReceiver, methodReceiver);
+                }
+            }, () -> result.illTypedMethodReceivers.add(node));
         }
     }
 
@@ -678,6 +667,26 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             return Collections.unmodifiableMap(mendingConditions);
         }
 
+        public void clear() {
+            illTypedAssignments.clear();
+            illTypedConstructors.clear();
+            illTypedConstructorParams.clear();
+            illTypedVars.clear();
+            illTypedMethodOutputParams.clear();
+            illTypedMethodParams.clear();
+            illTypedMethodReceivers.clear();
+            illTypedMethodResults.clear();
+            overriddenMethods.clear();
+            instanceInitializers.clear();
+            instanceInvariants.clear();
+            staticInitializers.clear();
+            staticInvariants.clear();
+            methodOutputTypes.clear();
+            uninitializedFields.clear();
+            mendingConditions.clear();
+            contexts.clear();
+        }
+
         public void removeTypeError(TreePath path) {
             Tree tree = path.getLeaf();
             switch (path.getParentPath().getLeaf()) {
@@ -685,7 +694,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                 case VariableTree v -> illTypedVars.remove(v);
                 case ReturnTree r -> illTypedMethodResults.remove(TreePathUtil.enclosingMethod(path));
                 case MethodInvocationTree m -> {
-                    // tree is either a parameter or a receiver
+                    // tree is either a parameter or the method select (identifying the receiver)
                     if (tree.equals(m.getMethodSelect())) {
                         illTypedMethodReceivers.remove(m);
                     } else {
@@ -705,7 +714,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                         }
                     }
                 }
-                default -> throw new UnsupportedOperationException("Type error for path " + path + " cannot be removed");
+                default -> throw new UnsupportedOperationException("Type error for tree " + tree + " cannot be removed");
             }
         }
 
@@ -753,9 +762,26 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
     /* ==== SMT SOLVING CODE ==== */
 
+    private void amendSmtResult(AnnotatedTypeMirror varType, Tree valueTree, boolean typeCheckSuccess) {
+        JavaToSmtExpression.Result smtGoal = computeSmtGoal(varType, valueTree);
+
+        if (smtGoal != null) {
+            Set<SmtExpression> context = context(smtGoal.references());
+            if (typeCheckSuccess) {
+                // if we already know that the goal is true (expr is well-typed), we add it to the context
+                context.add(smtGoal.smt());
+            } else {
+                // if expr is ill-typed, we add the proof goal to the mending conditions
+                result.mendingConditions.put(valueTree, smtGoal.smt());
+            }
+            result.contexts.put(valueTree, context);
+        }
+    }
+
     private JavaToSmtExpression.Result computeSmtGoal(AnnotatedTypeMirror targetType, Tree valueExpTree) {
         JavaExpression toProve;
-        if (getCurrentPath().getParentPath() instanceof MethodInvocationTree) {
+        Tree parentExpr = TreePath.getPath(getCurrentPath(), valueExpTree).getParentPath().getLeaf();
+        if (parentExpr instanceof MethodInvocationTree || parentExpr instanceof NewClassTree) {
             if (invocationContext == null) {
                 // no invocation context means no refinements are available for this argument
                 return null;
@@ -981,7 +1007,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         JavaExpression receiverRefinement =
                 type.getReceiverType() == null || constructorCall
                         ? new ValueLiteral(bool, true)
-                        : parser.apply(getRefinement(type.getReceiverType(), method.getReceiver()));
+                        : parser.apply(getRefinement(type.getReceiverType(), new ThisReference(type.getReceiverType().getUnderlyingType())));
 
         // return value refinement, unless the method returns void (equivalent to top type)
         // or it's a constructor (expression syntax doesn't support constructor calls)

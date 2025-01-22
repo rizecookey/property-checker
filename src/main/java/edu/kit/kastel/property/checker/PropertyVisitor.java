@@ -96,6 +96,8 @@ public final class PropertyVisitor extends PackingVisitor {
                         printer.getAssertions(), printer.getAssumptions(),
                         printer.getMethodCallPreconditions(), printer.getFreeMethodCallPreconditions(),
                         printer.getMethodCallPostconditions(), printer.getFreeMethodCallPostconditions()));
+                // LatticeVisitors are reused, but result contents are compilation-unit-specific, so we reset them
+                results.forEach(LatticeVisitor.Result::clear);
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -120,7 +122,6 @@ public final class PropertyVisitor extends PackingVisitor {
                     .flatMap(Set::stream)
                     .distinct()
                     .forEach(tree -> processMendableExpression(solverContext, results, contexts.get(tree), tree));
-
         } catch (InvalidConfigurationException e) {
             throw new RuntimeException(e);
         }
