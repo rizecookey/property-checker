@@ -126,7 +126,7 @@ public final class SmtCompiler {
             }
             case SmtExpression.Literal(var type, var value) -> switch (type) {
                 case BYTE, SHORT, INT, LONG, CHAR -> imgr().makeNumber(((Number) value).longValue());
-                case FLOAT -> fpmgr().makeNumber((double) value, FormulaType.getSinglePrecisionFloatingPointType());
+                case FLOAT -> fpmgr().makeNumber((float) value, FormulaType.getSinglePrecisionFloatingPointType());
                 case DOUBLE -> fpmgr().makeNumber((double) value, FormulaType.getDoublePrecisionFloatingPointType());
                 case BOOLEAN -> bmgr().makeBoolean((boolean) value);
                 case UNKNOWN -> unknownValue(value);
