@@ -394,16 +394,22 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
         commonAssignmentCheckEndDiagnostic(success, null, varType, valueType, valueTree);
 
-        if (!success) {
-            // compute SMT condition that would remove the type error
-            var mendingCondition = computeTypeMendingCondition(varType, valueTree);
-            if (mendingCondition != null) {
-                // ...and add it to the result
-                result.mendingConditions.put(
-                        TreePath.getPath(checker.getPathToCompilationUnit(), valueTree),
-                        mendingCondition
-                );
+        JavaToSmtExpression.Result smtGoal = computeSmtGoal(varType, valueTree);
+
+        if (smtGoal != null) {
+            TreePath pathToExpr = TreePath.getPath(checker.getPathToCompilationUnit(), valueTree);
+            Set<SmtExpression> context = context(smtGoal.references());
+            if (success) {
+                // if we already know that the goal is true (expr is well-typed), we add it to the context
+                context.add(smtGoal.smt());
+            } else {
+                // if expr is ill-typed, we add the proof goal to the mending conditions
+                result.mendingConditions.put(valueTree, smtGoal.smt());
             }
+            result.contexts.put(valueTree, context);
+        }
+
+        if (!success) {
             return super.commonAssignmentCheck(varType, valueType, valueTree, errorKey, extraArgs);
         }
 
@@ -548,7 +554,12 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
          * "condition that, if proven universally valid, makes the expression well-typed".
          * @see #removeTypeError(TreePath)
          */
-        private final Map<TreePath, SmtTypeMendingCondition> mendingConditions = new HashMap<>();
+        private final Map<Tree, SmtExpression> mendingConditions = new HashMap<>();
+        /**
+         * Contains a mapping from tree paths to computed contexts.
+         * If the expression at the leaf of the path is well-typed, the context includes the corresponding property refinement.
+         */
+        private final Map<Tree, Set<SmtExpression>> contexts = new HashMap<>();
 
         private Result(LatticeSubchecker checker) {
             this.checker = checker;
@@ -660,6 +671,14 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             return CollectionUtils.getUnmodifiableList(uninitializedFields, tree);
         }
 
+        public Map<Tree, Set<SmtExpression>> getContexts() {
+            return Collections.unmodifiableMap(contexts);
+        }
+
+        public Map<Tree, SmtExpression> getMendingConditions() {
+            return Collections.unmodifiableMap(mendingConditions);
+        }
+
         public void removeTypeError(TreePath path) {
             Tree tree = path.getLeaf();
             switch (path.getParentPath().getLeaf()) {
@@ -671,10 +690,10 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                     if (tree.equals(m.getMethodSelect())) {
                         illTypedMethodReceivers.remove(m);
                     } else {
-                        // TODO verify that only one argument can match tree
                         for (int i = 0; i < m.getArguments().size(); i++) {
                             if (m.getArguments().get(i).equals(tree)) {
                                 CollectionUtils.removeFromCollectionMap(illTypedMethodParams, m, i);
+                                break;
                             }
                         }
                     }
@@ -683,6 +702,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                     for (int i = 0; i < n.getArguments().size(); i++) {
                         if (n.getArguments().get(i).equals(tree)) {
                             CollectionUtils.removeFromCollectionMap(illTypedConstructorParams, n, i);
+                            break;
                         }
                     }
                 }
@@ -713,17 +733,6 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         }
     }
 
-    /**
-     * Represents an implication that, if proven universally valid in SMT, shows that an expression is well-typed.
-     * The implication is the conjunction of the context => goal.
-     *
-     * @param context Formulae providing constraints for the goal.
-     * @param goal    Formula that must be proven universally valid in the given context
-     */
-    public record SmtTypeMendingCondition(Set<SmtExpression> context, SmtExpression goal) {
-
-    }
-
     public static class Invariant {
 
         private String fieldName;
@@ -745,9 +754,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
     /* ==== SMT SOLVING CODE ==== */
 
-    private SmtTypeMendingCondition computeTypeMendingCondition(AnnotatedTypeMirror varType, Tree valueExpTree) {
-        // TODO: verify that all context formulae are actually boolean (is this already done elsewhere?)
-
+    private JavaToSmtExpression.Result computeSmtGoal(AnnotatedTypeMirror targetType, Tree valueExpTree) {
         JavaExpression toProve;
         if (getCurrentPath().getParentPath() instanceof MethodInvocationTree) {
             if (invocationContext == null) {
@@ -758,7 +765,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                     ? invocationContext.receiverRefinement
                     : invocationContext.argRefinements.get(paramIndex);
         } else {
-            String refinement = getRefinement(varType, valueExpTree);
+            String refinement = getRefinement(targetType, valueExpTree);
             toProve = parseOrUnknown(refinement, ref -> StringToJavaExpression.atPath(ref, getCurrentPath(), checker));
         }
 
@@ -770,17 +777,14 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             return null;
         }
 
-        JavaToSmtExpression.Result goal;
         try {
-            goal = JavaToSmtExpression.convert(toProve);
+            return JavaToSmtExpression.convert(toProve);
         } catch (UnsupportedOperationException e) {
             System.out.printf(
                     "Skipping SMT analysis for expression %s because its refinement %s uses features currently not supported in SMT: %s%n",
                     valueExpTree, toProve, e.getMessage());
             return null;
         }
-
-        return new SmtTypeMendingCondition(context(goal.references()), goal.smt());
     }
 
 
