@@ -104,6 +104,8 @@ public final class PropertyVisitor extends PackingVisitor {
     }
 
     private void mendTypeErrors(List<LatticeVisitor.Result> results) {
+        System.out.println();
+        System.out.println("File: " + root.getSourceFile().getName());
         // merge contexts from all lattices
         Map<Tree, Set<SmtExpression>> contexts = new HashMap<>();
         for (LatticeVisitor.Result result : results) {
@@ -130,8 +132,10 @@ public final class PropertyVisitor extends PackingVisitor {
             Set<SmtExpression> context,
             Tree tree
     ) {
-        System.out.println();
-        System.out.printf("=== Mending type errors for expression %s using combined context:%n", tree);
+        var lineMap = root.getLineMap();
+        var pos = trees.getSourcePositions().getStartPosition(root, tree);
+        System.out.printf("=== Mending type errors for expression %s (%d:%d) using combined context:%n",
+                tree, lineMap.getLineNumber(pos), lineMap.getColumnNumber(pos));
         BooleanFormulaManager bmgr = solverContext.getFormulaManager().getBooleanFormulaManager();
         SmtCompiler compiler = new SmtCompiler(solverContext);
         Deque<BooleanFormula> conjunction = new ArrayDeque<>();
