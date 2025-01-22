@@ -941,7 +941,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             return null;
         }
 
-        boolean constructorCall = method.getElement().getKind() != ElementKind.CONSTRUCTOR;
+        boolean constructorCall = method.getElement().getKind() == ElementKind.CONSTRUCTOR;
 
         // parameter elements -> checker framework representation
         Map<VariableElement, FormalParameter> params = JavaExpression.getFormalParameters(method.getElement()).stream()

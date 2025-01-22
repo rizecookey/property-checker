@@ -172,7 +172,7 @@ public final class PropertyVisitor extends PackingVisitor {
                 System.out.println(assignmentValid ? " (success)" : " (failed)");
                 if (assignmentValid) {
                     // ill-typed expression tree could be proven valid and thus becomes well-typed
-                    result.removeTypeError(TreePath.getPath(path, tree));
+                    result.removeTypeError(TreePath.getPath(checker.getPathToCompilationUnit(), tree));
                 }
             } catch (InterruptedException | SolverException e) {
                 System.out.println("Encountered exception while trying to prove goal " + condition);
