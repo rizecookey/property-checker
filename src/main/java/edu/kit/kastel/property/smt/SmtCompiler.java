@@ -12,7 +12,7 @@ import java.math.BigInteger;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-// TODO implement jdiv/jmod, add support for built-in math methods
+// TODO add support for built-in math methods
 public final class SmtCompiler {
 
     private final SolverContext context;
@@ -69,9 +69,9 @@ public final class SmtCompiler {
                             case LESS_EQUALS -> imgr().lessOrEquals(iLeftF, iRightF);
                             case PLUS -> imgr().add(iLeftF, iRightF);
                             case MINUS -> imgr().subtract(iLeftF, iRightF);
-                            case DIVIDE -> imgr().divide(iLeftF, iRightF);
+                            case DIVIDE -> jdiv(iLeftF, iRightF);
                             case MULTIPLY -> imgr().multiply(iLeftF, iRightF);
-                            case REMAINDER -> imgr().modulo(iLeftF, iRightF);
+                            case REMAINDER -> jmod(iLeftF, iRightF);
                             default -> throw unsupported.get();
                         };
                     }
@@ -156,6 +156,32 @@ public final class SmtCompiler {
         return expression.type().theory() == SmtType.Theory.INTEGER
                 ? withOverflow((IntegerFormula) formula, expression.type())
                 : formula;
+    }
+
+    // integer division with java semantics
+    private IntegerFormula jdiv(IntegerFormula a, IntegerFormula b) {
+        var q = imgr().divide(a, b);
+        return bmgr().ifThenElse(
+                bmgr().and(
+                        imgr().lessThan(imgr().multiply(a, b), imgr().makeNumber(0)),
+                        bmgr().not(imgr().equal(a, imgr().multiply(b, imgr().add(q, imgr().makeNumber(1)))))
+                ),
+                imgr().add(q, imgr().makeNumber(1)),
+                q
+        );
+    }
+
+    // modulo with java semantics
+    private IntegerFormula jmod(IntegerFormula a, IntegerFormula b) {
+        var r = imgr().modulo(a, b);
+        return bmgr().ifThenElse(
+                bmgr().and(
+                        imgr().lessThan(imgr().multiply(a, b), imgr().makeNumber(0)),
+                        bmgr().not(imgr().equal(imgr().makeNumber(0), imgr().subtract(r, b)))
+                ),
+                imgr().subtract(r, b),
+                r
+        );
     }
 
     private IntegerFormula withOverflow(IntegerFormula formula, SmtType type) {
