@@ -130,7 +130,8 @@ public final class PropertyVisitor extends PackingVisitor {
             Set<SmtExpression> context,
             Tree tree
     ) {
-        System.out.printf("Mending type errors for expression %s using combined context%n", tree);
+        System.out.println();
+        System.out.printf("=== Mending type errors for expression %s using combined context:%n", tree);
         BooleanFormulaManager bmgr = solverContext.getFormulaManager().getBooleanFormulaManager();
         SmtCompiler compiler = new SmtCompiler(solverContext);
         Deque<BooleanFormula> conjunction = new ArrayDeque<>();
@@ -139,12 +140,15 @@ public final class PropertyVisitor extends PackingVisitor {
         for (SmtExpression expr : context) {
             try {
                 conjunction.push((BooleanFormula) compiler.compile(expr));
+                System.out.println(expr);
             } catch (UnsupportedOperationException e) {
                 // drop context constraints that aren't representable
-                System.out.printf("Ignoring context formula %s due to use of unsupported feature: %s%n",
+                System.out.printf("(Ignoring context formula %s due to use of unsupported feature: %s%n)",
                         expr, e.getMessage());
             }
         }
+
+        System.out.println("== Proof attempts");
 
         for (LatticeVisitor.Result result : results) {
             var condition = result.getMendingConditions().get(tree);
@@ -156,15 +160,16 @@ public final class PropertyVisitor extends PackingVisitor {
             try {
                 conjunction.push(bmgr.not((BooleanFormula) compiler.compile(condition)));
             } catch (UnsupportedOperationException e) {
-                System.out.printf("Skipping proof goal %s due to use of unsupported feature: %s%n",
+                System.out.printf("(Skipping proof goal %s due to use of unsupported feature: %s%n)",
                         condition, e.getMessage());
                 continue;
             }
 
+            System.out.printf("Proof goal: %s", condition);
             try (var proverEnv = solverContext.newProverEnvironment()) {
                 proverEnv.addConstraint(bmgr.and(conjunction));
                 var assignmentValid = proverEnv.isUnsat();
-                System.out.println(assignmentValid ? "Successfully proved validity" : "Couldn't prove validity");
+                System.out.println(assignmentValid ? " (success)" : " (failed)");
                 if (assignmentValid) {
                     // ill-typed expression tree could be proven valid and thus becomes well-typed
                     result.removeTypeError(TreePath.getPath(path, tree));

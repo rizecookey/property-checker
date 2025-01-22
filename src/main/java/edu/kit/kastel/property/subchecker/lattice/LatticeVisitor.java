@@ -397,7 +397,6 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         JavaToSmtExpression.Result smtGoal = computeSmtGoal(varType, valueTree);
 
         if (smtGoal != null) {
-            TreePath pathToExpr = TreePath.getPath(checker.getPathToCompilationUnit(), valueTree);
             Set<SmtExpression> context = context(smtGoal.references());
             if (success) {
                 // if we already know that the goal is true (expr is well-typed), we add it to the context
@@ -816,7 +815,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                 continue;
             }
 
-            System.out.println("Finding constraints for: " + ref);
+            //System.out.println("Finding constraints for: " + ref);
 
             // search in local refinements for mentions of the reference
             Stream<JavaExpression> relevantLocalRefinements =
@@ -832,13 +831,13 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
             Stream.concat(relevantLocalRefinements, refinements.stream())
                     .map(expr -> {
-                        System.out.print(expr);
+                        //System.out.print(expr);
                         try {
                             var smt = JavaToSmtExpression.convert(expr);
-                            System.out.println();
+                            //System.out.println();
                             return smt;
                         } catch (UnsupportedOperationException e) {
-                            System.out.printf(" (skipped because: %s)%n", e.getMessage());
+                            //System.out.printf(" (skipped because: %s)%n", e.getMessage());
                             return null;
                         }
                     })
