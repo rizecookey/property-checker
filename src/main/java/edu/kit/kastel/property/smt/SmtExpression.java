@@ -10,6 +10,7 @@ import org.checkerframework.dataflow.expression.ThisReference;
 
 import javax.lang.model.element.ExecutableElement;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 // One SmtExpression <=> JavaExpression
@@ -45,7 +46,7 @@ public sealed interface SmtExpression {
     record Literal(SmtType type, Object value) implements SmtExpression {
         @Override
         public String toString() {
-            return value.toString();
+            return Objects.toString(value);
         }
     }
 

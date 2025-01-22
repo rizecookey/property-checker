@@ -21,7 +21,15 @@ annotation IntervalBottom() any :<==> "false" for "true";
 annotation Interval(int min, int max) int
     :<==> "§subject§ >= §min§ && §subject§ <= §max§"
     for "§min§ >= 0 && §min§ <= §max§";
-    
+
+annotation Positive() int
+    :<==> "§subject§ > 0"
+    for "true";
+
+relation Positive() <: IntervalTop() :<==> "true";
+relation IntervalBottom() <: Positive() :<==> "true";
+relation Interval(a,b) <: Positive() :<==> "§a§ > 0";
+
 relation Interval(a,b) <: IntervalTop() :<==> "true";
 relation IntervalBottom() <: Interval(a,b) :<==> "true";
     

@@ -14,24 +14,25 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-package pkg;
+package tests.property;
 
-import edu.kit.kastel.property.subchecker.lattice.qual.*;
+import java.io.File;
+import java.util.List;
 
-public interface List {
+import org.junit.Ignore;
+import org.junit.runners.Parameterized.Parameters;
 
-    int size();
-    Object head(@Length(min="1", max="2147483647") List this);
-}
-
-class Client {
-    
-    public void foo(@Length(min="1", max="2147483647") List l) {
-        l.head();
+@SuppressWarnings("nls")
+public class ListTest extends PropertyCheckerTest {
+    public ListTest(List<File> testFiles) {
+        super(
+                testFiles,
+                "tests/property/lattice_length_custom_list,tests/property/lattice_interval",
+                "tests/property/ListTest/");
     }
-    
-    public void bar(@Length(min="0", max="2147483647") List l) {
-    	// :: error: method.invocation.invalid
-        l.head();
+
+    @Parameters
+    public static String[] getTestDirs() {
+        return new String[] {"property/ListTest"};
     }
 }

@@ -31,12 +31,12 @@ import edu.kit.kastel.property.lattice.PropertyAnnotationType;
 import edu.kit.kastel.property.packing.PackingClientStore;
 import edu.kit.kastel.property.packing.PackingClientVisitor;
 import edu.kit.kastel.property.smt.JavaToSmtExpression;
-import edu.kit.kastel.property.smt.SmtCompiler;
 import edu.kit.kastel.property.smt.SmtExpression;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
 import edu.kit.kastel.property.util.*;
 import edu.kit.kastel.property.util.CollectionUtils;
+import org.apache.commons.lang3.function.FailableFunction;
 import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.TypeValidator;
@@ -49,10 +49,6 @@ import org.checkerframework.framework.util.AnnotatedTypes;
 import org.checkerframework.framework.util.JavaExpressionParseUtil;
 import org.checkerframework.framework.util.StringToJavaExpression;
 import org.checkerframework.javacutil.*;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.java_smt.SolverContextFactory;
-import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.SolverException;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.*;
@@ -60,7 +56,6 @@ import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -73,9 +68,25 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
     private final ExecutableElement unpackMethod;
     private final Set<VariableTree> localVars;
     private final Resolver resolver;
+    private final TypeMirror bool;
 
     private Result result;
 
+    /**
+     * If this is set, we're type checking a method invocation expression, and this object contains the appropriately
+     * refinements for the arguments, receiver and return types, viewpoint-adapted to the callsite.
+     */
+    private MethodCallRefinements invocationContext = null;
+    /**
+     * Contains the condition (as context => goal) that is sufficient to mend the latest type error.
+     * After a failed commonAssignmentCheck, this should be non-null and can be added to the Result.
+     */
+    private SmtWellTypedCondition wellTypedCondition = null;
+    /**
+     * When {@link #invocationContext} is not null (i.e. we're checking a method call), paramIndex indicates
+     * the index of the parameter whose type we are currently checking against.
+     */
+    private int paramIndex = -1;
     private ClassTree enclClass = null;
     private MethodTree enclMethod = null;
     private boolean enclStaticInitBlock = false;
@@ -87,6 +98,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         unpackMethod = TreeUtils.getMethod(Packing.class, "unpack", 2, atypeFactory.getProcessingEnv());
         localVars = new HashSet<>();
         resolver = new Resolver(checker.getProcessingEnvironment());
+        bool = types.getPrimitiveType(TypeKind.BOOLEAN);
 
         result = new Result(getLatticeSubchecker());
     }
@@ -110,6 +122,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
     @Override
     public Void visitReturn(ReturnTree node, Void p) {
+        // TODO: create context using return expr and declared return type in method
         call(() -> super.visitReturn(node, p), () -> result.illTypedMethodResults.add(enclMethod));
         return null;
     }
@@ -148,11 +161,33 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             // Don't type-check arguments of packing calls.
             return p;
         }
+        var receiver = switch (tree.getMethodSelect()) {
+            // explicit receiver via member select
+            case MemberSelectTree m -> JavaExpression.fromTree(m.getExpression());
+            // no explicit receiver
+            case IdentifierTree i -> {
+                if (ElementUtils.isStatic(invokedMethod)) {
+                    // static method => class is the receiver
+                    yield new ClassName(invokedMethod.getEnclosingElement().asType());
+                } else if (invokedMethod.getReceiverType() != null) {
+                    // instance method => this is the receiver
+                    yield new ThisReference(invokedMethod.getReceiverType());
+                }
+                // constructor or initializer without receiver
+                yield null;
+            }
+            default -> null;
+        };
+        var arguments = tree.getArguments().stream().map(JavaExpression::fromTree).toList();
+        var methodCall = new MethodCall(invokedMethod.getReturnType(), invokedMethod, receiver, arguments);
+        // TODO: use invocationContext in commonAssignment check to get varType to check against (need to associate param name -> refinement somehow)
+        invocationContext = methodCallRefinements(methodCall);
         return super.visitMethodInvocation(tree, p);
     }
 
     @Override
     public Void visitAssignment(AssignmentTree node, Void p) {
+        // TODO: create context using assigned expr and expected type
         call(() -> super.visitAssignment(node, p), () -> result.illTypedAssignments.add(node));
         return null;
     }
@@ -160,6 +195,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
     @Override
     public Void visitVariable(VariableTree node, Void p) {
+        // TODO: create context using assigned expr and expected type
         call(() -> super.visitVariable(node, p), () -> result.illTypedVars.add(node));
 
         localVars.add(node);
@@ -242,7 +278,6 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         localVars.clear();
         localVars.addAll(tree.getParameters());
         if (tree.getReceiverParameter() != null) {
-            // TODO: does getParameters() contain receiver parameter already?
             localVars.add(tree.getReceiverParameter());
         }
     }
@@ -296,20 +331,21 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             CharSequence executableName,
             List<?> paramNames) {
         for (int i = 0; i < requiredArgs.size(); ++i) {
-            final int idx = i;
+            paramIndex = i;
             call(
                     () -> commonAssignmentCheck(
-                            requiredArgs.get(idx),
-                            passedArgs.get(idx),
+                            requiredArgs.get(paramIndex),
+                            passedArgs.get(paramIndex),
                             "argument.type.incompatible", //$NON-NLS-1$
-                            paramNames.get(idx).toString(),
+                            paramNames.get(paramIndex).toString(),
                             executableName.toString()),
+                    // TODO: create context using parameter with given index on top of method invocation stack
                     () -> {
                         Tree leaf = getCurrentPath().getLeaf();
                         if (leaf instanceof MethodInvocationTree) {
-                            result.addillTypedMethodParam((MethodInvocationTree) getCurrentPath().getLeaf(), idx);
+                            result.addillTypedMethodParam((MethodInvocationTree) getCurrentPath().getLeaf(), paramIndex);
                         } else {
-                            result.addillTypedConstructorParam((NewClassTree) getCurrentPath().getLeaf(), idx);
+                            result.addillTypedConstructorParam((NewClassTree) getCurrentPath().getLeaf(), paramIndex);
                         }
                     });
 
@@ -350,7 +386,9 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         }
 
         if (!success) {
-            success = smtBasedAssignmentCheck(varType, valueTree);
+            wellTypedCondition = smtBasedAssignmentCheck(varType, valueTree);
+        } else {
+            wellTypedCondition = null;
         }
 
         commonAssignmentCheckEndDiagnostic(success, null, varType, valueType, valueTree);
@@ -364,6 +402,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
     @Override
     protected void checkMethodInvocability(AnnotatedExecutableType method, MethodInvocationTree node) {
+        // TODO: create context using receiver on top of method invocation stack
         call(
                 () -> super.checkMethodInvocability(method, node),
                 () -> result.illTypedMethodReceivers.add(node));
@@ -424,6 +463,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         }
     }
 
+    // TODO add way to pass along context
     protected void call(Runnable callee, Runnable onError) {
         int startErrorCount = getLatticeSubchecker().getErrorCount();
         callee.run();
@@ -615,6 +655,10 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         }
     }
 
+    public record SmtWellTypedCondition(Set<SmtExpression> context, SmtExpression goal) {
+
+    }
+
     public static class Invariant {
 
         private String fieldName;
@@ -636,66 +680,44 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
     /* ==== SMT SOLVING CODE ==== */
 
-    private boolean smtBasedAssignmentCheck(AnnotatedTypeMirror varType, Tree valueExpTree) {
-        System.out.printf("assignment check: expr %s to type %s%n", valueExpTree, varType);
-
+    private SmtWellTypedCondition smtBasedAssignmentCheck(AnnotatedTypeMirror varType, Tree valueExpTree) {
         // TODO: verify that all context formulae are actually boolean
 
-        try (var solverContext = SolverContextFactory.createSolverContext(SolverContextFactory.Solvers.SMTINTERPOL);
-             var proverEnv = solverContext.newProverEnvironment()) {
-            SmtCompiler compiler = new SmtCompiler(solverContext);
-
-            JavaExpression toProve = StringToJavaExpression.atPath(getRefinement(varType, valueExpTree), getCurrentPath(), checker);
-            var bmgr = solverContext.getFormulaManager().getBooleanFormulaManager();
-            List<BooleanFormula> conjunction = new ArrayList<>();
-
-            JavaToSmtExpression.Result goal;
-            // add goal
-            try {
-                goal = JavaToSmtExpression.convert(toProve);
-                conjunction.add(bmgr.not((BooleanFormula) compiler.compile(goal.smt())));
-            } catch (UnsupportedOperationException e) {
-                System.out.printf("Skipping proof goal %s due to use of unsupported feature: %s%n",
-                        toProve, e.getMessage());
-                return false;
+        JavaExpression toProve;
+        if (getCurrentPath().getParentPath() instanceof MethodInvocationTree) {
+            if (invocationContext == null) {
+                // no invocation context means no refinements are available for this argument
+                return null;
             }
-
-            Set<SmtExpression> context = context(goal.references());
-            System.out.println("Context: " + context);
-            System.out.println("Goal to prove: " + goal.smt());
-
-            // add context formulae
-            for (SmtExpression expr : context) {
-                try {
-                    conjunction.add((BooleanFormula) compiler.compile(expr));
-                } catch (UnsupportedOperationException e) {
-                    // drop context constraints that aren't representable
-                    System.out.printf("Ignoring context formula %s due to use of unsupported feature: %s%n",
-                            expr, e.getMessage());
-                }
-            }
-
-            // conjunction of context and complement of goal
-            // == (context =/> goal)
-            // if this is unsatisfiable, context => goal is universally valid
-            proverEnv.addConstraint(bmgr.and(conjunction));
-            var assignmentValid = proverEnv.isUnsat();
-            System.out.println("Could be proven? " + assignmentValid);
-            if (assignmentValid) {
-                return true;
-            }
-        } catch (UnsupportedOperationException e) {
-            return false;
-        } catch (InvalidConfigurationException | InterruptedException | SolverException |
-                 JavaExpressionParseUtil.JavaExpressionParseException e) {
-            throw new RuntimeException(e);
+            toProve = invocationContext.argRefinements.get(paramIndex);
+        } else {
+            String refinement = getRefinement(varType, valueExpTree);
+            toProve = parseWithUnknown(refinement, ref -> StringToJavaExpression.atPath(ref, getCurrentPath(), checker));
         }
 
-        return false;
+        if (toProve instanceof Unknown) {
+            // checker framework couldn't parse the goal refinement
+            System.out.printf(
+                    "Skipping SMT analysis for expression %s because its refinement %s uses language features not supported by the Checker Framework%n",
+                    valueExpTree, toProve);
+            return null;
+        }
+
+        JavaToSmtExpression.Result goal;
+        try {
+            goal = JavaToSmtExpression.convert(toProve);
+        } catch (UnsupportedOperationException e) {
+            System.out.printf(
+                    "Skipping SMT analysis for expression %s because its refinement %s uses features currently not supported in SMT: %s%n",
+                    valueExpTree, toProve, e.getMessage());
+            return null;
+        }
+
+        return new SmtWellTypedCondition(context(goal.references()), goal.smt());
     }
 
 
-    private Set<SmtExpression> context(Collection<JavaExpression> initialRefs) throws JavaExpressionParseUtil.JavaExpressionParseException {
+    private Set<SmtExpression> context(Collection<JavaExpression> initialRefs) {
         Set<JavaExpression> visited = new HashSet<>();
         Queue<JavaExpression> refs = new ArrayDeque<>(initialRefs);
         Set<SmtExpression> context = new HashSet<>();
@@ -709,7 +731,11 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             }
             AnnotatedTypeMirror type = atypeFactory.getAnnotatedType(local);
             String refinement = getRefinement(type, local.getName());
-            localRefinements.add(StringToJavaExpression.atPath(refinement, getCurrentPath(), checker));
+            JavaExpression expr = parseWithUnknown(refinement, ref -> StringToJavaExpression.atPath(ref, getCurrentPath(), checker));
+            if (!(expr instanceof Unknown)) {
+                localRefinements.add(expr);
+            }
+
         }
 
         while (!refs.isEmpty()) {
@@ -759,7 +785,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
     // TODO expand all class names to be fully qualified so they work everywhere (and receiver is normalised)
 
     // this is basically a shortcut for "refinement + external references"
-    private Collection<JavaExpression> constraintsForField(Set<JavaExpression> visited, FieldAccess fieldAccess) throws JavaExpressionParseUtil.JavaExpressionParseException {
+    private Collection<JavaExpression> constraintsForField(Set<JavaExpression> visited, FieldAccess fieldAccess) {
         List<JavaExpression> results = new ArrayList<>();
 
         // go through all parent receivers of field access to find references
@@ -778,7 +804,8 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                 AnnotatedTypeMirror type = atypeFactory.getAnnotatedType(field);
                 String refinement = getRefinement(type, localFieldRef);
                 JavaExpression expr = viewpointAdapt(
-                        StringToJavaExpression.atFieldDecl(refinement, field, checker),
+                        parseWithUnknown(refinement,
+                                r -> StringToJavaExpression.atFieldDecl(refinement, field, checker)),
                         fa.getReceiver()
                 );
 
@@ -792,30 +819,76 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         return results;
     }
 
-    // TODO: check if method can actually be used
-    private JavaExpression methodCallClause(MethodCall method) throws JavaExpressionParseUtil.JavaExpressionParseException {
+    /**
+     * Parse a refinement string to a JavaExpression. If there is a parse error, return Unknown type.
+     *
+     * @param refinement boolean expression as a string
+     * @param parser Function that parses the refinement string
+     * @return resulting expression, or expression of type Unknown
+     */
+    private JavaExpression parseWithUnknown(
+            String refinement,
+            FailableFunction<String, ? extends JavaExpression, JavaExpressionParseUtil.JavaExpressionParseException> parser) {
+        try {
+            return parser.apply(refinement);
+        } catch (JavaExpressionParseUtil.JavaExpressionParseException e) {
+            return new Unknown(bool, refinement);
+        }
+    }
+
+    // TODO: check if method can actually be used (purity)
+    private JavaExpression methodCallClause(MethodCall method) {
+        var refinements = methodCallRefinements(method);
+        if (refinements == null || refinements.returnRefinement() instanceof Unknown) {
+            // either method source code is not available or the refinement for the return value could not be parsed
+            // => no dependent type analysis possible
+            return new ValueLiteral(bool, true);
+        }
+
+        // construct the formula arg (including receiver) refinements => return refinement
+        JavaExpression argumentConjunction = Stream.concat(
+                        Stream.of(refinements.receiverRefinement()),
+                        refinements.argRefinements().stream()
+                ).filter(expr -> !(expr instanceof Unknown))
+                .reduce(new ValueLiteral(bool, true), (l, r) -> new BinaryOperation(bool, Tree.Kind.AND, l, r));
+        return new BinaryOperation(
+                bool, Tree.Kind.OR,
+                new UnaryOperation(bool, Tree.Kind.LOGICAL_COMPLEMENT, argumentConjunction), refinements.returnRefinement()
+        );
+    }
+
+    private record MethodCallRefinements(
+            JavaExpression returnRefinement,
+            JavaExpression receiverRefinement,
+            List<JavaExpression> argRefinements
+    ) {}
+
+    // Given a method call expression, returns the callsite-adapted refinements for the return and argument values as JavaExpressions.
+    private MethodCallRefinements methodCallRefinements(MethodCall method) {
         AnnotatedTypeMirror.AnnotatedExecutableType type = atypeFactory.getAnnotatedType(method.getElement());
         TreePath methodPath = trees.getPath(method.getElement());
 
         if (methodPath == null) {
             // method source is not available; no context available
-            return new ValueLiteral(types.getPrimitiveType(TypeKind.BOOLEAN), true);
+            return null;
         }
 
         // parameter elements -> checker framework representation
         Map<VariableElement, FormalParameter> params = JavaExpression.getFormalParameters(method.getElement()).stream()
                 .collect(Collectors.toMap(FormalParameter::getElement, Function.identity()));
 
-        interface ParsingFunction {
-            JavaExpression parse(String expr) throws JavaExpressionParseUtil.JavaExpressionParseException;
-        }
-
         JavaExpression receiver = method.getReceiver();
 
         // Function that parses a declaration-level expression, where parameters are referenced by name
-        ParsingFunction function = refinement -> {
+        Function<String, JavaExpression> parser = refinement -> {
             // 1. parse refinement in method body scope
-            JavaExpression expression = StringToJavaExpression.atPath(refinement, methodPath, checker);
+            JavaExpression expression;
+            try {
+                expression = StringToJavaExpression.atPath(refinement, methodPath, checker);
+            } catch (JavaExpressionParseUtil.JavaExpressionParseException e) {
+                expression = new Unknown(bool, refinement);
+            }
+
             // 2. convert nominal parameter references to FormalParameters
             expression = expression.accept(new JavaExpressionConverter() {
                 @Override
@@ -830,8 +903,14 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         List<JavaExpression> argRefinements = new ArrayList<>();
         for (VariableElement parameter : method.getElement().getParameters()) {
             String refinement = getRefinement(atypeFactory.getAnnotatedType(parameter), parameter.getSimpleName());
-            argRefinements.add(function.parse(refinement));
+            argRefinements.add(parser.apply(refinement));
         }
+
+        // Receiver parameter `this` may have refinements too
+        // If there is no receiver, it's just "true" (method can always be called)
+        JavaExpression receiverRefinement = type.getReceiverType() == null
+                ? new ValueLiteral(bool, true)
+                : parser.apply(getRefinement(type.getReceiverType(), method.getReceiver()));
 
         // the input method call with parameters and receiver simplified
         MethodCall unadaptedReturn = new MethodCall(
@@ -841,16 +920,11 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                 List.copyOf(JavaExpression.getFormalParameters(method.getElement()))
         );
 
-        // construct the formula arg refinements => return refinement
-        JavaExpression returnRefinement = function.parse(getRefinement(type.getReturnType(), unadaptedReturn));
-        TypeMirror bool = types.getPrimitiveType(TypeKind.BOOLEAN);
-        JavaExpression argumentConjunction = argRefinements.stream().reduce(new ValueLiteral(bool, true),
-                (l, r) -> new BinaryOperation(bool, Tree.Kind.AND, l, r));
-        return new BinaryOperation(
-                bool, Tree.Kind.OR,
-                new UnaryOperation(bool, Tree.Kind.LOGICAL_COMPLEMENT, argumentConjunction),
-                returnRefinement
-        );
+        // return value refinement, unless the method returns void (equivalent to top type)
+        JavaExpression returnRefinement = type.getReturnType().getKind() == TypeKind.VOID
+                ? new ValueLiteral(bool, true)
+                : parser.apply(getRefinement(type.getReturnType(), unadaptedReturn));
+        return new MethodCallRefinements(returnRefinement, receiverRefinement, argRefinements);
     }
 
     private String getRefinement(AnnotatedTypeMirror type, Object subject) {

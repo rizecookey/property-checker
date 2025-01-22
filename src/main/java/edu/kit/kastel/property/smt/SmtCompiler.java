@@ -12,6 +12,7 @@ import java.math.BigInteger;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+// TODO implement jdiv/jmod, add support for built-in math methods, simplify overflow calculation
 public final class SmtCompiler {
 
     private final SolverContext context;
@@ -103,7 +104,16 @@ public final class SmtCompiler {
                         };
 
                     }
-                    case UNKNOWN -> throw unsupported.get();
+                    case UNKNOWN -> {
+                        // unknown = object type, represented as integers
+                        IntegerFormula iLeftF = (IntegerFormula) leftF;
+                        IntegerFormula iRightF = (IntegerFormula) rightF;
+                        yield switch (op) {
+                            case EQUALS -> imgr().equal(iLeftF, iRightF);
+                            case NOT_EQUALS -> bmgr().not(imgr().equal(iLeftF, iRightF));
+                            default -> throw unsupported.get();
+                        };
+                    }
                 };
             }
             case SmtExpression.FunctionCall call -> ufmgr().callUF(
@@ -113,8 +123,8 @@ public final class SmtCompiler {
                             .toList());
             case SmtExpression.Literal(var type, var value) -> switch (type) {
                 case BYTE, SHORT, INT, LONG, CHAR -> imgr().makeNumber(((Number) value).longValue());
-                case FLOAT -> fpmgr().makeNumber((double) value, FormulaType.getDoublePrecisionFloatingPointType());
-                case DOUBLE -> fpmgr().makeNumber((double) value, FormulaType.getSinglePrecisionFloatingPointType());
+                case FLOAT -> fpmgr().makeNumber((double) value, FormulaType.getSinglePrecisionFloatingPointType());
+                case DOUBLE -> fpmgr().makeNumber((double) value, FormulaType.getDoublePrecisionFloatingPointType());
                 case BOOLEAN -> bmgr().makeBoolean((boolean) value);
                 case UNKNOWN -> unknownValue(value);
             };
@@ -125,10 +135,12 @@ public final class SmtCompiler {
                 yield switch (type.theory()) {
                     case INTEGER -> switch (op) {
                         case MINUS -> imgr().negate((IntegerFormula) exprF);
+                        case PLUS -> exprF;
                         default -> throw unsupported.get();
                     };
                     case FLOATING_POINT -> switch (op) {
                         case MINUS -> fpmgr().negate((FloatingPointFormula) exprF);
+                        case PLUS -> exprF;
                         default -> throw unsupported.get();
                     };
                     case BOOLEAN -> switch (op) {

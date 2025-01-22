@@ -75,6 +75,7 @@ public final class PropertyVisitor extends PackingVisitor {
 
         try (BufferedWriter out = new BufferedWriter(new FileWriter(file))) {
             List<LatticeVisitor.Result> results = checker.getResults(checker.getAbsoluteSourceFileName());
+            // TODO: add processing of results with SMT solving here
             if (results.isEmpty()) {
                 PrettyPrinter printer = new PrettyPrinter(out, true);
                 printer.printUnit((JCTree.JCCompilationUnit) checker.getVisitor().getPath().getCompilationUnit(), null);
