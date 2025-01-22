@@ -12,7 +12,6 @@ import java.math.BigInteger;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-// TODO add support for built-in math methods
 public final class SmtCompiler {
 
     private final SolverContext context;
@@ -116,11 +115,16 @@ public final class SmtCompiler {
                     }
                 };
             }
-            case SmtExpression.FunctionCall call -> ufmgr().callUF(
-                    function(call.underlyingMethod()),
-                    call.arguments().stream()
-                            .map(this::constructFormula)
-                            .toList());
+            case SmtExpression.FunctionCall call -> {
+                var knownFunctionFormula = knownFunction(call);
+                yield knownFunctionFormula != null
+                        ? knownFunctionFormula
+                        : ufmgr().callUF(
+                        function(call.underlyingMethod()),
+                        call.arguments().stream()
+                                .map(this::constructFormula)
+                                .toList());
+            }
             case SmtExpression.Literal(var type, var value) -> switch (type) {
                 case BYTE, SHORT, INT, LONG, CHAR -> imgr().makeNumber(((Number) value).longValue());
                 case FLOAT -> fpmgr().makeNumber((double) value, FormulaType.getSinglePrecisionFloatingPointType());
@@ -182,6 +186,24 @@ public final class SmtCompiler {
                 imgr().subtract(r, b),
                 r
         );
+    }
+
+    private Formula knownFunction(SmtExpression.FunctionCall functionCall) {
+        return switch (ElementUtils.getQualifiedName(functionCall.underlyingMethod())) {
+            case "java.lang.Math.floorMod(int,int)",
+                 "java.lang.Math.floorMod(long,int)",
+                 "java.lang.Math.floorMod(long,long)" -> imgr().modulo(
+                    (IntegerFormula) constructFormula(functionCall.arguments().get(0)),
+                    (IntegerFormula) constructFormula(functionCall.arguments().get(1))
+            );
+            case "java.lang.Math.floorDiv(int,int)",
+                 "java.lang.Math.floorDiv(long,int)",
+                 "java.lang.Math.floorDiv(long,long)" -> imgr().divide(
+                    (IntegerFormula) constructFormula(functionCall.arguments().get(0)),
+                    (IntegerFormula) constructFormula(functionCall.arguments().get(1))
+            );
+            default -> null;
+        };
     }
 
     private IntegerFormula withOverflow(IntegerFormula formula, SmtType type) {
