@@ -395,11 +395,15 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         commonAssignmentCheckEndDiagnostic(success, null, varType, valueType, valueTree);
 
         if (!success) {
-            // compute SMT condition that would remove the type error, and add it to the result
-            result.mendingConditions.put(
-                    TreePath.getPath(checker.getPathToCompilationUnit(), valueTree),
-                    computeWellTypedCondition(varType, valueTree)
-            );
+            // compute SMT condition that would remove the type error
+            var mendingCondition = computeTypeMendingCondition(varType, valueTree);
+            if (mendingCondition != null) {
+                // ...and add it to the result
+                result.mendingConditions.put(
+                        TreePath.getPath(checker.getPathToCompilationUnit(), valueTree),
+                        mendingCondition
+                );
+            }
             return super.commonAssignmentCheck(varType, valueType, valueTree, errorKey, extraArgs);
         }
 
@@ -741,7 +745,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
     /* ==== SMT SOLVING CODE ==== */
 
-    private SmtTypeMendingCondition computeWellTypedCondition(AnnotatedTypeMirror varType, Tree valueExpTree) {
+    private SmtTypeMendingCondition computeTypeMendingCondition(AnnotatedTypeMirror varType, Tree valueExpTree) {
         // TODO: verify that all context formulae are actually boolean (is this already done elsewhere?)
 
         JavaExpression toProve;
@@ -824,7 +828,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
             Stream.concat(relevantLocalRefinements, refinements.stream())
                     .map(expr -> {
-                        System.out.printf("Constraint: %s", expr);
+                        System.out.print(expr);
                         try {
                             var smt = JavaToSmtExpression.convert(expr);
                             System.out.println();
@@ -836,7 +840,6 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                     })
                     .filter(Objects::nonNull)
                     .forEach(result -> {
-                        System.out.println(result.smt());
                         context.add(result.smt());
                         refs.addAll(result.references());
                     });

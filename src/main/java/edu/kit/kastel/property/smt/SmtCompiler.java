@@ -43,7 +43,6 @@ public final class SmtCompiler {
         return context.getFormulaManager().getUFManager();
     }
 
-    // TODO move the operations mapping to smtexpression/operators there
     private Formula constructFormula(SmtExpression expression) {
         Formula formula = switch (expression) {
             case SmtExpression.BinaryOperation(var type, var op, var left, var right) -> {
