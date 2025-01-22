@@ -27,6 +27,8 @@ import edu.kit.kastel.property.packing.PackingStore;
 import edu.kit.kastel.property.packing.PackingVisitor;
 import edu.kit.kastel.property.printer.JavaJMLPrinter;
 import edu.kit.kastel.property.printer.PrettyPrinter;
+import edu.kit.kastel.property.smt.SmtCompiler;
+import edu.kit.kastel.property.smt.SmtExpression;
 import edu.kit.kastel.property.subchecker.lattice.LatticeSubchecker;
 import edu.kit.kastel.property.subchecker.lattice.LatticeVisitor;
 import edu.kit.kastel.property.util.FileUtils;
@@ -37,6 +39,12 @@ import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TypesUtils;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.java_smt.SolverContextFactory;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.SolverContext;
+import org.sosy_lab.java_smt.api.SolverException;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.VariableElement;
@@ -46,10 +54,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.StringJoiner;
+import java.util.*;
 
 public final class PropertyVisitor extends PackingVisitor {
 
@@ -75,7 +80,6 @@ public final class PropertyVisitor extends PackingVisitor {
 
         try (BufferedWriter out = new BufferedWriter(new FileWriter(file))) {
             List<LatticeVisitor.Result> results = checker.getResults(checker.getAbsoluteSourceFileName());
-            // TODO: add processing of results with SMT solving here
             if (results.isEmpty()) {
                 PrettyPrinter printer = new PrettyPrinter(out, true);
                 printer.printUnit((JCTree.JCCompilationUnit) checker.getVisitor().getPath().getCompilationUnit(), null);
@@ -83,6 +87,7 @@ public final class PropertyVisitor extends PackingVisitor {
                         "Wrote file %s with no remaining proof obligations",
                         checker.getRelativeSourceFileName()));
             } else {
+                mendTypeErrors(results);
                 JavaJMLPrinter printer = new JavaJMLPrinter(results, checker, out);
                 printer.printUnit((JCTree.JCCompilationUnit) checker.getVisitor().getPath().getCompilationUnit(), null);
                 System.out.println(String.format(
@@ -96,6 +101,83 @@ public final class PropertyVisitor extends PackingVisitor {
             e.printStackTrace();
             System.exit(1);
         }
+    }
+
+    private void mendTypeErrors(List<LatticeVisitor.Result> results) {
+        // merge contexts from all lattices
+        Map<Tree, Set<SmtExpression>> contexts = new HashMap<>();
+        for (LatticeVisitor.Result result : results) {
+            result.getContexts()
+                    .forEach((tree, context) -> contexts.computeIfAbsent(tree, v -> new HashSet<>()).addAll(context));
+        }
+
+        try (var solverContext = SolverContextFactory.createSolverContext(SolverContextFactory.Solvers.SMTINTERPOL)) {
+            results.stream()
+                    .map(LatticeVisitor.Result::getMendingConditions)
+                    .map(Map::keySet)
+                    .flatMap(Set::stream)
+                    .distinct()
+                    .forEach(tree -> processMendableExpression(solverContext, results, contexts.get(tree), tree));
+
+        } catch (InvalidConfigurationException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void processMendableExpression(
+            SolverContext solverContext,
+            List<LatticeVisitor.Result> results,
+            Set<SmtExpression> context,
+            Tree tree
+    ) {
+        System.out.printf("Mending type errors for expression %s using combined context%n", tree);
+        BooleanFormulaManager bmgr = solverContext.getFormulaManager().getBooleanFormulaManager();
+        SmtCompiler compiler = new SmtCompiler(solverContext);
+        Deque<BooleanFormula> conjunction = new ArrayDeque<>();
+
+        // add context formulae
+        for (SmtExpression expr : context) {
+            try {
+                conjunction.push((BooleanFormula) compiler.compile(expr));
+            } catch (UnsupportedOperationException e) {
+                // drop context constraints that aren't representable
+                System.out.printf("Ignoring context formula %s due to use of unsupported feature: %s%n",
+                        expr, e.getMessage());
+            }
+        }
+
+        for (LatticeVisitor.Result result : results) {
+            var condition = result.getMendingConditions().get(tree);
+            if (condition == null) {
+                continue;
+            }
+
+            // add proof goal to conjunction
+            try {
+                conjunction.push(bmgr.not((BooleanFormula) compiler.compile(condition)));
+            } catch (UnsupportedOperationException e) {
+                System.out.printf("Skipping proof goal %s due to use of unsupported feature: %s%n",
+                        condition, e.getMessage());
+                continue;
+            }
+
+            try (var proverEnv = solverContext.newProverEnvironment()) {
+                proverEnv.addConstraint(bmgr.and(conjunction));
+                var assignmentValid = proverEnv.isUnsat();
+                System.out.println(assignmentValid ? "Successfully proved validity" : "Couldn't prove validity");
+                if (assignmentValid) {
+                    // ill-typed expression tree could be proven valid and thus becomes well-typed
+                    result.removeTypeError(TreePath.getPath(path, tree));
+                }
+            } catch (InterruptedException | SolverException e) {
+                System.out.println("Encountered exception while trying to prove goal " + condition);
+                e.printStackTrace();
+            } finally {
+                // context formulae stay in the conjunction, we only remove the proof goal (which was added last)
+                conjunction.pop();
+            }
+        }
+
     }
 
     TreePath getPath() {
