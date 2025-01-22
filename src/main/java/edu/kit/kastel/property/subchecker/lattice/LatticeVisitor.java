@@ -217,12 +217,12 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                 if (node.getInitializer() != null) {
                     result.addStaticInitializer(getEnclClassName().toString(), Union.left(node));
                 }
-            } else {   
-            	result.addInstanceInvariant(
-            			getEnclClassName().toString(),
-            			new Invariant(node.getName().toString(), varType));
+            } else {
+                result.addInstanceInvariant(
+                        getEnclClassName().toString(),
+                        new Invariant(node.getName().toString(), varType));
 
-            	if (node.getInitializer() != null) {
+                if (node.getInitializer() != null) {
                     result.addInstanceInitializer(getEnclClassName().toString(), Union.left(node));
                 }
             }
@@ -260,10 +260,10 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                 AnnotatedTypes.overriddenMethods(elements, atypeFactory, methodElement);
 
         result.overriddenMethods.put(node, overriddenMethods.entrySet().stream().map(e -> Pair.of(
-                e.getKey(),
-                AnnotatedTypes.asMemberOf(
-                        types, atypeFactory, e.getKey(), e.getValue())))
-        .collect(Collectors.toList()));
+                        e.getKey(),
+                        AnnotatedTypes.asMemberOf(
+                                types, atypeFactory, e.getKey(), e.getValue())))
+                .collect(Collectors.toList()));
 
         super.visitMethod(node, p);
 
@@ -385,15 +385,10 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             }
         }
 
-        if (!success) {
-            wellTypedCondition = smtBasedAssignmentCheck(varType, valueTree);
-        } else {
-            wellTypedCondition = null;
-        }
-
         commonAssignmentCheckEndDiagnostic(success, null, varType, valueType, valueTree);
 
         if (!success) {
+            wellTypedCondition = computeWellTypedCondition(varType, valueTree);
             return super.commonAssignmentCheck(varType, valueType, valueTree, errorKey, extraArgs);
         }
 
@@ -403,9 +398,23 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
     @Override
     protected void checkMethodInvocability(AnnotatedExecutableType method, MethodInvocationTree node) {
         // TODO: create context using receiver on top of method invocation stack
-        call(
-                () -> super.checkMethodInvocability(method, node),
-                () -> result.illTypedMethodReceivers.add(node));
+        AnnotatedDeclaredType expectedType = method.getReceiverType();
+        if (expectedType != null && method.getElement().getKind() != ElementKind.CONSTRUCTOR) {
+            AnnotatedTypeMirror providedType = atypeFactory.getReceiverType(node);
+            // signify that we're checking the receiver type
+            paramIndex = -1;
+            call(
+                    () -> commonAssignmentCheck(
+                            expectedType,
+                            providedType,
+                            node,
+                            "method.invocation.invalid",
+                            method.getElement(),
+                            providedType,
+                            expectedType
+                    ),
+                    () -> result.illTypedMethodReceivers.add(node));
+        }
     }
 
     @Override
@@ -655,6 +664,13 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         }
     }
 
+    /**
+     * Represents an implication that, if proven universally valid in SMT, shows that an expression is well-typed.
+     * The implication is the conjunction of the context => goal.
+     *
+     * @param context Formulae providing constraints for the goal.
+     * @param goal    Formula that must be proven universally valid in the given context
+     */
     public record SmtWellTypedCondition(Set<SmtExpression> context, SmtExpression goal) {
 
     }
@@ -680,8 +696,8 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
     /* ==== SMT SOLVING CODE ==== */
 
-    private SmtWellTypedCondition smtBasedAssignmentCheck(AnnotatedTypeMirror varType, Tree valueExpTree) {
-        // TODO: verify that all context formulae are actually boolean
+    private SmtWellTypedCondition computeWellTypedCondition(AnnotatedTypeMirror varType, Tree valueExpTree) {
+        // TODO: verify that all context formulae are actually boolean (is this already done elsewhere?)
 
         JavaExpression toProve;
         if (getCurrentPath().getParentPath() instanceof MethodInvocationTree) {
@@ -689,10 +705,12 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                 // no invocation context means no refinements are available for this argument
                 return null;
             }
-            toProve = invocationContext.argRefinements.get(paramIndex);
+            toProve = paramIndex == -1
+                    ? invocationContext.receiverRefinement
+                    : invocationContext.argRefinements.get(paramIndex);
         } else {
             String refinement = getRefinement(varType, valueExpTree);
-            toProve = parseWithUnknown(refinement, ref -> StringToJavaExpression.atPath(ref, getCurrentPath(), checker));
+            toProve = parseOrUnknown(refinement, ref -> StringToJavaExpression.atPath(ref, getCurrentPath(), checker));
         }
 
         if (toProve instanceof Unknown) {
@@ -731,7 +749,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             }
             AnnotatedTypeMirror type = atypeFactory.getAnnotatedType(local);
             String refinement = getRefinement(type, local.getName());
-            JavaExpression expr = parseWithUnknown(refinement, ref -> StringToJavaExpression.atPath(ref, getCurrentPath(), checker));
+            JavaExpression expr = parseOrUnknown(refinement, ref -> StringToJavaExpression.atPath(ref, getCurrentPath(), checker));
             if (!(expr instanceof Unknown)) {
                 localRefinements.add(expr);
             }
@@ -782,8 +800,6 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         return context;
     }
 
-    // TODO expand all class names to be fully qualified so they work everywhere (and receiver is normalised)
-
     // this is basically a shortcut for "refinement + external references"
     private Collection<JavaExpression> constraintsForField(Set<JavaExpression> visited, FieldAccess fieldAccess) {
         List<JavaExpression> results = new ArrayList<>();
@@ -804,7 +820,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                 AnnotatedTypeMirror type = atypeFactory.getAnnotatedType(field);
                 String refinement = getRefinement(type, localFieldRef);
                 JavaExpression expr = viewpointAdapt(
-                        parseWithUnknown(refinement,
+                        parseOrUnknown(refinement,
                                 r -> StringToJavaExpression.atFieldDecl(refinement, field, checker)),
                         fa.getReceiver()
                 );
@@ -823,10 +839,10 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
      * Parse a refinement string to a JavaExpression. If there is a parse error, return Unknown type.
      *
      * @param refinement boolean expression as a string
-     * @param parser Function that parses the refinement string
+     * @param parser     Function that parses the refinement string
      * @return resulting expression, or expression of type Unknown
      */
-    private JavaExpression parseWithUnknown(
+    private JavaExpression parseOrUnknown(
             String refinement,
             FailableFunction<String, ? extends JavaExpression, JavaExpressionParseUtil.JavaExpressionParseException> parser) {
         try {
@@ -861,7 +877,8 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             JavaExpression returnRefinement,
             JavaExpression receiverRefinement,
             List<JavaExpression> argRefinements
-    ) {}
+    ) {
+    }
 
     // Given a method call expression, returns the callsite-adapted refinements for the return and argument values as JavaExpressions.
     private MethodCallRefinements methodCallRefinements(MethodCall method) {
@@ -907,10 +924,11 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         }
 
         // Receiver parameter `this` may have refinements too
-        // If there is no receiver, it's just "true" (method can always be called)
-        JavaExpression receiverRefinement = type.getReceiverType() == null
-                ? new ValueLiteral(bool, true)
-                : parser.apply(getRefinement(type.getReceiverType(), method.getReceiver()));
+        // If there is no receiver or it's a constructor, it's just "true" (method can always be called)
+        JavaExpression receiverRefinement =
+                type.getReceiverType() == null || method.getElement().getKind() != ElementKind.CONSTRUCTOR
+                        ? new ValueLiteral(bool, true)
+                        : parser.apply(getRefinement(type.getReceiverType(), method.getReceiver()));
 
         // the input method call with parameters and receiver simplified
         MethodCall unadaptedReturn = new MethodCall(
