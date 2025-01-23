@@ -1,6 +1,7 @@
 package edu.kit.kastel.property.smt;
 
 import edu.kit.kastel.property.util.UniqueIdMap;
+import org.checkerframework.dataflow.expression.FieldAccess;
 import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.javacutil.ElementUtils;
 import org.sosy_lab.java_smt.api.*;
@@ -9,9 +10,15 @@ import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.VariableElement;
 import java.math.BigInteger;
+import java.util.List;
+import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+import static org.sosy_lab.java_smt.api.FormulaType.getDoublePrecisionFloatingPointType;
+import static org.sosy_lab.java_smt.api.FormulaType.getSinglePrecisionFloatingPointType;
+
+// TODO: casting between double and float required when mixing operand types?
 public final class SmtCompiler {
 
     private final SolverContext context;
@@ -114,20 +121,16 @@ public final class SmtCompiler {
                     }
                 };
             }
-            case SmtExpression.FunctionCall call -> {
-                var knownFunctionFormula = knownFunction(call);
-                yield knownFunctionFormula != null
-                        ? knownFunctionFormula
-                        : ufmgr().callUF(
-                        function(call.underlyingMethod()),
-                        call.arguments().stream()
-                                .map(this::constructFormula)
-                                .toList());
-            }
+            case SmtExpression.FunctionCall call -> Optional.ofNullable(knownFunction(call))
+                    .orElseGet(() -> ufmgr().callUF(
+                            function(call.underlyingMethod()),
+                            call.arguments().stream()
+                                    .map(this::constructFormula)
+                                    .toList()));
             case SmtExpression.Literal(var type, var value) -> switch (type) {
                 case BYTE, SHORT, INT, LONG, CHAR -> imgr().makeNumber(((Number) value).longValue());
                 case FLOAT -> fpmgr().makeNumber((float) value, FormulaType.getSinglePrecisionFloatingPointType());
-                case DOUBLE -> fpmgr().makeNumber((double) value, FormulaType.getDoublePrecisionFloatingPointType());
+                case DOUBLE -> fpmgr().makeNumber((double) value, getDoublePrecisionFloatingPointType());
                 case BOOLEAN -> bmgr().makeBoolean((boolean) value);
                 case UNKNOWN -> unknownValue(value);
             };
@@ -153,7 +156,8 @@ public final class SmtCompiler {
                     case UNKNOWN -> throw unsupported.get();
                 };
             }
-            case SmtExpression.Variable variable -> variable(variable.expression());
+            case SmtExpression.Variable(var type, var expr) ->
+                    Optional.ofNullable(knownConstant(expr)).orElseGet(() -> variable(expr));
         };
 
         return expression.type().theory() == SmtType.Theory.INTEGER
@@ -188,21 +192,53 @@ public final class SmtCompiler {
     }
 
     private Formula knownFunction(SmtExpression.FunctionCall functionCall) {
+        List<SmtExpression> args = functionCall.arguments();
         return switch (ElementUtils.getQualifiedName(functionCall.underlyingMethod())) {
             case "java.lang.Math.floorMod(int,int)",
                  "java.lang.Math.floorMod(long,int)",
                  "java.lang.Math.floorMod(long,long)" -> imgr().modulo(
-                    (IntegerFormula) constructFormula(functionCall.arguments().get(0)),
-                    (IntegerFormula) constructFormula(functionCall.arguments().get(1))
+                    (IntegerFormula) constructFormula(args.get(0)),
+                    (IntegerFormula) constructFormula(args.get(1))
             );
             case "java.lang.Math.floorDiv(int,int)",
                  "java.lang.Math.floorDiv(long,int)",
                  "java.lang.Math.floorDiv(long,long)" -> imgr().divide(
-                    (IntegerFormula) constructFormula(functionCall.arguments().get(0)),
-                    (IntegerFormula) constructFormula(functionCall.arguments().get(1))
+                    (IntegerFormula) constructFormula(args.get(0)),
+                    (IntegerFormula) constructFormula(args.get(1))
             );
+            case "java.lang.Math.abs(double)",
+                 "java.lang.Math.abs(float)" -> fpmgr().abs((FloatingPointFormula) constructFormula(args.get(0)));
+            case "java.lang.Math.IEEEremainder(double,double)" -> fpmgr().remainder(
+                    (FloatingPointFormula) constructFormula(args.get(0)),
+                    (FloatingPointFormula) constructFormula(args.get(1))
+            );
+            case "java.lang.Math.round(double)",
+                 "java.lang.Math.round(float)" -> fpmgr().round(
+                    (FloatingPointFormula) constructFormula(args.get(0)),
+                    FloatingPointRoundingMode.NEAREST_TIES_TO_EVEN
+            );
+            case "java.lang.Math.sqrt(double)" -> fpmgr().sqrt((FloatingPointFormula) constructFormula(args.get(0)));
             default -> null;
         };
+    }
+
+    private Formula knownConstant(JavaExpression expression) {
+        if (expression instanceof FieldAccess fieldAccess
+                && ElementUtils.isStatic(fieldAccess.getField())) {
+            return switch (ElementUtils.getQualifiedName(fieldAccess.getField())) {
+                case "java.lang.Math.E" -> fpmgr().makeNumber(Math.E, getDoublePrecisionFloatingPointType());
+                case "java.lang.Math.PI" -> fpmgr().makeNumber(Math.PI, getDoublePrecisionFloatingPointType());
+                case "java.lang.Math.TAU" -> fpmgr().makeNumber(Math.TAU, getDoublePrecisionFloatingPointType());
+                case "java.lang.Double.NEGATIVE_INFINITY" -> fpmgr().makeMinusInfinity(getDoublePrecisionFloatingPointType());
+                case "java.lang.Double.POSITIVE_INFINITY" -> fpmgr().makePlusInfinity(getDoublePrecisionFloatingPointType());
+                case "java.lang.Double.NaN" -> fpmgr().makeNaN(getDoublePrecisionFloatingPointType());
+                case "java.lang.Float.NEGATIVE_INFINITY" -> fpmgr().makeMinusInfinity(getSinglePrecisionFloatingPointType());
+                case "java.lang.Float.POSITIVE_INFINITY" -> fpmgr().makePlusInfinity(getSinglePrecisionFloatingPointType());
+                case "java.lang.Float.NaN" -> fpmgr().makeNaN(getSinglePrecisionFloatingPointType());
+                default -> null;
+            };
+        }
+        return null;
     }
 
     private IntegerFormula withOverflow(IntegerFormula formula, SmtType type) {
@@ -264,7 +300,7 @@ public final class SmtCompiler {
         return switch (type) {
             case BYTE, SHORT, INT, LONG, CHAR -> FormulaType.IntegerType;
             case FLOAT -> FormulaType.getSinglePrecisionFloatingPointType();
-            case DOUBLE -> FormulaType.getDoublePrecisionFloatingPointType();
+            case DOUBLE -> getDoublePrecisionFloatingPointType();
             case BOOLEAN -> FormulaType.BooleanType;
             // Unknown means some declared type (object).
             // We can represent such values in SMT by assigning them an integer identity
