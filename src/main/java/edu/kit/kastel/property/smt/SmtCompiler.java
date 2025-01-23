@@ -165,49 +165,30 @@ public final class SmtCompiler {
                 : formula;
     }
 
-    // integer division with java semantics
-    private IntegerFormula jdiv(IntegerFormula a, IntegerFormula b) {
-        var q = imgr().divide(a, b);
+    // jdiv and jmod (integer division and modulo with Java semantics) definitions taken from KeY:
+    // https://github.com/KeYProject/key/blob/627d7455d82ad379acda01f59040a3324182bf77/key.core/src/main/resources/de/uka/ilkd/key/smt/newsmt2/Int.DefinedSymbolsHandler.preamble.xml
+    private IntegerFormula jdiv(IntegerFormula num, IntegerFormula denom) {
         return bmgr().ifThenElse(
-                bmgr().and(
-                        imgr().lessThan(imgr().multiply(a, b), imgr().makeNumber(0)),
-                        bmgr().not(imgr().equal(a, imgr().multiply(b, imgr().add(q, imgr().makeNumber(1)))))
-                ),
-                imgr().add(q, imgr().makeNumber(1)),
-                q
+                imgr().greaterOrEquals(num, imgr().makeNumber(0)),
+                imgr().divide(num, denom),
+                imgr().negate(imgr().divide(imgr().negate(num), denom))
         );
     }
 
-    // modulo with java semantics
-    private IntegerFormula jmod(IntegerFormula a, IntegerFormula b) {
-        var r = imgr().modulo(a, b);
-        return bmgr().ifThenElse(
-                bmgr().and(
-                        imgr().lessThan(imgr().multiply(a, b), imgr().makeNumber(0)),
-                        bmgr().not(imgr().equal(imgr().makeNumber(0), imgr().subtract(r, b)))
-                ),
-                imgr().subtract(r, b),
-                r
-        );
+    private IntegerFormula jmod(IntegerFormula num, IntegerFormula denom) {
+        return imgr().subtract(num, imgr().multiply(jdiv(num, denom), denom));
     }
 
     private Formula knownFunction(SmtExpression.FunctionCall functionCall) {
         List<SmtExpression> args = functionCall.arguments();
         return switch (ElementUtils.getQualifiedName(functionCall.underlyingMethod())) {
-            case "java.lang.Math.floorMod(int,int)",
-                 "java.lang.Math.floorMod(long,int)",
-                 "java.lang.Math.floorMod(long,long)" -> imgr().modulo(
-                    (IntegerFormula) constructFormula(args.get(0)),
-                    (IntegerFormula) constructFormula(args.get(1))
-            );
-            case "java.lang.Math.floorDiv(int,int)",
-                 "java.lang.Math.floorDiv(long,int)",
-                 "java.lang.Math.floorDiv(long,long)" -> imgr().divide(
-                    (IntegerFormula) constructFormula(args.get(0)),
-                    (IntegerFormula) constructFormula(args.get(1))
-            );
             case "java.lang.Math.abs(double)",
                  "java.lang.Math.abs(float)" -> fpmgr().abs((FloatingPointFormula) constructFormula(args.get(0)));
+            case "java.lang.Math.abs(int)",
+                 "java.lang.Math.abs(long)" -> {
+                var arg = (IntegerFormula) constructFormula(args.get(0));
+                yield bmgr().ifThenElse(imgr().lessThan(arg, imgr().makeNumber(0)), imgr().negate(arg), arg);
+            }
             case "java.lang.Math.IEEEremainder(double,double)" -> fpmgr().remainder(
                     (FloatingPointFormula) constructFormula(args.get(0)),
                     (FloatingPointFormula) constructFormula(args.get(1))
@@ -220,6 +201,7 @@ public final class SmtCompiler {
             case "java.lang.Math.sqrt(double)" -> fpmgr().sqrt((FloatingPointFormula) constructFormula(args.get(0)));
             default -> null;
         };
+
     }
 
     private Formula knownConstant(JavaExpression expression) {
@@ -235,6 +217,16 @@ public final class SmtCompiler {
                 case "java.lang.Float.NEGATIVE_INFINITY" -> fpmgr().makeMinusInfinity(getSinglePrecisionFloatingPointType());
                 case "java.lang.Float.POSITIVE_INFINITY" -> fpmgr().makePlusInfinity(getSinglePrecisionFloatingPointType());
                 case "java.lang.Float.NaN" -> fpmgr().makeNaN(getSinglePrecisionFloatingPointType());
+                case "java.lang.Character.MIN_VALUE" -> imgr().makeNumber(Character.MIN_VALUE);
+                case "java.lang.Byte.MIN_VALUE" -> imgr().makeNumber(Byte.MIN_VALUE);
+                case "java.lang.Short.MIN_VALUE" -> imgr().makeNumber(Short.MIN_VALUE);
+                case "java.lang.Integer.MIN_VALUE" -> imgr().makeNumber(Integer.MIN_VALUE);
+                case "java.lang.Long.MIN_VALUE" -> imgr().makeNumber(Long.MIN_VALUE);
+                case "java.lang.Character.MAX_VALUE" -> imgr().makeNumber(Character.MAX_VALUE);
+                case "java.lang.Byte.MAX_VALUE" -> imgr().makeNumber(Byte.MAX_VALUE);
+                case "java.lang.Short.MAX_VALUE" -> imgr().makeNumber(Short.MAX_VALUE);
+                case "java.lang.Integer.MAX_VALUE" -> imgr().makeNumber(Integer.MAX_VALUE);
+                case "java.lang.Long.MAX_VALUE" -> imgr().makeNumber(Long.MAX_VALUE);
                 default -> null;
             };
         }
@@ -254,8 +246,8 @@ public final class SmtCompiler {
         var mgr = context.getFormulaManager().getIntegerFormulaManager();
         IntegerFormula offset = mgr.makeNumber(BigInteger.ONE.shiftLeft(bits - 1));
         IntegerFormula modulus = mgr.makeNumber(BigInteger.ONE.shiftLeft(bits));
-        // below code constructs formula equivalent to the expression:
-        // (Math.floorMod(formula + offset, modulus) - offset
+        // below code constructs the formula:
+        // mod(formula + offset, modulus) - offset
         // this converts any integer to be in the correct value space.
         // for characters, there is no offset (they are unsigned)
         if (type != SmtType.CHAR) {
@@ -291,6 +283,7 @@ public final class SmtCompiler {
         );
     }
 
+    // TODO: change object expression representation from literals to variables
     // represent a value of unknown type (literal value or expression) in SMT by assigning it an integer value
     private IntegerFormula unknownValue(Object value) {
         return imgr().makeNumber(unknownValues.getId(value));
