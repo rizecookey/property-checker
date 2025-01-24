@@ -13,7 +13,6 @@ import java.util.stream.Stream;
 // things not representable in SMT -> stub variables (unknown type)
 public class JavaToSmtExpression extends JavaExpressionVisitor<SmtExpression, Set<JavaExpression>> {
 
-    // TODO handle "Unknown" expressions
     @Override
     protected SmtExpression visitArrayAccess(ArrayAccess arrayAccessExpr, Set<JavaExpression> refs) {
         throw new UnsupportedOperationException("No array support yet");

@@ -123,6 +123,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
     @Override
     protected void checkPostcondition(MethodTree methodTree, AnnotationMirror annotation, JavaExpression expression) {
+        // TODO: add SMT analysis/mending conditions here
         final int paramIdx = TypeUtils.getParameterIndex(methodTree, expression);
         result.methodOutputTypes.get(methodTree)[paramIdx] = annotation;
         call(
@@ -166,26 +167,33 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         ExecutableElement invokedMethod = TreeUtils.elementFromUse(tree);
         ProcessingEnvironment env = atypeFactory.getProcessingEnv();
         if (ElementUtils.isMethod(invokedMethod, packMethod, env) || ElementUtils.isMethod(invokedMethod, unpackMethod, env)) {
+            // compute smt context for packing calls and put it in result
+            // this can later potentially be used to mend uninitialized field errors
+            TypeElement typeElement = TreeUtils.elementFromDeclaration(enclClass);
+            ThisReference receiver = new ThisReference(typeElement.asType());
+            var fields = ElementUtils.getAllFieldsIn(typeElement, elements)
+                    .stream()
+                    .map(field -> new FieldAccess(receiver, field))
+                    .toList();
+            result.contexts.put(tree, context(fields));
             // Don't type-check arguments of packing calls.
             return p;
         }
-        var receiver = switch (tree.getMethodSelect()) {
-            // explicit receiver via member select
-            case MemberSelectTree m -> JavaExpression.fromTree(m.getExpression());
+        JavaExpression receiver = null;
+        var receiverTree = TreeUtils.getReceiverTree(tree);
+        if (receiverTree == null) {
             // no explicit receiver
-            case IdentifierTree i -> {
-                if (ElementUtils.isStatic(invokedMethod)) {
-                    // static method => class is the receiver
-                    yield new ClassName(invokedMethod.getEnclosingElement().asType());
-                } else if (invokedMethod.getReceiverType() != null) {
-                    // instance method => this is the receiver
-                    yield new ThisReference(invokedMethod.getReceiverType());
-                }
-                // constructor or initializer without receiver
-                yield null;
+            if (ElementUtils.isStatic(invokedMethod)) {
+                // static method => class is the receiver
+                receiver = new ClassName(invokedMethod.getEnclosingElement().asType());
+            } else if (invokedMethod.getReceiverType() != null) {
+                // instance method => `this` is the receiver
+                receiver = new ThisReference(invokedMethod.getReceiverType());
             }
-            default -> null;
-        };
+        } else {
+            // explicit receiver
+            receiver = JavaExpression.fromTree(receiverTree);
+        }
         var arguments = tree.getArguments().stream().map(JavaExpression::fromTree).toList();
         var methodCall = new MethodCall(invokedMethod.getReturnType(), invokedMethod, receiver, arguments);
         invocationContext = methodCallRefinements(methodCall);
@@ -240,6 +248,9 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
     public void processClassTree(ClassTree classTree) {
         ClassTree prevEnclClass = enclClass;
         enclClass = classTree;
+
+        // add refinements for all fields in this class and its super classes to the result
+        addFieldRefinements(classTree);
 
         super.processClassTree(classTree);
 
@@ -515,7 +526,6 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
         private LatticeSubchecker checker;
 
-        // TODO question: these sets rely on _identity_, i.e. that every tree object is only ever created once for a given position (right?)
         private Set<AssignmentTree> illTypedAssignments = new HashSet<>();
         private Set<VariableTree> illTypedVars = new HashSet<>();
         private Set<MethodTree> illTypedConstructors = new HashSet<>();
@@ -543,6 +553,12 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
          * @see #removeTypeError(TreePath)
          */
         private final Map<Tree, SmtExpression> mendingConditions = new HashMap<>();
+
+        /**
+         * Keep track of the refinements of all fields. This can later be used for SMT analysis on packing calls.
+         */
+        private final Map<VariableElement, SmtExpression> fieldRefinements = new HashMap<>();
+
         /**
          * Contains a mapping from tree paths to computed contexts.
          * If the expression at the leaf of the path is well-typed, the context includes the corresponding property refinement.
@@ -659,6 +675,14 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             return CollectionUtils.getUnmodifiableList(uninitializedFields, tree);
         }
 
+        public Map<Tree, List<VariableElement>> getUninitializedFields() {
+            return Collections.unmodifiableMap(uninitializedFields);
+        }
+
+        public SmtExpression getFieldRefinement(VariableElement field) {
+            return fieldRefinements.get(field);
+        }
+
         public Map<Tree, Set<SmtExpression>> getContexts() {
             return Collections.unmodifiableMap(contexts);
         }
@@ -716,6 +740,10 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                 }
                 default -> throw new UnsupportedOperationException("Type error for tree " + tree + " cannot be removed");
             }
+        }
+
+        public void removeUninitializedField(Tree packingCall, VariableElement field) {
+            CollectionUtils.removeFromCollectionMap(uninitializedFields, packingCall, field);
         }
 
         // TODO: when is this actually called? only when merging results from two checkers of the same kind? shouldn't they produce equal results?
@@ -813,7 +841,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
     }
 
 
-    private Set<SmtExpression> context(Collection<JavaExpression> initialRefs) {
+    private Set<SmtExpression> context(Collection<? extends JavaExpression> initialRefs) {
         Set<JavaExpression> visited = new HashSet<>();
         Queue<JavaExpression> refs = new ArrayDeque<>(initialRefs);
         Set<SmtExpression> context = new HashSet<>();
@@ -1022,6 +1050,30 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                         List.copyOf(JavaExpression.getFormalParameters(method.getElement()))
                 )));
         return new MethodCallRefinements(returnRefinement, receiverRefinement, argRefinements);
+    }
+
+    private void addFieldRefinements(ClassTree classTree) {
+        var top = atypeFactory.getTop();
+        TypeElement classElement = TreeUtils.elementFromDeclaration(classTree);
+        List<VariableElement> fields = ElementUtils.getAllFieldsIn(classElement, elements);
+        for (VariableElement field : fields) {
+            if (result.fieldRefinements.containsKey(field)) {
+                // field refinement in this lattice has already been collected
+                continue;
+            }
+            var fieldType = atypeFactory.getAnnotatedType(field);
+            if (!qualHierarchy.isSubtypeQualifiersOnly(top, fieldType.getAnnotationInHierarchy(top))) {
+                // only include refinement if field type is not a top type
+                JavaExpression expr = parseOrUnknown(getRefinement(fieldType, field.getSimpleName()),
+                        ref -> StringToJavaExpression.atFieldDecl(ref, field, checker));
+                try {
+                    result.fieldRefinements.put(field, JavaToSmtExpression.convert(expr).smt());
+                } catch (UnsupportedOperationException e) {
+                    System.out.printf("Skipping SMT analysis of field %s.%s: %s%n",
+                            classElement, field.getSimpleName(), e.getMessage());
+                }
+            }
+        }
     }
 
     private String getRefinement(AnnotatedTypeMirror type, Object subject) {

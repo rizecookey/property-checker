@@ -80,6 +80,8 @@ public final class PropertyVisitor extends PackingVisitor {
 
         try (BufferedWriter out = new BufferedWriter(new FileWriter(file))) {
             List<LatticeVisitor.Result> results = checker.getResults(checker.getAbsoluteSourceFileName());
+            mendTypeErrors(results);
+            // TODO: fix reporting here (results is never empty, even if there are no proof obligations left)
             if (results.isEmpty()) {
                 PrettyPrinter printer = new PrettyPrinter(out, true);
                 printer.printUnit((JCTree.JCCompilationUnit) checker.getVisitor().getPath().getCompilationUnit(), null);
@@ -87,7 +89,6 @@ public final class PropertyVisitor extends PackingVisitor {
                         "Wrote file %s with no remaining proof obligations",
                         checker.getRelativeSourceFileName()));
             } else {
-                mendTypeErrors(results);
                 JavaJMLPrinter printer = new JavaJMLPrinter(results, checker, out);
                 printer.printUnit((JCTree.JCCompilationUnit) checker.getVisitor().getPath().getCompilationUnit(), null);
                 System.out.println(String.format(
@@ -116,12 +117,20 @@ public final class PropertyVisitor extends PackingVisitor {
         }
 
         try (var solverContext = SolverContextFactory.createSolverContext(SolverContextFactory.Solvers.SMTINTERPOL)) {
+            // go through all expression trees that caused type errors
             results.stream()
                     .map(LatticeVisitor.Result::getMendingConditions)
                     .map(Map::keySet)
                     .flatMap(Set::stream)
                     .distinct()
                     .forEach(tree -> processMendableExpression(solverContext, results, contexts.get(tree), tree));
+            // go through all packing calls with uninitialized fields left
+            results.stream()
+                    .map(LatticeVisitor.Result::getUninitializedFields)
+                    .map(Map::keySet)
+                    .flatMap(Set::stream)
+                    .distinct()
+                    .forEach(tree -> processMendablePackingCall(solverContext, results, contexts.get(tree), tree));
         } catch (InvalidConfigurationException e) {
             throw new RuntimeException(e);
         }
@@ -131,14 +140,45 @@ public final class PropertyVisitor extends PackingVisitor {
             SolverContext solverContext,
             List<LatticeVisitor.Result> results,
             Set<SmtExpression> context,
-            Tree tree
+            Tree expression
     ) {
+        SmtCompiler compiler = new SmtCompiler(solverContext);
+        var conjunction = contextConjunction(compiler, expression, context);
+        for (LatticeVisitor.Result result : results) {
+            var condition = result.getMendingConditions().get(expression);
+            if (condition == null) {
+                continue;
+            }
+            if (universallyValid(solverContext, compiler, conjunction, condition)) {
+                result.removeTypeError(TreePath.getPath(checker.getPathToCompilationUnit(), expression));
+            }
+        }
+    }
+
+    private void processMendablePackingCall(
+            SolverContext solverContext,
+            List<LatticeVisitor.Result> results,
+            Set<SmtExpression> context,
+            Tree packingCall
+    ) {
+        SmtCompiler compiler = new SmtCompiler(solverContext);
+        var conjunction = contextConjunction(compiler, packingCall, context);
+        for (LatticeVisitor.Result result : results) {
+            var fields = result.getUninitializedFields().getOrDefault(packingCall, Collections.emptyList()).iterator();
+            while (fields.hasNext()) {
+                var condition = result.getFieldRefinement(fields.next());
+                if (universallyValid(solverContext, compiler, conjunction, condition)) {
+                    fields.remove();
+                }
+            }
+        }
+    }
+
+    private Deque<BooleanFormula> contextConjunction(SmtCompiler compiler, Tree tree, Set<SmtExpression> context) {
         var lineMap = root.getLineMap();
         var pos = trees.getSourcePositions().getStartPosition(root, tree);
         System.out.printf("=== Mending type errors for expression %s (%d:%d) using combined context:%n",
                 tree, lineMap.getLineNumber(pos), lineMap.getColumnNumber(pos));
-        BooleanFormulaManager bmgr = solverContext.getFormulaManager().getBooleanFormulaManager();
-        SmtCompiler compiler = new SmtCompiler(solverContext);
         Deque<BooleanFormula> conjunction = new ArrayDeque<>();
 
         // add context formulae
@@ -152,42 +192,36 @@ public final class PropertyVisitor extends PackingVisitor {
                         expr, e.getMessage());
             }
         }
-
         System.out.println("== Proof attempts");
+        return conjunction;
+    }
 
-        for (LatticeVisitor.Result result : results) {
-            var condition = result.getMendingConditions().get(tree);
-            if (condition == null) {
-                continue;
-            }
+    private boolean universallyValid(SolverContext solverContext, SmtCompiler compiler, Deque<BooleanFormula> contextConjunction, SmtExpression condition) {
+        BooleanFormulaManager bmgr = solverContext.getFormulaManager().getBooleanFormulaManager();
 
-            // add proof goal to conjunction
-            try {
-                conjunction.push(bmgr.not((BooleanFormula) compiler.compile(condition)));
-            } catch (UnsupportedOperationException e) {
-                System.out.printf("(Skipping proof goal %s due to use of unsupported feature: %s%n)",
-                        condition, e.getMessage());
-                continue;
-            }
-
-            System.out.printf("Proof goal: %s", condition);
-            try (var proverEnv = solverContext.newProverEnvironment()) {
-                proverEnv.addConstraint(bmgr.and(conjunction));
-                var assignmentValid = proverEnv.isUnsat();
-                System.out.println(assignmentValid ? " (success)" : " (failed)");
-                if (assignmentValid) {
-                    // ill-typed expression tree could be proven valid and thus becomes well-typed
-                    result.removeTypeError(TreePath.getPath(checker.getPathToCompilationUnit(), tree));
-                }
-            } catch (InterruptedException | SolverException e) {
-                System.out.println("Encountered exception while trying to prove goal " + condition);
-                e.printStackTrace();
-            } finally {
-                // context formulae stay in the conjunction, we only remove the proof goal (which was added last)
-                conjunction.pop();
-            }
+        // add proof goal to conjunction
+        try {
+            contextConjunction.push(bmgr.not((BooleanFormula) compiler.compile(condition)));
+        } catch (UnsupportedOperationException e) {
+            System.out.printf("(Skipping proof goal %s due to use of unsupported feature: %s%n)",
+                    condition, e.getMessage());
+            return false;
         }
 
+        System.out.printf("Proof goal: %s", condition);
+        try (var proverEnv = solverContext.newProverEnvironment()) {
+            proverEnv.addConstraint(bmgr.and(contextConjunction));
+            var assignmentValid = proverEnv.isUnsat();
+            System.out.println(assignmentValid ? " (success)" : " (failed)");
+            return assignmentValid;
+        } catch (InterruptedException | SolverException e) {
+            System.out.println("Encountered exception while trying to prove goal " + condition);
+            e.printStackTrace();
+        } finally {
+            // context formulae stay in the conjunction, we only remove the proof goal (which was added last)
+            contextConjunction.pop();
+        }
+        return false;
     }
 
     TreePath getPath() {
