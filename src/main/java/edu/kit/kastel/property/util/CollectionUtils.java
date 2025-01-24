@@ -24,6 +24,10 @@ public final class CollectionUtils {
 
     private CollectionUtils() { }
 
+    public static <K1, K2, V> void deepPut(Map<K1, Map<K2, V>> map, K1 key1, K2 key2, V value) {
+        map.computeIfAbsent(key1, k -> new HashMap<>()).put(key2, value);
+    }
+
     public static <K,E> void addToListMap(Map<K, List<E>> map, K key, E elem) {
         addToCollectionMap(map, key, elem, ArrayList<E>::new);
     }

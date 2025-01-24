@@ -123,7 +123,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
     @Override
     protected void checkPostcondition(MethodTree methodTree, AnnotationMirror annotation, JavaExpression expression) {
-        // TODO: add SMT analysis/mending conditions here
+        // TODO: add SMT analysis after method body visiting to add mending conditions for the output types computed here
         final int paramIdx = TypeUtils.getParameterIndex(methodTree, expression);
         result.methodOutputTypes.get(methodTree)[paramIdx] = annotation;
         call(
@@ -175,7 +175,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                     .stream()
                     .map(field -> new FieldAccess(receiver, field))
                     .toList();
-            result.contexts.put(tree, context(fields));
+            computeSmtContext(tree, fields);
             // Don't type-check arguments of packing calls.
             return p;
         }
@@ -547,6 +547,8 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
         private Map<Tree, List<VariableElement>> uninitializedFields = new HashMap<>();
 
+        /* SMT analysis data */
+
         /**
          * Contains a mapping from "path to ill-typed expression" to
          * "condition that, if proven universally valid, makes the expression well-typed".
@@ -559,11 +561,15 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
          */
         private final Map<VariableElement, SmtExpression> fieldRefinements = new HashMap<>();
 
+
         /**
          * Contains a mapping from tree paths to computed contexts.
          * If the expression at the leaf of the path is well-typed, the context includes the corresponding property refinement.
          */
         private final Map<Tree, Set<SmtExpression>> contexts = new HashMap<>();
+
+        // TODO: contextFromFields later gets modified from PackingVisitor to remove all context associated with uncommitted fields
+        private final Map<Tree, Map<TypeElement, Set<SmtExpression>>> contextFromFields = new HashMap<>();
 
         private Result(LatticeSubchecker checker) {
             this.checker = checker;
@@ -629,6 +635,16 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             CollectionUtils.addToSetMap(illTypedMethodOutputParams, tree, param);
         }
 
+        private void addFieldContext(Tree tree, TypeElement declaringClass, SmtExpression formula) {
+            contextFromFields.computeIfAbsent(tree, t -> new HashMap<>())
+                    .computeIfAbsent(declaringClass, c -> new HashSet<>())
+                    .add(formula);
+        }
+
+        private void addContext(Tree tree, SmtExpression formula) {
+            CollectionUtils.addToSetMap(contexts, tree, formula);
+        }
+
         public List<Pair<AnnotatedDeclaredType, AnnotatedExecutableType>> getOverriddenMethods(MethodTree tree) {
             return CollectionUtils.getUnmodifiableList(overriddenMethods, tree);
         }
@@ -687,6 +703,14 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             return Collections.unmodifiableMap(contexts);
         }
 
+        // merge contextFromFields and other context (to be done after contextFromFields has been modified to remove uncommitted fields)
+        public void finalizeContexts() {
+            contextFromFields.forEach((tree, ctx) -> {
+                var set = contexts.computeIfAbsent(tree, t -> new HashSet<>());
+                ctx.values().forEach(set::addAll);
+            });
+        }
+
         public Map<Tree, SmtExpression> getMendingConditions() {
             return Collections.unmodifiableMap(mendingConditions);
         }
@@ -709,6 +733,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             uninitializedFields.clear();
             mendingConditions.clear();
             contexts.clear();
+            contextFromFields.clear();
         }
 
         public void removeTypeError(TreePath path) {
@@ -794,15 +819,14 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         JavaToSmtExpression.Result smtGoal = computeSmtGoal(varType, valueTree);
 
         if (smtGoal != null) {
-            Set<SmtExpression> context = context(smtGoal.references());
+            computeSmtContext(valueTree, smtGoal.references());
             if (typeCheckSuccess) {
                 // if we already know that the goal is true (expr is well-typed), we add it to the context
-                context.add(smtGoal.smt());
+                result.addContext(valueTree, smtGoal.smt());
             } else {
                 // if expr is ill-typed, we add the proof goal to the mending conditions
                 result.mendingConditions.put(valueTree, smtGoal.smt());
             }
-            result.contexts.put(valueTree, context);
         }
     }
 
@@ -840,11 +864,9 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         }
     }
 
-
-    private Set<SmtExpression> context(Collection<? extends JavaExpression> initialRefs) {
+    private void computeSmtContext(Tree tree, Collection<? extends JavaExpression> initialRefs) {
         Set<JavaExpression> visited = new HashSet<>();
         Queue<JavaExpression> refs = new ArrayDeque<>(initialRefs);
-        Set<SmtExpression> context = new HashSet<>();
 
         // collect all locally available refinements (params + vars)
         List<JavaExpression> localRefinements = new ArrayList<>();
@@ -869,52 +891,40 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                 continue;
             }
 
-            //System.out.println("Finding constraints for: " + ref);
-
             // search in local refinements for mentions of the reference
-            Stream<JavaExpression> relevantLocalRefinements =
-                    localRefinements.stream().filter(expr -> expr.containsSyntacticEqualJavaExpression(ref));
+            for (JavaExpression expr : localRefinements) {
+                if (expr.containsSyntacticEqualJavaExpression(ref)) {
+                    tryConvertToSmt(expr).ifPresent(conversion -> {
+                        result.addContext(tree, conversion.smt());
+                        refs.addAll(conversion.references());
+                    });
+                }
+            }
 
-            // find constraints for reference/expression
-            Collection<JavaExpression> refinements = switch (ref) {
-                case FieldAccess f -> constraintsForField(visited, f);
-                case MethodCall m -> List.of(methodCallClause(m));
-                // constraints for local vars and params have already been added in local refinement search
-                default -> Collections.emptyList();
+            // Find and add constraints for ref to appropriate context,
+            // get back refs that appeared during the collection
+            Set<JavaExpression> newRefs = switch (ref) {
+                case FieldAccess f -> constrainField(tree, visited, f);
+                case MethodCall m -> constrainMethodCall(tree, m);
+                // only other option are LocalVariable refs, which have already been constrained
+                // by the local refinement search at this point
+                default -> Collections.emptySet();
             };
 
-            Stream.concat(relevantLocalRefinements, refinements.stream())
-                    .map(expr -> {
-                        //System.out.print(expr);
-                        try {
-                            var smt = JavaToSmtExpression.convert(expr);
-                            //System.out.println();
-                            return smt;
-                        } catch (UnsupportedOperationException e) {
-                            //System.out.printf(" (skipped because: %s)%n", e.getMessage());
-                            return null;
-                        }
-                    })
-                    .filter(Objects::nonNull)
-                    .forEach(result -> {
-                        context.add(result.smt());
-                        refs.addAll(result.references());
-                    });
+            refs.addAll(newRefs);
             visited.add(ref);
         }
-        return context;
     }
 
     // this is basically a shortcut for "refinement + external references"
-    private Collection<JavaExpression> constraintsForField(Set<JavaExpression> visited, FieldAccess fieldAccess) {
-        List<JavaExpression> results = new ArrayList<>();
-
+    private Set<JavaExpression> constrainField(Tree tree, Set<JavaExpression> visited, FieldAccess fieldAccess) {
+        Set<JavaExpression> references = new HashSet<>();
         // go through all parent receivers of field access to find references
         // field could be further constrained by other local refinements, but these aren't handled here
         for (JavaExpression e = fieldAccess; e instanceof FieldAccess fa; e = fa.getReceiver()) {
             TypeMirror receiverType = fa.getReceiver().getType();
-
-            for (VariableElement field : ElementUtils.getAllFieldsIn(TypesUtils.getTypeElement(receiverType), elements)) {
+            TypeElement typeElement = TypesUtils.getTypeElement(receiverType);
+            for (VariableElement field : ElementUtils.getAllFieldsIn(typeElement, elements)) {
                 JavaExpression localFieldRef = new FieldAccess(new ThisReference(receiverType), field);
 
                 if (visited.contains(viewpointAdapt(localFieldRef, fa.getReceiver()))) {
@@ -922,6 +932,9 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                     continue;
                 }
 
+                // FIXME: always return the full type even if not committed
+                //  context formulae coming from uncommitted fields must later be discarded before proof
+                //  to this end: get packing type of `this` at tree in question, discard all field contexts that come from uncommitted fields
                 AnnotatedTypeMirror type = atypeFactory.getAnnotatedType(field);
                 String refinement = getRefinement(type, localFieldRef);
                 JavaExpression expr = viewpointAdapt(
@@ -932,12 +945,14 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
                 // if refinement references the original field we're interested in, add it to the result
                 if (expr.containsSyntacticEqualJavaExpression(fieldAccess)) {
-                    results.add(expr);
+                    tryConvertToSmt(expr).ifPresent(conversion -> {
+                        result.addFieldContext(tree, typeElement, conversion.smt());
+                        references.addAll(conversion.references());
+                    });
                 }
             }
         }
-
-        return results;
+        return references;
     }
 
     /**
@@ -958,12 +973,12 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
     }
 
     // TODO: check if method can actually be used (purity)
-    private JavaExpression methodCallClause(MethodCall method) {
+    private Set<JavaExpression> constrainMethodCall(Tree tree, MethodCall method) {
         var refinements = methodCallRefinements(method);
         if (refinements == null || refinements.returnRefinement() instanceof Unknown) {
             // either method source code is not available or the refinement for the return value could not be parsed
             // => no dependent type analysis possible
-            return new ValueLiteral(bool, true);
+            return Collections.emptySet();
         }
 
         // construct the formula arg (including receiver) refinements => return refinement
@@ -972,10 +987,14 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                         refinements.argRefinements().stream()
                 ).filter(expr -> !(expr instanceof Unknown))
                 .reduce(new ValueLiteral(bool, true), (l, r) -> new BinaryOperation(bool, Tree.Kind.AND, l, r));
-        return new BinaryOperation(
+        var clause = new BinaryOperation(
                 bool, Tree.Kind.OR,
                 new UnaryOperation(bool, Tree.Kind.LOGICAL_COMPLEMENT, argumentConjunction), refinements.returnRefinement()
         );
+        return tryConvertToSmt(clause).map(conversion -> {
+            result.addContext(tree, conversion.smt());
+            return conversion.references();
+        }).orElse(Collections.emptySet());
     }
 
     private record MethodCallRefinements(
@@ -983,6 +1002,14 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             JavaExpression receiverRefinement,
             List<JavaExpression> argRefinements
     ) {
+    }
+
+    private Optional<JavaToSmtExpression.Result> tryConvertToSmt(JavaExpression expr) {
+        try {
+            return Optional.of(JavaToSmtExpression.convert(expr));
+        } catch (UnsupportedOperationException e) {
+            return Optional.empty();
+        }
     }
 
     // Given a method call expression, returns the callsite-adapted refinements for the return and argument values as JavaExpressions.

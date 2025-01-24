@@ -6,7 +6,6 @@ import javax.lang.model.type.PrimitiveType;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.TypeKindVisitor14;
 
-// TODO: remove, store TypeMirror (from expression) in SmtExpressions
 public enum SmtType {
 
     BYTE(Theory.INTEGER),

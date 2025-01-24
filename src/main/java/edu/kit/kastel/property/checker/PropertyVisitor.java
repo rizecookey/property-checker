@@ -16,10 +16,7 @@
  */
 package edu.kit.kastel.property.checker;
 
-import com.sun.source.tree.CompilationUnitTree;
-import com.sun.source.tree.MethodTree;
-import com.sun.source.tree.Tree;
-import com.sun.source.tree.VariableTree;
+import com.sun.source.tree.*;
 import com.sun.source.util.TreePath;
 import com.sun.tools.javac.tree.JCTree;
 import edu.kit.kastel.property.packing.PackingAnnotatedTypeFactory;
@@ -67,6 +64,9 @@ public final class PropertyVisitor extends PackingVisitor {
         super(checker);
     }
 
+    // TODO: for all types of trees where LatticeVisitors yield contexts: remove all context formulae associated with uncommitted fields
+    //  how do i know the frame this is packed to at any given tree?
+
     @Override
     public void visit(TreePath path) {
         super.visit(path);
@@ -112,6 +112,7 @@ public final class PropertyVisitor extends PackingVisitor {
         // merge contexts from all lattices
         Map<Tree, Set<SmtExpression>> contexts = new HashMap<>();
         for (LatticeVisitor.Result result : results) {
+            result.finalizeContexts();
             result.getContexts()
                     .forEach((tree, context) -> contexts.computeIfAbsent(tree, v -> new HashSet<>()).addAll(context));
         }
@@ -300,6 +301,11 @@ public final class PropertyVisitor extends PackingVisitor {
                 }
             }
         }
+    }
+
+    @Override
+    public Void visitAssignment(AssignmentTree node, Void p) {
+        return super.visitAssignment(node, p);
     }
 
     @Override
