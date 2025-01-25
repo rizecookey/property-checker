@@ -31,9 +31,12 @@ import edu.kit.kastel.property.subchecker.lattice.LatticeVisitor;
 import edu.kit.kastel.property.util.FileUtils;
 import edu.kit.kastel.property.util.TypeUtils;
 import org.checkerframework.common.basetype.BaseTypeChecker;
+import org.checkerframework.dataflow.expression.FieldAccess;
 import org.checkerframework.dataflow.expression.JavaExpression;
+import org.checkerframework.dataflow.expression.ThisReference;
 import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
 import org.checkerframework.javacutil.ElementUtils;
+import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TypesUtils;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -44,6 +47,7 @@ import org.sosy_lab.java_smt.api.SolverContext;
 import org.sosy_lab.java_smt.api.SolverException;
 
 import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
 import java.io.BufferedWriter;
@@ -52,6 +56,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public final class PropertyVisitor extends PackingVisitor {
 
@@ -63,9 +68,6 @@ public final class PropertyVisitor extends PackingVisitor {
     protected PropertyVisitor(BaseTypeChecker checker) {
         super(checker);
     }
-
-    // TODO: for all types of trees where LatticeVisitors yield contexts: remove all context formulae associated with uncommitted fields
-    //  how do i know the frame this is packed to at any given tree?
 
     @Override
     public void visit(TreePath path) {
@@ -80,6 +82,7 @@ public final class PropertyVisitor extends PackingVisitor {
 
         try (BufferedWriter out = new BufferedWriter(new FileWriter(file))) {
             List<LatticeVisitor.Result> results = checker.getResults(checker.getAbsoluteSourceFileName());
+            removeUninitializedFieldContext(results);
             mendTypeErrors(results);
             // TODO: fix reporting here (results is never empty, even if there are no proof obligations left)
             if (results.isEmpty()) {
@@ -103,6 +106,23 @@ public final class PropertyVisitor extends PackingVisitor {
         } catch (IOException e) {
             e.printStackTrace();
             System.exit(1);
+        }
+    }
+
+    private void removeUninitializedFieldContext(List<LatticeVisitor.Result> results) {
+        for (LatticeVisitor.Result result : results) {
+            result.getContextFromFields().forEach((tree, contexts) -> {
+                var iter = contexts.entrySet().iterator();
+                while (iter.hasNext()) {
+                    var fieldAccess = iter.next().getKey();
+                    var type = atypeFactory.getAnnotatedTypeBefore(fieldAccess.getReceiver(), (ExpressionTree) tree);
+                    TypeMirror declaringType = fieldAccess.getField().getEnclosingElement().asType();
+                    TypeMirror frame = getTypeFrame(type);
+                    if (!types.isSameType(declaringType, frame) && types.isSubtype(declaringType, frame)) {
+                        iter.remove();
+                    }
+                }
+            });
         }
     }
 
