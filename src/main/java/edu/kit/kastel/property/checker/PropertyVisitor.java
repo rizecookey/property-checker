@@ -125,14 +125,14 @@ public final class PropertyVisitor extends PackingVisitor {
                     .map(Map::keySet)
                     .flatMap(Set::stream)
                     .distinct()
-                    .forEach(tree -> processMendableExpression(solverContext, results, contexts.get(tree), tree));
+                    .forEach(tree -> processMendableExpression(solverContext, results, contexts.getOrDefault(tree, Set.of()), tree));
             // go through all packing calls with uninitialized fields left
             results.stream()
                     .map(LatticeVisitor.Result::getUninitializedFields)
                     .map(Map::keySet)
                     .flatMap(Set::stream)
                     .distinct()
-                    .forEach(tree -> processMendablePackingCall(solverContext, results, contexts.get(tree), tree));
+                    .forEach(tree -> processMendablePackingCall(solverContext, results, contexts.getOrDefault(tree, Set.of()), tree));
         } catch (InvalidConfigurationException e) {
             throw new RuntimeException(e);
         }
