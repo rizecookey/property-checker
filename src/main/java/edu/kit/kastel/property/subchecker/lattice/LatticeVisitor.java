@@ -41,7 +41,6 @@ import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.TypeValidator;
 import org.checkerframework.dataflow.expression.*;
-import org.checkerframework.dataflow.qual.Pure;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
@@ -956,7 +955,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
     }
 
     private Set<JavaExpression> constrainMethodCall(Tree tree, MethodCall method) {
-        if (method.getElement().getAnnotation(Pure.class) == null) {
+        if (!atypeFactory.isSideEffectFree(method.getElement()) || !atypeFactory.isDeterministic(method.getElement())) {
             System.out.printf("Skipping SMT analysis of method call %s: method is not marked @Pure%n", method);
             return Collections.emptySet();
         }
