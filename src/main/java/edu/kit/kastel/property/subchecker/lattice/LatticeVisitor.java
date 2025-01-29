@@ -282,21 +282,17 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                                 types, atypeFactory, e.getKey(), e.getValue())))
                 .collect(Collectors.toList()));
 
+        localVars.addAll(node.getParameters());
+        if (node.getReceiverParameter() != null) {
+            localVars.add(node.getReceiverParameter());
+        }
         super.visitMethod(node, p);
 
         enclMethod = prevEnclMethod;
 
-        resetLocalVarTracking(node);
+        localVars.clear();
 
         return null;
-    }
-
-    private void resetLocalVarTracking(MethodTree tree) {
-        localVars.clear();
-        localVars.addAll(tree.getParameters());
-        if (tree.getReceiverParameter() != null) {
-            localVars.add(tree.getReceiverParameter());
-        }
     }
 
     @Override
@@ -858,7 +854,10 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                     && resolver.findLocalVariableOrParameter(local.getName().toString(), getCurrentPath()) == null) {
                 continue;
             }
-            AnnotatedTypeMirror type = atypeFactory.getAnnotatedType(local);
+
+
+            AnnotatedTypeMirror type = atypeFactory.getAnnotatedTypeBefore(
+                    new LocalVariable(TreeUtils.elementFromDeclaration(local)), (ExpressionTree) tree);
             String refinement = getRefinement(type, local.getName());
             JavaExpression expr = parseOrUnknown(refinement, ref -> StringToJavaExpression.atPath(ref, getCurrentPath(), checker));
             if (!(expr instanceof Unknown)) {
