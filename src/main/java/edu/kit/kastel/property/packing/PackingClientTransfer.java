@@ -6,6 +6,8 @@ import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFa
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityTransfer;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.ReadOnly;
+import org.checkerframework.dataflow.analysis.TransferInput;
+import org.checkerframework.dataflow.analysis.TransferResult;
 import org.checkerframework.dataflow.cfg.UnderlyingAST;
 import org.checkerframework.dataflow.cfg.node.*;
 import org.checkerframework.dataflow.expression.FieldAccess;
@@ -45,14 +47,15 @@ public abstract class PackingClientTransfer<
 
     protected abstract V initialThisValue(MethodTree methodDeclTree);
 
+    // TODO: what's the type of parameters that aren't added to the store explicitly?
     @Override
     public S initialStore(UnderlyingAST underlyingAST, List<LocalVariableNode> parameters) {
         S initStore = super.initialStore(underlyingAST, parameters);
         PackingClientAnnotatedTypeFactory factory = getAnalysis().getTypeFactory();
 
         if (underlyingAST.getKind() == UnderlyingAST.Kind.METHOD) {
+            // TODO: add parameters and all their fields too (using the same logic)
             // Add receiver value
-
             UnderlyingAST.CFGMethod method = (UnderlyingAST.CFGMethod) underlyingAST;
             MethodTree methodDeclTree = method.getMethod();
             V initialThisValue = null;

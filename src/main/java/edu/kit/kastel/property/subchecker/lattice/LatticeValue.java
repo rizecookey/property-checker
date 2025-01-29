@@ -24,6 +24,8 @@ import org.checkerframework.javacutil.AnnotationMirrorSet;
 
 public final class LatticeValue extends PackingClientValue<LatticeValue> {
 
+	// TODO: add modifiable "dependents" field to keep track of who depends on this value
+
 	protected LatticeValue(
 			CFAbstractAnalysis<LatticeValue, ?, ?> analysis,
 			AnnotationMirrorSet annotations,

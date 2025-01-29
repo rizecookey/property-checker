@@ -48,6 +48,8 @@ public abstract class PackingClientStore<V extends PackingClientValue<V>, S exte
         thisValue = value;
     }
 
+    // TODO: adjust/override clearValue to clear all dependents too
+    //  getDependents method or something similar
     @Override
     public void clearValue(JavaExpression expr) {
         if (expr instanceof ThisReference) {

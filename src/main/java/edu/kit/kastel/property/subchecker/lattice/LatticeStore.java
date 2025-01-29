@@ -27,6 +27,7 @@ import org.checkerframework.dataflow.cfg.node.MethodInvocationNode;
 import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.dataflow.cfg.node.ThisNode;
 import org.checkerframework.dataflow.expression.FieldAccess;
+import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.dataflow.expression.LocalVariable;
 import org.checkerframework.framework.flow.CFAbstractAnalysis;
 import org.checkerframework.framework.flow.CFValue;
@@ -50,7 +51,13 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 	}
 
 	@Override
+	public boolean canAlias(JavaExpression a, JavaExpression b) {
+		return super.canAlias(a, b);
+	}
+
+	@Override
 	protected void removeConflicting(FieldAccess fieldAccess, @Nullable LatticeValue val) {
+		// TODO refine the logic here to only remove those values that _actually_ depend on the field (and add equivalent method override for local vars)
 		super.removeConflicting(fieldAccess, val);
 		LatticeAnnotatedTypeFactory factory = (LatticeAnnotatedTypeFactory) analysis.getTypeFactory();
 		// Remove all dependent qualifiers in store.
