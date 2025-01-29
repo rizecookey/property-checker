@@ -570,11 +570,6 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
          */
         private final Map<Tree, Set<SmtExpression>> contexts = new HashMap<>();
 
-        /**
-         * Contains context for the expression trees relating to fields.
-         */
-        private final Map<Tree, Map<FieldAccess, SmtExpression>> contextFromFields = new HashMap<>();
-
         private Result(LatticeSubchecker checker) {
             this.checker = checker;
         }
@@ -639,11 +634,6 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             CollectionUtils.addToSetMap(illTypedMethodOutputParams, tree, param);
         }
 
-        private void addFieldContext(Tree tree, FieldAccess fieldAccess, SmtExpression formula) {
-            contextFromFields.computeIfAbsent(tree, t -> new HashMap<>())
-                    .put(fieldAccess, formula);
-        }
-
         private void addContext(Tree tree, SmtExpression formula) {
             CollectionUtils.addToSetMap(contexts, tree, formula);
         }
@@ -706,20 +696,8 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             return Collections.unmodifiableMap(contexts);
         }
 
-        // merge contextFromFields and other context (to be done after contextFromFields has been modified to remove uncommitted fields)
-        public void finalizeContexts() {
-            contextFromFields.forEach((tree, ctx) -> {
-                var set = contexts.computeIfAbsent(tree, t -> new HashSet<>());
-                set.addAll(ctx.values());
-            });
-        }
-
         public Map<Tree, SmtExpression> getMendingConditions() {
             return Collections.unmodifiableMap(mendingConditions);
-        }
-
-        public Map<Tree, Map<FieldAccess, SmtExpression>> getContextFromFields() {
-            return Collections.unmodifiableMap(contextFromFields);
         }
 
         public void clear() {
@@ -740,7 +718,6 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             uninitializedFields.clear();
             mendingConditions.clear();
             contexts.clear();
-            contextFromFields.clear();
         }
 
         public void removeTypeError(TreePath path) {
@@ -933,15 +910,15 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             TypeElement typeElement = TypesUtils.getTypeElement(receiverType);
             for (VariableElement field : ElementUtils.getAllFieldsIn(typeElement, elements)) {
                 JavaExpression localFieldRef = new FieldAccess(new ThisReference(receiverType), field);
-
-                if (visited.contains(viewpointAdapt(localFieldRef, fa.getReceiver()))) {
+                JavaExpression fieldRefFromRoot = viewpointAdapt(localFieldRef, fa.getReceiver());
+                if (visited.contains(fieldRefFromRoot)) {
                     // we have already handled this field and all its dependencies
                     continue;
                 }
 
-                // get the declared type for the field. at this stage we don't know yet if it is committed or not;
-                // if it is not committed, the corresponding refinement is removed from the context again later
-                AnnotatedTypeMirror type = atypeFactory.getAnnotatedType(field);
+                // get the type for the field at the current tree. This is either the declared type or the top type,
+                // depending on whether it is committed or not
+                AnnotatedTypeMirror type = atypeFactory.getAnnotatedTypeBefore(fieldRefFromRoot, (ExpressionTree) tree);
                 String refinement = getRefinement(type, localFieldRef);
                 JavaExpression expr = viewpointAdapt(
                         parseOrUnknown(refinement,
@@ -952,7 +929,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                 // if refinement references the original field we're interested in, add it to the result
                 if (expr.containsSyntacticEqualJavaExpression(fieldAccess)) {
                     tryConvertToSmt(expr).ifPresent(conversion -> {
-                        result.addFieldContext(tree, new FieldAccess(fa.getReceiver(), field), conversion.smt());
+                        result.addContext(tree, conversion.smt());
                         references.addAll(conversion.references());
                     });
                 }

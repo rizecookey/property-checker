@@ -82,7 +82,6 @@ public final class PropertyVisitor extends PackingVisitor {
 
         try (BufferedWriter out = new BufferedWriter(new FileWriter(file))) {
             List<LatticeVisitor.Result> results = checker.getResults(checker.getAbsoluteSourceFileName());
-            removeUninitializedFieldContext(results);
             mendTypeErrors(results);
             // TODO: fix reporting here (results is never empty, even if there are no proof obligations left)
             if (results.isEmpty()) {
@@ -109,30 +108,12 @@ public final class PropertyVisitor extends PackingVisitor {
         }
     }
 
-    private void removeUninitializedFieldContext(List<LatticeVisitor.Result> results) {
-        for (LatticeVisitor.Result result : results) {
-            result.getContextFromFields().forEach((tree, contexts) -> {
-                var iter = contexts.entrySet().iterator();
-                while (iter.hasNext()) {
-                    var fieldAccess = iter.next().getKey();
-                    var type = atypeFactory.getAnnotatedTypeBefore(fieldAccess.getReceiver(), (ExpressionTree) tree);
-                    TypeMirror declaringType = fieldAccess.getField().getEnclosingElement().asType();
-                    TypeMirror frame = getTypeFrame(type);
-                    if (!types.isSameType(declaringType, frame) && types.isSubtype(declaringType, frame)) {
-                        iter.remove();
-                    }
-                }
-            });
-        }
-    }
-
     private void mendTypeErrors(List<LatticeVisitor.Result> results) {
         System.out.println();
         System.out.println("File: " + root.getSourceFile().getName());
         // merge contexts from all lattices
         Map<Tree, Set<SmtExpression>> contexts = new HashMap<>();
         for (LatticeVisitor.Result result : results) {
-            result.finalizeContexts();
             result.getContexts()
                     .forEach((tree, context) -> contexts.computeIfAbsent(tree, v -> new HashSet<>()).addAll(context));
         }
