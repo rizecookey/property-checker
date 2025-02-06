@@ -20,7 +20,6 @@ public final class InitializationFinalClass {
         this.aliased = new Obj();
         this.unique = new Obj();
 
-        Packing.pack(this, InitializationFinalClass.class);
         this.foo();
     }
 

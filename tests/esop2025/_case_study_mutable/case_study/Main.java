@@ -12,7 +12,6 @@ public final class Main {
 
     @Pure
     private Main() {
-        Packing.pack(this, Main.class);
     }
     
     public static void main(String[] args) {

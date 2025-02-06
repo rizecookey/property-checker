@@ -8,13 +8,9 @@ final class Assign {
 
     // :: error: initialization.field.uninitialized
     @Unique Foo foo;
-    // :: error: exclusivity.type.invalidated :: error: initialization.field.uninitialized
-    @ExclBottom Foo bar;
 
     void assignWritableThis(@Unique Assign this) {
-        Packing.unpack(this, Assign.class);
         this.foo = new Foo();
-        Packing.pack(this, Assign.class);
     }
 
     void assignParam(@Unique Assign this, @Unique Assign other) {

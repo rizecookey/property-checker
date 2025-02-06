@@ -29,7 +29,6 @@ import org.checkerframework.javacutil.TreeUtils;
 
 import java.util.ArrayList;
 import java.util.List;
-import javax.lang.model.type.TypeMirror;
 
 public final class TypeUtils {
 

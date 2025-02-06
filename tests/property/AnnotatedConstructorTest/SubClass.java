@@ -8,11 +8,9 @@ import org.checkerframework.dataflow.qual.*;
 public class SubClass extends AnnotatedConstructorTest {
 
     public SubClass() {
-        Packing.pack(this, SubClass.class);
     }
 
     // :: error: simple.inconsistent.constructor.type
     public @D SubClass(int i) {
-        Packing.pack(this, SubClass.class);
     }
 }

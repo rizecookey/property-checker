@@ -18,7 +18,6 @@ package edu.kit.kastel.property.util;
 
 import com.sun.source.tree.Tree.Kind;
 
-import edu.kit.kastel.property.checker.PropertyChecker;
 import edu.kit.kastel.property.packing.PackingChecker;
 import edu.kit.kastel.property.packing.PackingFieldAccessSubchecker;
 import edu.kit.kastel.property.subchecker.lattice.LatticeSubchecker;

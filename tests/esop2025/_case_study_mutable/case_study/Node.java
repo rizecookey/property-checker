@@ -32,7 +32,6 @@ public final class Node {
     Node(Order head, @Unique @Sorted Node tail) {
         this.head = head;
         this.tail = tail;
-        Packing.pack(this, Node.class);
         Ghost.set("footprint", "\\set_union(\\singleton(this.head), \\singleton(this.tail), \\singleton(this.footprint), this.tail.footprint)");
     }
 
@@ -45,7 +44,6 @@ public final class Node {
         this.head = head;
         this.tail = null;
         // :: error: initialization.fields.uninitialized
-        Packing.pack(this, Node.class);
         Ghost.set("footprint", "\\set_union(\\singleton(this.head), \\singleton(this.tail), \\singleton(this.footprint))");
     }
 
@@ -70,7 +68,6 @@ public final class Node {
     private void insertHead(
             @Unique @Sorted Node this,
             Order newHead) {
-        Packing.unpack(this, Node.class);
         if (this.tail == null) {
             this.tail = new Node(this.head);
         } else {
@@ -79,7 +76,6 @@ public final class Node {
         }
         this.head = newHead;
 
-        Packing.pack(this, Node.class);
         Ghost.set("footprint", "\\set_union(\\singleton(this.head), \\singleton(this.tail), \\singleton(this.footprint), this.tail.footprint)");
     }
 
@@ -91,7 +87,6 @@ public final class Node {
     private void insertTail(
             @Unique @Sorted Node this,
             Order newHead) {
-        Packing.unpack(this, Node.class);
 
         if (tail == null) {
             this.tail = new Node(newHead);
@@ -100,7 +95,6 @@ public final class Node {
             this.tail.insert(newHead);
         }
 
-        Packing.pack(this, Node.class);
 
         Ghost.set("footprint", "\\set_union(\\singleton(this.head), \\singleton(this.tail), \\singleton(this.footprint), this.tail.footprint)");
 
@@ -132,7 +126,6 @@ public final class Node {
     public
     @Unique @Nullable @Sorted Node
     stealTail(@Unique @Sorted Node this) {
-        Packing.unpack(this, Node.class);
         return this.tail;
     }
 }

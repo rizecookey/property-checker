@@ -33,14 +33,10 @@ import edu.kit.kastel.property.util.FileUtils;
 import edu.kit.kastel.property.util.TypeUtils;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.dataflow.expression.JavaExpression;
-import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
-import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
-import org.checkerframework.javacutil.TypesUtils;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.VariableElement;
-import javax.lang.model.type.TypeMirror;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -49,7 +45,6 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.StringJoiner;
 
 public final class PropertyVisitor extends PackingVisitor {
 
@@ -138,40 +133,13 @@ public final class PropertyVisitor extends PackingVisitor {
     }
 
     @Override
-    protected void checkFieldsInitializedUpToFrame(
-            Tree tree,
-            TypeMirror frame) {
-        for (BaseTypeChecker targetChecker : getChecker().getTargetCheckers()) {
-            GenericAnnotatedTypeFactory<?, ?, ?, ?> targetFactory = targetChecker.getTypeFactory();
+    protected void reportUninitializedFieldsError(Tree tree, BaseTypeChecker targetChecker, List<VariableElement> uninitializedFields) {
+        super.reportUninitializedFieldsError(tree, targetChecker, uninitializedFields);
 
-            List<VariableElement> uninitializedFields =
-                    atypeFactory.getUninitializedFields(
-                            atypeFactory.getStoreBefore(tree),
-                            targetFactory.getStoreBefore(tree),
-                            getCurrentPath(),
-                            false,
-                            List.of());
-
-            // Remove fields below frame
-            uninitializedFields.retainAll(ElementUtils.getAllFieldsIn(TypesUtils.getTypeElement(frame), elements));
-
-            // Remove fields with a relevant @SuppressWarnings annotation
-            uninitializedFields.removeIf(
-                    f -> checker.shouldSuppressWarnings(f, "initialization.field.uninitialized"));
-
-            if (!uninitializedFields.isEmpty()) {
-                StringJoiner fieldsString = new StringJoiner(", ");
-                for (VariableElement f : uninitializedFields) {
-                    fieldsString.add(f.getSimpleName());
-                }
-                checker.reportError(tree, "initialization.fields.uninitialized", fieldsString);
-
-                // Add uninitialized fields to LatticeVisitor for JML printer to use
-                if (targetChecker instanceof LatticeSubchecker) {
-                    LatticeVisitor latticeVisitor = (LatticeVisitor) targetChecker.getVisitor();
-                    latticeVisitor.addUninitializedFields(tree, uninitializedFields);
-                }
-            }
+        // Add uninitialized fields to LatticeVisitor for JML printer to use
+        if (targetChecker instanceof LatticeSubchecker) {
+            LatticeVisitor latticeVisitor = (LatticeVisitor) targetChecker.getVisitor();
+            latticeVisitor.addUninitializedFields(tree, uninitializedFields);
         }
     }
 

@@ -13,7 +13,6 @@ public final class ReadOnlyFieldTest {
 
     public ReadOnlyFieldTest() {
         // :: error: initialization.fields.uninitialized
-        Packing.pack(this, ReadOnlyFieldTest.class);
     }
 
     public void fooThis(@Unique ReadOnlyFieldTest this) {

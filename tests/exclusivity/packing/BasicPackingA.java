@@ -11,6 +11,5 @@ public class BasicPackingA {
 
     BasicPackingA() {
         aField = new Obj();
-        Packing.pack(this, BasicPackingA.class);
     }
 }

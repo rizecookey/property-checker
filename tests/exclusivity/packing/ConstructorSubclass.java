@@ -13,7 +13,6 @@ public class ConstructorSubclass extends ConstructorSuperclass {
         super();
         this.isPackedToSuperclass();
         this.subField = new Obj();
-        Packing.pack(this, ConstructorSubclass.class);
     }
 
     ConstructorSubclass(int dummy) {
@@ -21,7 +20,6 @@ public class ConstructorSubclass extends ConstructorSuperclass {
         // :: error: packing.method.invocation.invalid
         this.isPackedToSuperclass();
         this.subField = new Obj();
-        Packing.pack(this, ConstructorSubclass.class);
     }
 
     void isPackedToSuperclass(@UnderInitialization(ConstructorSuperclass.class) @Unique @NullTop ConstructorSubclass this) {}

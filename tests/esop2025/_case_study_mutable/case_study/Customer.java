@@ -19,7 +19,6 @@ public final class Customer {
     public @AgedOver(age="age") Customer(String name, @Interval(min="14", max="150") int age) {
         this.name = name;
         this.age = age;
-        Packing.pack(this, Customer.class);
     }
 
     @JMLClause("ensures \\result.name == name && \\result.age == 18;")

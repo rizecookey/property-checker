@@ -10,12 +10,10 @@ public class IntSuperConstructorTestSubClass extends IntSuperConstructorTestBase
 
     public IntSuperConstructorTestSubClass() {
         super(0);
-        Packing.pack(this, IntSuperConstructorTestSubClass.class);
     }
 
     public IntSuperConstructorTestSubClass(@Interval(min="0", max="1") int arg) {
         // :: error: interval.argument.type.incompatible
         super(arg);
-        Packing.pack(this, IntSuperConstructorTestSubClass.class);
     }
 }

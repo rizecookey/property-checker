@@ -23,7 +23,6 @@ public final class List {
         this.size = 1;
 
         // :: error: initialization.fields.uninitialized
-        Packing.pack(this, List.class);
     }
 
     @JMLClause("ensures this.head == head && this.tail == tail;")
@@ -35,7 +34,6 @@ public final class List {
         this.size = tail == null ? 1 : tail.size + 1;
 
         // :: error: initialization.fields.uninitialized
-        Packing.pack(this, List.class);
     }
 
     @EnsuresLength(value="this", len="n+1")
@@ -46,7 +44,6 @@ public final class List {
             int newHead,
             int n
     ) {
-        Packing.unpack(this, List.class);
         if (this.tail == null) {
             this.tail = new List(head);
         } else {
@@ -56,6 +53,5 @@ public final class List {
         this.head = newHead;
         ++this.size;
         // :: error: initialization.fields.uninitialized
-        Packing.pack(this, List.class);
     }
 }

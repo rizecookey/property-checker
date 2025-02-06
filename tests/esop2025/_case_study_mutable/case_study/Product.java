@@ -24,7 +24,6 @@ public final class Product {
         this.title = title;
         this.price = price;
         this.ageRestriction = ageRestriction;
-        Packing.pack(this, Product.class);
     }
 
     @JMLClause("ensures \\result == this.price;")

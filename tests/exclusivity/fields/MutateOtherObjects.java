@@ -9,18 +9,12 @@ class MutateOtherObjects {
     // :: error: initialization.field.uninitialized
     @Unique Foo foo;
 
-    // :: error: packing.postcondition.not.satisfied
     void mutate(@Unique MutateOtherObjects this, @Unique MutateOtherObjects other) {
-        // :: error: initialization.write.committed.field
         this.foo = new Foo();
 
-        Packing.unpack(this, MutateOtherObjects.class);
-        this.foo = new Foo();
-        Packing.pack(this, MutateOtherObjects.class);
-
-        // :: error: assignment.invalid-lhs :: error: initialization.write.committed.field
+        // :: error: assignment.invalid-lhs
         this.foo.i = 42;
-        // :: error: assignment.invalid-lhs :: error: initialization.write.committed.field
+        // :: error: assignment.invalid-lhs
         other.foo = new Foo();
     }
 }

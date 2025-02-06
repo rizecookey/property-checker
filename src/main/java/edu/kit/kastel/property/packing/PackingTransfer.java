@@ -5,6 +5,8 @@ import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.NewClassTree;
 import com.sun.tools.javac.code.Symbol;
+import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
+import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
 import edu.kit.kastel.property.util.ClassUtils;
 import edu.kit.kastel.property.util.Packing;
 import org.checkerframework.checker.initialization.InitializationAbstractTransfer;
@@ -17,7 +19,6 @@ import org.checkerframework.dataflow.analysis.TransferInput;
 import org.checkerframework.dataflow.analysis.TransferResult;
 import org.checkerframework.dataflow.cfg.UnderlyingAST;
 import org.checkerframework.dataflow.cfg.node.*;
-import org.checkerframework.dataflow.expression.ClassName;
 import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.framework.flow.CFValue;
 import org.checkerframework.framework.type.AnnotatedTypeFactory;
@@ -31,9 +32,6 @@ import org.checkerframework.javacutil.*;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.VariableElement;
-import javax.lang.model.type.NoType;
-import javax.lang.model.type.TypeKind;
 import java.lang.reflect.Modifier;
 import java.util.List;
 import java.util.Set;
@@ -54,9 +52,20 @@ public class PackingTransfer extends InitializationAbstractTransfer<CFValue, Pac
             MethodTree methodDeclTree = method.getMethod();
             if (!TreeUtils.isConstructor(methodDeclTree) && methodDeclTree.getReceiverParameter() != null) {
                 AnnotatedTypeMirror thisType = atypeFactory.getAnnotatedType(methodDeclTree.getReceiverParameter());
-                initStore.initializeThisValue(thisType.getAnnotationInHierarchy(
-                                AnnotationBuilder.fromClass(atypeFactory.getElementUtils(), UnderInitialization.class)),
-                        thisType.getUnderlyingType());
+                AnnotationMirror thisAnno = thisType.getAnnotationInHierarchy(
+                        AnnotationBuilder.fromClass(atypeFactory.getElementUtils(), UnderInitialization.class));
+                ExclusivityAnnotatedTypeFactory exclFactory = atypeFactory.getChecker().getUltimateParentChecker().getTypeFactoryOfSubcheckerOrNull(ExclusivityChecker.class);
+                boolean thisUnique = methodDeclTree.getReceiverParameter().getModifiers().getAnnotations().stream().anyMatch(anno -> anno.toString().equals("@Unique"));
+
+                if (atypeFactory.isUnknownInitialization(thisAnno) || !thisUnique) {
+                    // Variables of type @UnknownInitialization or not of type @Unique must not be unpacked,
+                    // so we use the input type in the initial store
+                    initStore.initializeThisValue(thisAnno, thisType.getUnderlyingType());
+                } else {
+                    // Other variables may be unpacked. We make them @UnknownInitialization(Object.class) in the initial
+                    // store, so the programmer doesn't need to write the unpack statement explicitly.
+                    initStore.initializeThisValue(atypeFactory.createUnderInitializationAnnotation(Object.class), thisType.getUnderlyingType());
+                }
             }
         }
 
@@ -109,6 +118,14 @@ public class PackingTransfer extends InitializationAbstractTransfer<CFValue, Pac
                 store.insertValue(objToPack, newAnnotation);
                 return new RegularTransferResult<>(null, store, true);
             }
+        }
+
+        if (n.getTarget().getReceiver() instanceof ThisNode
+                && (n.getTarget().getMethod().getReceiverType().getAnnotation(UnderInitialization.class) != null
+                    || n.getTarget().getMethod().getReceiverType().getAnnotation(UnderInitialization.class) != null)) {
+            TransferResult<CFValue, PackingStore> result = super.visitMethodInvocation(n, in);
+            result.getRegularStore().setHelperFunctionCalled(true);
+            return result;
         }
 
         return super.visitMethodInvocation(n, in);
@@ -201,6 +218,10 @@ public class PackingTransfer extends InitializationAbstractTransfer<CFValue, Pac
             String expressionString = p.expressionString;
             try {
                 JavaExpression je = stringToJavaExpr.toJavaExpression(expressionString);
+
+                if (je.toString().equals("this") && !atypeFactory.isInitialized(anno)) {
+                    store.setHelperFunctionCalled(true);
+                }
 
                 // Unlike the superclass implementation, this calls
                 // "insertValue" which for our type system replaces existing information instead of adding to it.

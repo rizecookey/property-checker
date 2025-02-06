@@ -26,6 +26,7 @@ import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.*;
 import javax.lang.model.type.NoType;
 import javax.lang.model.type.TypeMirror;
+import java.lang.annotation.Annotation;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -69,7 +70,84 @@ public class PackingVisitor
             Tree valueTree,
             @CompilerMessageKey String errorKey,
             Object... extraArgs) {
+        if (valueTree.toString().equals("this")
+                && canInferPackingStatement(
+                        valueTree,
+                        varType.getAnnotationInHierarchy(atypeFactory.getInitialized()),
+                        valueType.getAnnotationInHierarchy(atypeFactory.getInitialized()))) {
+            return;
+        }
+
         super.reportCommonAssignmentError(varType, valueType, valueTree, "packing." + errorKey, extraArgs);
+    }
+
+    protected final boolean canInferPackingStatement(
+            MethodTree methodTree,
+            AnnotationMirror varAnno,
+            AnnotationMirror valAnno) {
+        TypeMirror varFrame;
+        if (atypeFactory.isInitialized(varAnno)) {
+            // If an object is initalized up to its most specific known subclass and no function with a receiver type
+            // @UnderInitialization was called, the object is @Initialized
+            if (atypeFactory.getRegularExitStore(methodTree).isHelperFunctionCalled()) {
+                return false;
+            }
+            if (TreeUtils.isConstructor(methodTree)) {
+                Type classType = ((JCTree.JCMethodDecl) methodTree).sym.owner.type;
+                if (!classType.isFinal()) {
+                    return false;
+                }
+                varFrame = classType;
+            } else {
+                varFrame = ((JCTree) methodTree.getReceiverParameter()).type;
+            }
+        } else {
+            varFrame = atypeFactory.getTypeFrameFromAnnotation(varAnno);
+        }
+        TypeMirror valFrame = atypeFactory.getTypeFrameFromAnnotation(valAnno);
+
+        // Infer unpack statement if possible
+        if (types.isSubtype(valFrame, varFrame) && !atypeFactory.isUnknownInitialization(valAnno)) {
+            return true;
+        }
+
+        // Infer pack statement if possible
+        if (types.isSubtype(varFrame, valFrame) && !atypeFactory.isUnknownInitialization(valAnno)) {
+            checkFieldsInitializedUpToFrame(methodTree, atypeFactory.getTypeFrameFromAnnotation(valAnno));
+            return true;
+        }
+
+        return false;
+    }
+    protected final boolean canInferPackingStatement(
+            Tree tree,
+            AnnotationMirror varAnno,
+            AnnotationMirror valAnno) {
+        TypeMirror varFrame;
+        if (atypeFactory.isInitialized(varAnno)) {
+            // If an object is initalized up to its most specific known subclass and no function with a receiver type
+            // @UnderInitialization was called, the object is @Initialized
+            if (atypeFactory.getStoreBefore(tree).isHelperFunctionCalled()) {
+                return false;
+            }
+            varFrame = ((JCTree) tree).type;
+        } else {
+            varFrame = atypeFactory.getTypeFrameFromAnnotation(varAnno);
+        }
+        TypeMirror valFrame = atypeFactory.getTypeFrameFromAnnotation(valAnno);
+
+        // Infer unpack statement if possible
+        if (types.isSubtype(valFrame, varFrame) && !atypeFactory.isUnknownInitialization(valAnno)) {
+            return true;
+        }
+
+        // Infer pack statement if possible
+        if (types.isSubtype(varFrame, valFrame) && !atypeFactory.isUnknownInitialization(valAnno)) {
+            checkFieldsInitializedUpToFrame(tree, atypeFactory.getTypeFrameFromAnnotation(valAnno));
+            return true;
+        }
+
+        return false;
     }
 
     @Override
@@ -155,40 +233,66 @@ public class PackingVisitor
     }
 
     /**
-     * Checks that all fields up to a given frame are initialized at a given pack statement.
+     * Checks that all fields up to a given frame are initialized at a given statement.
      *
-     * @param tree a pack statement
+     * @param tree a statement
      * @param frame the type frame up to which the fields should be initialized
      */
-    protected void checkFieldsInitializedUpToFrame(
+    protected final void checkFieldsInitializedUpToFrame(
             Tree tree,
             TypeMirror frame) {
         for (BaseTypeChecker targetChecker : getChecker().getTargetCheckers()) {
             GenericAnnotatedTypeFactory<?, ?, ?, ?> targetFactory = targetChecker.getTypeFactory();
-
-            List<VariableElement> uninitializedFields =
-                    atypeFactory.getUninitializedFields(
-                            atypeFactory.getStoreBefore(tree),
-                            targetFactory.getStoreBefore(tree),
-                            getCurrentPath(),
-                            false,
-                            List.of());
-
-            // Remove fields below frame
-            uninitializedFields.retainAll(ElementUtils.getAllFieldsIn(TypesUtils.getTypeElement(frame), elements));
-
-            // Remove fields with a relevant @SuppressWarnings annotation
-            uninitializedFields.removeIf(
-                    f -> checker.shouldSuppressWarnings(f, "initialization.field.uninitialized"));
-
-            if (!uninitializedFields.isEmpty()) {
-                StringJoiner fieldsString = new StringJoiner(", ");
-                for (VariableElement f : uninitializedFields) {
-                    fieldsString.add(f.getSimpleName());
-                }
-                checker.reportError(tree, "initialization.fields.uninitialized", fieldsString);
-            }
+            this.checkFieldsInitializedUpToFrame(tree, targetChecker, atypeFactory.getStoreBefore(tree), targetFactory.getStoreBefore(tree), frame);
         }
+    }
+
+    /**
+     * Checks that all fields up to a given frame are initialized at the end of a given method.
+     *
+     * @param methodTree a method
+     * @param frame the type frame up to which the fields should be initialized
+     */
+    protected final void checkFieldsInitializedUpToFrame(
+            MethodTree methodTree,
+            TypeMirror frame) {
+        for (BaseTypeChecker targetChecker : getChecker().getTargetCheckers()) {
+            GenericAnnotatedTypeFactory<?, ?, ?, ?> targetFactory = targetChecker.getTypeFactory();
+            this.checkFieldsInitializedUpToFrame(methodTree, targetChecker, atypeFactory.getRegularExitStore(methodTree), targetFactory.getRegularExitStore(methodTree), frame);
+        }
+    }
+
+    private void checkFieldsInitializedUpToFrame(
+        Tree tree,
+        BaseTypeChecker targetChecker,
+        PackingStore packingStore,
+        CFAbstractStore<?, ?> targetStore,
+        TypeMirror frame) {
+        List<VariableElement> uninitializedFields =
+                atypeFactory.getUninitializedFields(
+                        packingStore,
+                        targetStore,
+                        getCurrentPath(),
+                        false,
+                        List.of());
+        // Remove fields below frame
+        uninitializedFields.retainAll(ElementUtils.getAllFieldsIn(TypesUtils.getTypeElement(frame), elements));
+
+        // Remove fields with a relevant @SuppressWarnings annotation
+        uninitializedFields.removeIf(
+                f -> checker.shouldSuppressWarnings(f, "initialization.field.uninitialized"));
+
+        if (!uninitializedFields.isEmpty()) {
+            reportUninitializedFieldsError(tree, targetChecker, uninitializedFields);
+        }
+    }
+
+    protected void reportUninitializedFieldsError(Tree tree, BaseTypeChecker targetChecker, List<VariableElement> uninitializedFields) {
+        StringJoiner fieldsString = new StringJoiner(", ");
+        for (VariableElement f : uninitializedFields) {
+            fieldsString.add(f.getSimpleName());
+        }
+        checker.reportError(tree, "initialization.fields.uninitialized", fieldsString);
     }
 
     @Override
@@ -206,6 +310,10 @@ public class PackingVisitor
                 inferredAnno = qualHierarchy.findAnnotationInSameHierarchy(annos, annotation);
             }
             if (!checkContract(expression, annotation, inferredAnno, exitStore)) {
+                if (expression.toString().equals("this") && canInferPackingStatement(methodTree, annotation, inferredAnno)) {
+                    return;
+                }
+
                 checker.reportError(
                         methodTree,
                         "packing.postcondition.not.satisfied",
@@ -233,19 +341,19 @@ public class PackingVisitor
         // instead, we compare the this value in the constructor's exit store to the declared
         // constructor type.
         // Implicit default constructors are instead treated by ::checkConstructorResult
-        if (TreeUtils.isConstructor(tree) && ! TreeUtils.isSynthetic(tree)) {
+        if (TreeUtils.isConstructor(tree) && !TreeUtils.isSynthetic(tree)) {
             CFValue thisValue = atypeFactory.getRegularExitStore(tree).getValue((ThisNode) null);
             AnnotationMirror declared = getDeclaredConstructorResult(tree);
             AnnotationMirror top = qualHierarchy.getTopAnnotations().first();
 
             if (thisValue == null) {
-                if (!AnnotationUtils.areSame(top, declared)) {
+                if (!AnnotationUtils.areSame(top, declared) && !canInferPackingStatement(tree, declared, top)) {
                     checker.reportError(tree, "initialization.constructor.return.type.incompatible", tree);
                 }
             } else {
                 AnnotationMirror actual = qualHierarchy.findAnnotationInHierarchy(
                         thisValue.getAnnotations(), atypeFactory.getUnknownInitialization());
-                if (!qualHierarchy.isSubtypeQualifiersOnly(actual, declared)) {
+                if (!qualHierarchy.isSubtypeQualifiersOnly(actual, declared) && !canInferPackingStatement(tree, declared, actual)) {
                     checker.reportError(tree, "initialization.constructor.return.type.incompatible", tree);
                 }
             }
@@ -314,7 +422,11 @@ public class PackingVisitor
 
             AnnotatedTypeMirror declType = atypeFactory.getAnnotatedTypeLhs(param);
 
-            if (!typeHierarchy.isSubtype(currentType, declType)) {
+            if (!typeHierarchy.isSubtype(currentType, declType) &&
+                    !canInferPackingStatement(
+                            methodTree,
+                            declType.getAnnotationInHierarchy(atypeFactory.getInitialized()),
+                            currentType.getAnnotationInHierarchy(atypeFactory.getInitialized()))) {
                 checker.reportError(
                         methodTree,
                         "packing.postcondition.not.satisfied",
@@ -336,20 +448,49 @@ public class PackingVisitor
         if (TreeUtils.isFieldAccess(varTree)) {
             // cast is safe: a field access can only be an IdentifierTree or MemberSelectTree
             ExpressionTree lhs = (ExpressionTree) varTree;
-            ExpressionTree y = valueExp;
-            VariableElement el = TreeUtils.variableElementFromUse(lhs);
             AnnotatedTypeMirror xType = atypeFactory.getReceiverType(lhs);
-            AnnotatedTypeMirror yType = atypeFactory.getAnnotatedType(y);
-            // the special FBC rules do not apply if there is an explicit
-            // UnknownInitialization annotation
-            AnnotationMirrorSet fieldAnnotations =
-                    atypeFactory.getAnnotatedType(el).getAnnotations();
             if (atypeFactory.isInitializedForFrame(xType, TreeInfo.symbol((JCTree) varTree).owner.type)) {
                 checker.reportError(varTree, "initialization.write.committed.field", varTree);
                 return false;
             }
         }
         return super.commonAssignmentCheck(varTree, valueExp, errorKey, extraArgs);
+    }
+
+    protected boolean commonAssignmentCheck(
+            AnnotatedTypeMirror varType,
+            AnnotatedTypeMirror valueType,
+            Tree valueExpTree,
+            @CompilerMessageKey String errorKey,
+            Object... extraArgs) {
+        commonAssignmentCheckStartDiagnostic(varType, valueType, valueExpTree);
+
+        AnnotatedTypeMirror widenedValueType = atypeFactory.getWidenedType(valueType, varType);
+        boolean result = typeHierarchy.isSubtype(widenedValueType, varType);
+
+        if (result) {
+            for (Class<? extends Annotation> mono :
+                    atypeFactory.getSupportedMonotonicTypeQualifiers()) {
+                if (valueType.hasAnnotation(mono) && varType.hasAnnotation(mono)) {
+                    checker.reportError(
+                            valueExpTree,
+                            "monotonic.type.incompatible",
+                            mono.getSimpleName(),
+                            mono.getSimpleName(),
+                            valueType.toString());
+                    result = false;
+                }
+            }
+        } else {
+            // `result` is false.
+            // Use an error key only if it's overridden by a checker.
+            reportCommonAssignmentError(
+                    varType, widenedValueType, valueExpTree, errorKey, extraArgs);
+        }
+
+        commonAssignmentCheckEndDiagnostic(result, null, varType, valueType, valueExpTree);
+
+        return result;
     }
 
     @Override
@@ -411,10 +552,6 @@ public class PackingVisitor
     @Override
     protected void checkFieldsInitialized(
             Tree tree, boolean staticFields, PackingStore initExitStore, List<? extends AnnotationMirror> receiverAnnotations) {
-        // TODO: For now, the packing checker only changes a reference's type for explicit (un-)pack statements,
-        // the only exception being default constructors.
-        // When implementing other kinds of implicit (un-)packing, change this override.
-
         if (staticFields || TreeUtils.isSynthetic((MethodTree) tree)) {
             // If the store is null, then the constructor cannot terminate successfully
             if (initExitStore == null) {

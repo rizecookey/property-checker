@@ -10,7 +10,6 @@ final class MethodCall {
     @ReadOnly @UnknownInitialization(Object.class) @NullTop Foo field;
 
     @NullTop MethodCall() {
-        Packing.pack(this, MethodCall.class);
     }
 
     void mthRO(@UnknownInitialization @ReadOnly @NullTop MethodCall this) {}
@@ -43,23 +42,19 @@ final class MethodCall {
     }
 
     void invalidate1(@Unique @NullTop MethodCall this) {
-        Packing.unpack(this, MethodCall.class);
         @Unique Foo a;
         this.field = new Foo(); // field is refined to @Unique
         this.field.mthUnique();
         this.mthUnique();
         // :: error: exclusivity.type.invalidated :: error: packing.method.invocation.invalid
         this.field.mthUnique(); // invalid, refinement of field has been forgotten
-        Packing.pack(this, MethodCall.class);
     }
 
     void dontInvalidate(@Unique @NullTop MethodCall this) {
-        Packing.unpack(this, MethodCall.class);
         @Unique Foo recv = new Foo();
         @Unique Foo a;
         this.field = new Foo(); // field is refined to @Unique
         this.mthRO();
         a = this.field; // still valid, since we control all access to this
-        Packing.pack(this, MethodCall.class);
     }
 }

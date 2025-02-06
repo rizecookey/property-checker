@@ -15,7 +15,6 @@ class LeakThis {
         this.readOnly = this;
         this.mthReadOnly();
         // :: error: initialization.fields.uninitialized
-        Packing.pack(this, LeakThis.class);
     }
 
     @UnknownInitialization(LeakThis.class) @NullTop LeakThis(boolean dummy) {
@@ -23,14 +22,12 @@ class LeakThis {
         // :: error: exclusivity.type.invalidated
         this.mthUnique();
         // :: error: initialization.fields.uninitialized
-        Packing.pack(this, LeakThis.class);
     }
 
     @UnknownInitialization(LeakThis.class) @MaybeAliased @NullTop LeakThis(int dummy) {
         this.aliased = this;
         this.mthAliased();
         // :: error: initialization.fields.uninitialized :: error: exclusivity.packing.aliased
-        Packing.pack(this, LeakThis.class);
     }
 
     void mthReadOnly(@UnknownInitialization(Object.class) @ReadOnly @NullTop LeakThis this) {

@@ -11,7 +11,6 @@ public class ConstructorSuperclass {
 
     ConstructorSuperclass() {
         this.superField = new Obj();
-        Packing.pack(this, ConstructorSuperclass.class);
     }
 
     @UnderInitialization(Object.class) ConstructorSuperclass(int dummy) { }

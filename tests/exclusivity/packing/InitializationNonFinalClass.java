@@ -19,7 +19,6 @@ public class InitializationNonFinalClass {
     @Initialized InitializationNonFinalClass(int dummy) {
         this.aliased = new Obj();
         this.unique = new Obj();
-        Packing.pack(this, InitializationNonFinalClass.class);
 
         // :: error: nullness.method.invocation.invalid :: error: packing.method.invocation.invalid
         this.foo();

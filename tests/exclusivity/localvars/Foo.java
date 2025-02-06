@@ -10,7 +10,6 @@ public class Foo {
     int i;
 
     @NonNull Foo() {
-        Packing.pack(this, Foo.class);
     }
 
     public void mth(@ReadOnly @UnknownInitialization(Object.class) @NullTop Foo this) {}

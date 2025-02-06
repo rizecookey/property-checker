@@ -9,6 +9,5 @@ import org.checkerframework.dataflow.qual.*;
 public class IntSuperConstructorTestBaseClass {
 
     public IntSuperConstructorTestBaseClass(@Interval(min="0", max="0") int arg) {
-        Packing.pack(this, IntSuperConstructorTestBaseClass.class);
     }
 }

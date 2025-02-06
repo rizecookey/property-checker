@@ -24,7 +24,6 @@ public final class Constructor {
     public Constructor(int dummy) {
         aliased = new Obj();
         unique = new Obj();
-        Packing.pack(this, Constructor.class);
     }
 
     public void foo(Constructor this) {}

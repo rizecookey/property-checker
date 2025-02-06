@@ -100,7 +100,7 @@ public abstract class PackingClientTransfer<
                             adaptedType = declaredType;
                         }
 
-                        // Use @ReadOnly if receiver is not sufficiently packed
+                        // Use top annotation if receiver is not sufficiently packed
                         if (!packingFactory.isInitializedForFrame(receiverPackingType, fieldOwnerType)
                                 && (!adaptedType.getKind().isPrimitive() || uncommitPrimitiveFields())) {
                             adaptedType.clearAnnotations();

@@ -10,6 +10,5 @@ class Foo {
     int i;
 
     @NonNull Foo() {
-        Packing.pack(this, Foo.class);
     }
 }

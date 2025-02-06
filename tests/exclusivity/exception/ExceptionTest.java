@@ -11,7 +11,6 @@ public class ExceptionTest {
 
     public ExceptionTest() {
         this.field = new Object();
-        Packing.pack(this, ExceptionTest.class);
     }
 
     public void foo(ExceptionTest this) {}

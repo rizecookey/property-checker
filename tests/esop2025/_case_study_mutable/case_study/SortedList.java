@@ -34,7 +34,6 @@ public final class SortedList {
     public @PossiblyEmpty @Inv SortedList() {
         this.first = null;
         // :: error: initialization.fields.uninitialized
-        Packing.pack(this, SortedList.class);
         Ghost.set("footprint", "\\set_union(\\singleton(this.first), \\singleton(this.footprint))");
     }
 
@@ -46,14 +45,12 @@ public final class SortedList {
     public void insert(
             @Unique @PossiblyEmpty @Inv SortedList this,
             Order newHead) {
-        Packing.unpack(this, SortedList.class);
         if (this.first == null) {
             this.first = new Node(newHead);
         } else {
             // :: error: nullness.method.invocation.invalid
             this.first.insert(newHead);
         }
-        Packing.pack(this, SortedList.class);
         Ghost.set("footprint", "\\set_union(\\singleton(this.first), \\singleton(this.footprint), this.first.footprint)");
     }
 
@@ -66,9 +63,7 @@ public final class SortedList {
     public Order remove(@Unique @NonEmpty @Inv SortedList this) {
         // :: error: nullness.method.invocation.invalid
         Order result = this.first.getHead();
-        Packing.unpack(this, SortedList.class);
         this.first = this.first.stealTail();
-        Packing.pack(this, SortedList.class);
         Ghost.set("footprint", "\\set_union(\\singleton(this.first), \\singleton(this.footprint), this.first == null ? \\empty : this.first.footprint)");
         return result;
     }

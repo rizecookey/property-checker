@@ -9,7 +9,6 @@ public class AnnotatedConstructorTest {
     
     // :: error: simple.inconsistent.constructor.type
     public @B AnnotatedConstructorTest() {
-        Packing.pack(this, AnnotatedConstructorTest.class);
     }
 
     public void foo(AnnotatedConstructorTest this, @B AnnotatedConstructorTest arg) {

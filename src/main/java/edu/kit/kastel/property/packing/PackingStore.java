@@ -9,6 +9,8 @@ import javax.lang.model.element.Element;
 
 public class PackingStore extends InitializationAbstractStore<CFValue, PackingStore> {
 
+    private boolean helperFunctionCalled = false;
+
     public PackingStore(PackingAnalysis analysis, boolean sequentialSemantics) {
         super(analysis, sequentialSemantics);
     }
@@ -64,5 +66,18 @@ public class PackingStore extends InitializationAbstractStore<CFValue, PackingSt
 
     public boolean isFieldAssigned(Element f) {
         return super.isFieldInitialized(f);
+    }
+
+    /**
+     * Whether a helper function, i.e., a function that may leave the receiver not @Initialized was called on {@code this}.
+     *
+     * @return whether a helper function was called on {@code this}
+     */
+    public boolean isHelperFunctionCalled() {
+        return helperFunctionCalled;
+    }
+
+    public void setHelperFunctionCalled(boolean helperFunctionCalled) {
+        this.helperFunctionCalled = helperFunctionCalled;
     }
 }

@@ -36,6 +36,5 @@ public class IntWFTest {
 
     public IntWFTest() {
         // :: error: initialization.fields.uninitialized
-        Packing.pack(this, IntWFTest.class);
     }
 }

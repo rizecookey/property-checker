@@ -16,26 +16,17 @@
  */
 package edu.kit.kastel.property.checker;
 
-import com.sun.source.util.TreePath;
-import com.sun.tools.javac.tree.JCTree;
 import edu.kit.kastel.property.config.Config;
 import edu.kit.kastel.property.packing.PackingChecker;
 import edu.kit.kastel.property.packing.PackingFieldAccessSubchecker;
-import edu.kit.kastel.property.printer.JavaJMLPrinter;
-import edu.kit.kastel.property.printer.PrettyPrinter;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
 import edu.kit.kastel.property.subchecker.lattice.LatticeSubchecker;
 import edu.kit.kastel.property.subchecker.lattice.LatticeVisitor;
-import edu.kit.kastel.property.util.FileUtils;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.source.SupportedOptions;
 
-import javax.lang.model.element.TypeElement;
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.*;
 

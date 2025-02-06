@@ -8,6 +8,5 @@ import org.checkerframework.dataflow.qual.*;
 public class Obj {
 
     public @NonNull Obj() {
-        Packing.pack(this, Obj.class);
     }
 }

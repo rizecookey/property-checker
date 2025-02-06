@@ -22,7 +22,6 @@ public final class Order {
         this.customer = customer;
         this.product = product;
         // :: error: initialization.fields.uninitialized
-        Packing.pack(this, Order.class);
     }
 
     @JMLClause("ensures \\result == this.product.price;")
