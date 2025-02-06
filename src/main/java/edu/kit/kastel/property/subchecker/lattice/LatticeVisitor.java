@@ -40,6 +40,7 @@ import org.apache.commons.lang3.function.FailableFunction;
 import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.TypeValidator;
+import org.checkerframework.dataflow.cfg.UnderlyingAST;
 import org.checkerframework.dataflow.expression.*;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
@@ -121,13 +122,30 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
     @Override
     protected void checkPostcondition(MethodTree methodTree, AnnotationMirror annotation, JavaExpression expression) {
-        // TODO: add SMT analysis after method body visiting to add mending conditions for the output types computed here
-        //  also add post condition to context in following expressions (careful: conditions may be invalidated)
         final int paramIdx = TypeUtils.getParameterIndex(methodTree, expression);
         result.methodOutputTypes.get(methodTree)[paramIdx] = annotation;
+
+        // postcondition for the receiver: use the method tree as the key (there is no tree for implicit receivers)
+        // parameter postcondition: use the variable tree of the parameter
+        Tree treeKey = paramIdx == 0 ? methodTree : methodTree.getParameters().get(paramIdx - 1);
+        var refinement = atypeFactory.getLattice().getPropertyAnnotation(annotation).combinedRefinement(expression.toString());
+        var goal = convertGoal(
+                parseOrUnknown(refinement, ref -> StringToJavaExpression.atPath(ref, getCurrentPath(), checker)),
+                expression.toString()
+        );
+        var store = atypeFactory.getRegularExitStore(methodTree);
+        if (goal != null && store != null) {
+            computeSmtContext(store, treeKey, goal.references());
+        }
+
         call(
                 () -> super.checkPostcondition(methodTree, annotation, expression),
-                () -> result.addIllTypedMethodOutputParam(methodTree, paramIdx));
+                () -> {
+                    if (goal != null) {
+                        result.mendingConditions.put(treeKey, goal.smt());
+                    }
+                    result.addIllTypedMethodOutputParam(methodTree, paramIdx);
+                });
     }
 
     @Override
@@ -172,7 +190,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                     .stream()
                     .map(field -> new FieldAccess(receiver, field))
                     .toList();
-            computeSmtContext(tree, fields);
+            computeSmtContext(atypeFactory.getStoreBefore(tree), tree, fields);
             // Don't type-check arguments of packing calls.
             return p;
         }
@@ -378,7 +396,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
         commonAssignmentCheckEndDiagnostic(success, null, varType, valueType, valueTree);
 
-        amendSmtResult(varType, valueTree, success);
+        amendSmtResultForValue(varType, valueTree, success);
 
         if (!success) {
             return super.commonAssignmentCheck(varType, valueType, valueTree, errorKey, extraArgs);
@@ -398,7 +416,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                 this.commonAssignmentCheckStartDiagnostic(methodReceiver, treeReceiver, node);
                 boolean success = this.typeHierarchy.isSubtype(treeReceiver, methodReceiver);
                 paramIndex = -1;
-                amendSmtResult(methodReceiver, node.getMethodSelect(), success);
+                amendSmtResultForValue(methodReceiver, node.getMethodSelect(), success);
                 this.commonAssignmentCheckEndDiagnostic(success, null, methodReceiver, treeReceiver, node);
                 if (!success) {
                     this.reportMethodInvocabilityError(node, treeReceiver, methodReceiver);
@@ -706,6 +724,12 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                 }
                 case NewClassTree n -> CollectionUtils.removeFromCollectionMap(illTypedConstructorParams, n,
                         TypeUtils.getArgumentIndex(n, tree));
+                // postcondition on parameter
+                case MethodTree m -> CollectionUtils.removeFromCollectionMap(illTypedMethodOutputParams,
+                        m, TypeUtils.getParameterIndex(m, (VariableTree) tree));
+                // postcondition on `this`
+                case ClassTree c -> CollectionUtils.removeFromCollectionMap(illTypedMethodOutputParams,
+                        (MethodTree) tree, 0);
                 default -> throw new UnsupportedOperationException("Type error for tree " + tree + " cannot be removed");
             }
         }
@@ -758,11 +782,11 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
     /* ==== SMT SOLVING CODE ==== */
 
-    private void amendSmtResult(AnnotatedTypeMirror varType, Tree valueTree, boolean typeCheckSuccess) {
-        JavaToSmtExpression.Result smtGoal = computeSmtGoal(varType, valueTree);
+    private void amendSmtResultForValue(AnnotatedTypeMirror varType, Tree valueTree, boolean typeCheckSuccess) {
+        JavaToSmtExpression.Result smtGoal = computeSmtGoalForValue(varType, valueTree);
 
         if (smtGoal != null) {
-            computeSmtContext(valueTree, smtGoal.references());
+            computeSmtContext(atypeFactory.getStoreBefore(valueTree), valueTree, smtGoal.references());
             if (typeCheckSuccess) {
                 // if we already know that the goal is true (expr is well-typed), we add it to the context
                 result.addContext(valueTree, smtGoal.smt());
@@ -773,7 +797,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         }
     }
 
-    private JavaToSmtExpression.Result computeSmtGoal(AnnotatedTypeMirror targetType, Tree valueExpTree) {
+    private JavaToSmtExpression.Result computeSmtGoalForValue(AnnotatedTypeMirror targetType, Tree valueExpTree) {
         JavaExpression toProve;
         Tree parentExpr = TreePath.getPath(getCurrentPath(), valueExpTree).getParentPath().getLeaf();
         if (parentExpr instanceof MethodInvocationTree || parentExpr instanceof NewClassTree) {
@@ -789,31 +813,34 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             toProve = parseOrUnknown(refinement, ref -> StringToJavaExpression.atPath(ref, getCurrentPath(), checker));
         }
 
-        if (toProve instanceof Unknown) {
+        return convertGoal(toProve, valueExpTree.toString());
+    }
+
+    private JavaToSmtExpression.Result convertGoal(JavaExpression goal, String subject) {
+        if (goal instanceof Unknown) {
             // checker framework couldn't parse the goal refinement
             System.out.printf(
                     "Skipping SMT analysis for expression %s because its refinement %s uses language features not supported by the Checker Framework%n",
-                    valueExpTree, toProve);
+                    subject, goal);
             return null;
         }
 
         try {
-            return JavaToSmtExpression.convert(toProve);
+            return JavaToSmtExpression.convert(goal);
         } catch (UnsupportedOperationException e) {
             System.out.printf(
                     "Skipping SMT analysis for expression %s because its refinement %s uses features currently not supported in SMT: %s%n",
-                    valueExpTree, toProve, e.getMessage());
+                    subject, goal, e.getMessage());
             return null;
         }
     }
 
-    // TODO: parameterise with LatticeStore (getStoreAfter, getStoreBefore)
-    private void computeSmtContext(Tree tree, Collection<? extends JavaExpression> initialRefs) {
+    private void computeSmtContext(LatticeStore store, Tree tree, Collection<? extends JavaExpression> initialRefs) {
         Set<JavaExpression> visited = new HashSet<>();
         Queue<JavaExpression> refs = new ArrayDeque<>(initialRefs);
 
         // collect all locally available refinements (params + vars)
-        Collection<JavaExpression> localRefinements = atypeFactory.getStoreBefore(tree).getLocalRefinements();
+        Collection<JavaExpression> localRefinements = store.getLocalRefinements();
 
         while (!refs.isEmpty()) {
             // reference is always viewpoint-adapted from original context
@@ -835,7 +862,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             // Find and add constraints for ref to appropriate context,
             // get back refs that appeared during the collection
             Set<JavaExpression> newRefs = switch (ref) {
-                case FieldAccess f -> constrainField(tree, visited, f);
+                case FieldAccess f -> constrainField(store, tree, visited, f);
                 case MethodCall m -> constrainMethodCall(tree, m);
                 // only other option are LocalVariable refs, which have already been constrained
                 // by the local refinement search at this point
@@ -848,7 +875,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
     }
 
     // this is basically a shortcut for "add refinement + external references"
-    private Set<JavaExpression> constrainField(Tree tree, Set<JavaExpression> visited, FieldAccess fieldAccess) {
+    private Set<JavaExpression> constrainField(LatticeStore store, Tree tree, Set<JavaExpression> visited, FieldAccess fieldAccess) {
         Set<JavaExpression> references = new HashSet<>();
         // go through all parent receivers of field access to find references
         // field could be further constrained by other local refinements, but these aren't handled here
@@ -863,10 +890,14 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                     continue;
                 }
 
-                // get the type for the field at the current tree. This is either the declared type or the top type,
-                // depending on whether it is committed or not
-                AnnotatedTypeMirror type = atypeFactory.getAnnotatedTypeBefore(fieldRefFromRoot, (ExpressionTree) tree);
-                String refinement = getProperty(type).combinedRefinement(localFieldRef.toString());
+                // get the type for the field in the given store.
+                // This is null if the field is not being tracked or no information is known,
+                // in which case we'll use the top type.
+                var storedType = store.getValue(fieldRefFromRoot);
+                PropertyAnnotation property = storedType == null
+                        ? atypeFactory.getLattice().getPropertyAnnotation(atypeFactory.getTop())
+                        : storedType.toPropertyAnnotation();
+                String refinement = property.combinedRefinement(localFieldRef.toString());
                 JavaExpression expr = viewpointAdapt(
                         parseOrUnknown(refinement,
                                 r -> StringToJavaExpression.atFieldDecl(refinement, field, checker)),
@@ -957,10 +988,6 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         }
 
         boolean constructorCall = method.getElement().getKind() == ElementKind.CONSTRUCTOR;
-
-        // parameter elements -> checker framework representation
-        Map<VariableElement, FormalParameter> params = JavaExpression.getFormalParameters(method.getElement()).stream()
-                .collect(Collectors.toMap(FormalParameter::getElement, Function.identity()));
 
         JavaExpression receiver = method.getReceiver();
 

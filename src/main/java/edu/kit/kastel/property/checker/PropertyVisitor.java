@@ -174,8 +174,8 @@ public final class PropertyVisitor extends PackingVisitor {
     private Deque<BooleanFormula> contextConjunction(SmtCompiler compiler, Tree tree, Set<SmtExpression> context) {
         var lineMap = root.getLineMap();
         var pos = trees.getSourcePositions().getStartPosition(root, tree);
-        System.out.printf("=== Mending type errors for expression %s (%d:%d) using combined context:%n",
-                tree, lineMap.getLineNumber(pos), lineMap.getColumnNumber(pos));
+        System.out.printf("=== Mending type errors for %s (%d:%d) using combined context:%n",
+                describeTree(tree), lineMap.getLineNumber(pos), lineMap.getColumnNumber(pos));
         Deque<BooleanFormula> conjunction = new ArrayDeque<>();
 
         // add context formulae
@@ -191,6 +191,16 @@ public final class PropertyVisitor extends PackingVisitor {
         }
         System.out.println("== Proof attempts");
         return conjunction;
+    }
+
+    private String describeTree(Tree tree) {
+        return switch (tree) {
+            case MethodTree m -> "`this` postcondition";
+            case VariableTree v -> "`" + v.getName() + "` postcondition";
+            case MemberSelectTree m -> "receiver in method call " + m;
+            case ExpressionTree e -> "expression " + e;
+            default -> "???";
+        };
     }
 
     private boolean universallyValid(SolverContext solverContext, SmtCompiler compiler, Deque<BooleanFormula> contextConjunction, SmtExpression condition) {
