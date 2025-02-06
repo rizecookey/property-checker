@@ -37,12 +37,15 @@ import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
 import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.framework.util.StringToJavaExpression;
 import org.checkerframework.javacutil.ElementUtils;
+import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TypesUtils;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
+import javax.lang.model.util.Types;
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -159,11 +162,18 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 					packingStoreAfter);
 		}
 
+		TypeMirror stringType = ElementUtils.getTypeElement(atypeFactory.getProcessingEnv(), String.class).asType();
+
 		for (int i = 0; i < node.getArguments().size(); ++i) {
 			Node arg = node.getArgument(i);
 			AnnotatedTypeMirror declaredExclType = exclType.getParameterTypes().get(i);
 			AnnotatedTypeMirror inputPackingType = packingType.getParameterTypes().get(i);
-			if (declaredExclType.getUnderlyingType().getKind().isPrimitive()) {
+			TypeMirror underlyingType = declaredExclType.getUnderlyingType();
+			// skip primitive and string types - they can't be modified
+			// the reason we handle strings explicitly here is that they can also be literals,
+			// and this store can't deal with literal values.
+			if (underlyingType.getKind().isPrimitive()
+					|| analysis.getTypes().isSameType(underlyingType, stringType)) {
 				continue;
 			}
 			updateForPassedReference(atypeFactory, arg,

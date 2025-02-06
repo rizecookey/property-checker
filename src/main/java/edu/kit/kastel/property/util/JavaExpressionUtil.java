@@ -1,8 +1,12 @@
 package edu.kit.kastel.property.util;
 
+import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.NewClassTree;
 import com.sun.source.tree.Tree;
+import com.sun.source.util.TreePath;
+import com.sun.tools.javac.code.Type;
+import com.sun.tools.javac.tree.JCTree;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityStore;
 import org.checkerframework.dataflow.expression.*;
@@ -10,9 +14,7 @@ import org.checkerframework.framework.source.SourceChecker;
 import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.framework.util.JavaExpressionParseUtil;
 import org.checkerframework.framework.util.StringToJavaExpression;
-import org.checkerframework.javacutil.AnnotationUtils;
-import org.checkerframework.javacutil.ElementUtils;
-import org.checkerframework.javacutil.TreeUtils;
+import org.checkerframework.javacutil.*;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.ExecutableElement;
@@ -65,9 +67,15 @@ public class JavaExpressionUtil {
             throws JavaExpressionParseUtil.JavaExpressionParseException {
         Map<VariableElement, FormalParameter> params = JavaExpression.getFormalParameters(invocation.getElement())
                 .stream().collect(Collectors.toMap(FormalParameter::getElement, Function.identity()));
-        var methodPath = checker.getTreeUtils().getPath(invocation.getElement());
+        TreePath methodPath = checker.getTreeUtils().getPath(invocation.getElement());
         JavaExpression receiver = invocation.getReceiver();
+
         // 1. parse expression in method body scope
+
+        ClassTree classTree = TreePathUtil.enclosingClass(methodPath);
+        // FIXME: bug in checker framework or compiler (?!): `type` field of classTree is sometimes null,
+        //  which breaks checker framework. This is a very bad, not good hack to make sure it is set.
+        ((JCTree) classTree).setType((Type) TreeUtils.elementFromDeclaration(classTree).asType());
         JavaExpression expression = StringToJavaExpression.atPath(stringExpression, methodPath, checker);
 
         // 2. convert nominal parameter references to FormalParameters
