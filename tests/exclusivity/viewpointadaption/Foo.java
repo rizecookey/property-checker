@@ -6,38 +6,39 @@ import org.checkerframework.checker.initialization.qual.*;
 import org.checkerframework.dataflow.qual.*;
 
 public class Foo {
-    @ReadOnly @NullTop Bar readOnly;
+    @ReadOnly @UnknownInitialization(Object.class) @NullTop Bar readOnly;
     // :: error: initialization.field.uninitialized
     @MaybeAliased Bar aliased;
     // :: error: initialization.field.uninitialized
     @Unique Bar unique;
 
-    public void foo(@ReadOnly @NullTop Foo this) {
-        // :: error: exclusivity.type.invalidated
+    public void foo(@ReadOnly @UnknownInitialization(Object.class) @NullTop Foo this) {
+        // :: error: exclusivity.type.invalidated :: error: packing.method.invocation.invalid
         this.unique.change();
     }
 
-    public @ReadOnly @NullTop Bar getReadOnly(@ReadOnly @NullTop Foo this) {
+    public @ReadOnly @UnknownInitialization(Object.class) @NullTop Bar getReadOnly(@ReadOnly @UnknownInitialization(Object.class) @NullTop Foo this) {
         return readOnly;
     }
 
-    public @ReadOnly @NullTop Bar getReadOnlyFake(@ReadOnly @NullTop Foo this) {
-        // :: error: exclusivity.type.invalidated
+    public @ReadOnly @UnknownInitialization(Object.class) @NullTop Bar getReadOnlyFake(@ReadOnly @UnknownInitialization(Object.class) @NullTop Foo this) {
+        // :: error: exclusivity.type.invalidated :: error: packing.method.invocation.invalid
         this.unique.change();
-        // :: error: exclusivity.type.invalidated
+        // :: error: exclusivity.type.invalidated :: error: packing.method.invocation.invalid
         this.aliased.change();
-        // :: error: exclusivity.type.invalidated
+        // :: error: exclusivity.type.invalidated :: error: packing.method.invocation.invalid
         this.readOnly.change();
         // :: error: exclusivity.type.invalidated
         return readOnly;
     }
 
-    public @Unique @NullTop Bar getUniqueFromReadOnly(@ReadOnly @NullTop Foo this) {
-        // :: error: exclusivity.type.invalidated
+    public @Unique @NullTop Bar getUniqueFromReadOnly(@ReadOnly @UnknownInitialization(Object.class) @NullTop Foo this) {
+        // :: error: exclusivity.type.invalidated :: error: packing.return.type.incompatible
         return unique;
     }
 
-    public @MaybeAliased Bar getAliasedFromReadOnly(@ReadOnly @NullTop Foo this) {
+    public @MaybeAliased Bar getAliasedFromReadOnly(@ReadOnly @UnknownInitialization(Object.class) @NullTop Foo this) {
+        // :: error: exclusivity.type.invalidated :: error: nullness.return.type.incompatible :: error: packing.return.type.incompatible
         return aliased;
     }
 

@@ -7,7 +7,7 @@ import org.checkerframework.dataflow.qual.*;
 
 public final class Constructor {
 
-    @ReadOnly @NullTop Object readOnly;
+    @ReadOnly @UnknownInitialization(Object.class) @NullTop Object readOnly;
     @MaybeAliased Object aliased;
     @Unique Object unique;
 

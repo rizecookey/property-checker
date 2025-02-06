@@ -6,7 +6,7 @@ import org.checkerframework.checker.initialization.qual.*;
 import org.checkerframework.dataflow.qual.*;
 
 public class InitializationNonFinalClass {
-    @ReadOnly @NullTop Object readOnly;
+    @ReadOnly @UnknownInitialization(Object.class) @NullTop Object readOnly;
     @MaybeAliased Object aliased;
     @Unique Object unique;
 

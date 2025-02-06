@@ -13,7 +13,7 @@ class Foo {
         Packing.pack(this, Foo.class);
     }
 
-    public void mth(@ReadOnly @NullTop Foo this) {}
+    public void mth(@ReadOnly @UnknownInitialization(Object.class) @NullTop Foo this) {}
 
     public void mthUnique(@Unique @NullTop Foo this) {}
 }

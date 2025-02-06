@@ -16,9 +16,9 @@ public class NullnessDefaultTest {
     Object defaultField;
     
     // :: error: initialization.field.uninitialized :: error: nullness.type.invalid.abstract.state
-    @ReadOnly @NonNull Object nonNullField0;
+    @ReadOnly @UnknownInitialization(Object.class) @NonNull Object nonNullField0;
     // :: error: initialization.field.uninitialized :: error: nullness.type.invalid.abstract.state
-    @ReadOnly Object defaultField0;
+    @ReadOnly @UnknownInitialization(Object.class) Object defaultField0;
 
     public void foo() {
         @NonNull Object nonNullLocal = nonNullField;
@@ -39,7 +39,7 @@ public class NullnessDefaultTest {
     public void validParam1(Object arg) {}
 
     // :: error: nullness.type.invalid.abstract.state
-    public void invalidParam0(@ReadOnly @NonNull Object arg) {}
+    public void invalidParam0(@ReadOnly @UnknownInitialization(Object.class) @NonNull Object arg) {}
     // :: error: nullness.type.invalid.abstract.state
-    public void invalidParam1(@ReadOnly Object arg) {}
+    public void invalidParam1(@ReadOnly @UnknownInitialization(Object.class) Object arg) {}
 }

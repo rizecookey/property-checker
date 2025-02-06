@@ -7,7 +7,7 @@ import org.checkerframework.dataflow.qual.*;
 
 final class MethodCall {
 
-    @ReadOnly @NullTop Foo field;
+    @ReadOnly @UnknownInitialization(Object.class) @NullTop Foo field;
 
     @NullTop MethodCall() {
         Packing.pack(this, MethodCall.class);
@@ -48,7 +48,7 @@ final class MethodCall {
         this.field = new Foo(); // field is refined to @Unique
         this.field.mthUnique();
         this.mthUnique();
-        // :: error: exclusivity.type.invalidated
+        // :: error: exclusivity.type.invalidated :: error: packing.method.invocation.invalid
         this.field.mthUnique(); // invalid, refinement of field has been forgotten
         Packing.pack(this, MethodCall.class);
     }

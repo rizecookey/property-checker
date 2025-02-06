@@ -5,6 +5,8 @@ import com.sun.tools.javac.code.TargetType;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.tree.TreeInfo;
+import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
+import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
 import edu.kit.kastel.property.util.Assert;
 import edu.kit.kastel.property.util.Packing;
 import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
@@ -390,6 +392,17 @@ public class PackingVisitor
             // so only validate if commonAssignmentCheck wasn't called
             validateTypeOf(tree);
         }
+
+        // @ReadOnly vars must not be @Initialized
+        ExclusivityAnnotatedTypeFactory exclFactory = getChecker().getTypeFactoryOfSubcheckerOrNull(ExclusivityChecker.class);
+        AnnotatedTypeMirror exclType = exclFactory.getAnnotatedTypeLhs(tree);
+        AnnotationMirror annotation = variableType.getAnnotationInHierarchy(atypeFactory.getInitialized());
+        AnnotationMirror exclAnnotation = exclType.getAnnotationInHierarchy(exclFactory.READ_ONLY);
+        if ((!atypeFactory.isUnknownInitialization(annotation) || !atypeFactory.getTypeFrameFromAnnotation(annotation).toString().equals("java.lang.Object"))
+                && (exclAnnotation == null || AnnotationUtils.areSame(exclAnnotation, exclFactory.READ_ONLY))) {
+            checker.reportError(tree, "type.invalid.readonly.init");
+        }
+
         validateVariablesTargetLocation(tree, variableType);
         warnRedundantAnnotations(tree, variableType);
         return super.visitVariable(tree, p);

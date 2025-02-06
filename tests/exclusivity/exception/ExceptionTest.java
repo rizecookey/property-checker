@@ -9,8 +9,7 @@ public class ExceptionTest {
 
     public @Unique Object field;
 
-    // Avoid inconsistent constructor type from LatticeSubchecker by declaring constructor as NullTop
-    public @NullTop ExceptionTest() {
+    public ExceptionTest() {
         this.field = new Object();
         Packing.pack(this, ExceptionTest.class);
     }
@@ -22,7 +21,7 @@ public class ExceptionTest {
         try {
             obj.foo();
         } catch (Exception e) {
-            // :: error: exclusivity.type.invalidated :: error: method.call.incompatible
+            // :: error: exclusivity.type.invalidated :: error: nullness.method.invocation.invalid
             obj.foo();
         }
     }

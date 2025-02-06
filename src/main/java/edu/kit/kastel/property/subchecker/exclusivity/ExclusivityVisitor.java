@@ -9,6 +9,7 @@ import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.TypeValidator;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
+import org.checkerframework.javacutil.AnnotationMirrorSet;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
 
@@ -23,7 +24,7 @@ public final class ExclusivityVisitor extends PackingClientVisitor<ExclusivityAn
 
     public ExclusivityVisitor(BaseTypeChecker checker) {
         super(checker);
-        packMethod = TreeUtils.getMethod(Packing.class, "pack", 2, atypeFactory.getProcessingEnv());
+       packMethod = TreeUtils.getMethod(Packing.class, "pack", 2, atypeFactory.getProcessingEnv());
         unpackMethod = TreeUtils.getMethod(Packing.class, "unpack", 2, atypeFactory.getProcessingEnv());
     }
 
@@ -165,6 +166,11 @@ public final class ExclusivityVisitor extends PackingClientVisitor<ExclusivityAn
     @Override
     protected String getContractPostconditionNotSatisfiedMessage() {
         return "exclusivity.postcondition.not.satisfied";
+    }
+
+    @Override
+    protected AnnotationMirrorSet getExceptionParameterLowerBoundAnnotations() {
+        return AnnotationMirrorSet.singleton(atypeFactory.MAYBE_ALIASED);
     }
 
     @Override

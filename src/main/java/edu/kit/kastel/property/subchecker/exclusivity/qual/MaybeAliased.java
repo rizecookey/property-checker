@@ -13,6 +13,8 @@ import java.lang.annotation.Target;
 @Target({ElementType.TYPE_USE})
 @SubtypeOf({ReadOnly.class})
 @DefaultQualifierInHierarchy
-@DefaultFor(types = {java.lang.String.class})
+@DefaultFor(
+        types = {java.lang.String.class},
+        value = {TypeUseLocation.EXCEPTION_PARAMETER})
 @HoldsForDefaultValue
 public @interface MaybeAliased {}
