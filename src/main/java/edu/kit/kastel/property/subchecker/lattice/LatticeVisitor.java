@@ -700,22 +700,12 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                     if (tree.equals(m.getMethodSelect())) {
                         illTypedMethodReceivers.remove(m);
                     } else {
-                        for (int i = 0; i < m.getArguments().size(); i++) {
-                            if (m.getArguments().get(i).equals(tree)) {
-                                CollectionUtils.removeFromCollectionMap(illTypedMethodParams, m, i);
-                                break;
-                            }
-                        }
+                        CollectionUtils.removeFromCollectionMap(illTypedMethodParams, m,
+                                TypeUtils.getArgumentIndex(m, tree));
                     }
                 }
-                case NewClassTree n -> {
-                    for (int i = 0; i < n.getArguments().size(); i++) {
-                        if (n.getArguments().get(i).equals(tree)) {
-                            CollectionUtils.removeFromCollectionMap(illTypedConstructorParams, n, i);
-                            break;
-                        }
-                    }
-                }
+                case NewClassTree n -> CollectionUtils.removeFromCollectionMap(illTypedConstructorParams, n,
+                        TypeUtils.getArgumentIndex(n, tree));
                 default -> throw new UnsupportedOperationException("Type error for tree " + tree + " cannot be removed");
             }
         }
@@ -817,6 +807,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         }
     }
 
+    // TODO: parameterise with LatticeStore (getStoreAfter, getStoreBefore)
     private void computeSmtContext(Tree tree, Collection<? extends JavaExpression> initialRefs) {
         Set<JavaExpression> visited = new HashSet<>();
         Queue<JavaExpression> refs = new ArrayDeque<>(initialRefs);

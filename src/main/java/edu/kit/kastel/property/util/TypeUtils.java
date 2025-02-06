@@ -16,11 +16,10 @@
  */
 package edu.kit.kastel.property.util;
 
-import com.sun.source.tree.ClassTree;
-import com.sun.source.tree.MethodTree;
-import com.sun.source.tree.Tree;
-import com.sun.source.tree.VariableTree;
+import com.sun.source.tree.*;
 import org.checkerframework.dataflow.expression.JavaExpression;
+import org.checkerframework.dataflow.expression.LocalVariable;
+import org.checkerframework.dataflow.expression.ThisReference;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
 import com.sun.tools.javac.code.Type;
@@ -29,32 +28,57 @@ import org.checkerframework.javacutil.TreeUtils;
 
 import java.util.ArrayList;
 import java.util.List;
-import javax.lang.model.type.TypeMirror;
 
 public final class TypeUtils {
 
     private TypeUtils() { }
 
     public static int getParameterIndex(MethodTree tree, JavaExpression param) {
-        int i = 0;
-        for (; i < tree.getParameters().size(); ++i) {
-            if (TreeUtils.elementFromDeclaration(tree.getParameters().get(i)).equals(param)) {
-                break;
+        if (param instanceof LocalVariable localParam) {
+            for (int i = 0; i < tree.getParameters().size(); ++i) {
+                if (TreeUtils.elementFromDeclaration(tree.getParameters().get(i)).equals(localParam.getElement())) {
+                    return i + 1;
+                }
             }
+            throw new AssertionError();
+        } else if (param instanceof ThisReference) {
+            return 0;
+        } else {
+            throw new UnsupportedOperationException(
+                    String.format("Postcondition types on non-parameters are not supported (method: %s, subject: %s)",
+                            tree.getName(), param));
         }
-
-        return param.toString().equals("this") ? 0 : i + 1;
     }
 
     public static int getParameterIndex(MethodTree tree, VariableTree param) {
-        int i = 0;
-        for (; i < tree.getParameters().size(); ++i) {
-            if (tree.getParameters().get(i).equals(param)) {
-                break;
+        if (param.equals(tree.getReceiverParameter())) {
+            return 0;
+        } else {
+            for (int i = 0; i < tree.getParameters().size(); ++i) {
+                if (tree.getParameters().get(i).equals(param)) {
+                    return i + 1;
+                }
+            }
+            throw new AssertionError();
+        }
+    }
+
+    public static int getArgumentIndex(MethodInvocationTree tree, Tree argument) {
+        for (int i = 0; i < tree.getArguments().size(); i++) {
+            if (tree.getArguments().get(i).equals(argument)) {
+                return i;
             }
         }
+        return -1;
+    }
 
-        return param.equals(tree.getReceiverParameter()) ? 0 : i + 1;
+    public static int getArgumentIndex(NewClassTree tree, Tree argument) {
+        for (int i = 0; i < tree.getArguments().size(); i++) {
+            if (tree.getArguments().get(i).equals(argument)) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     public static String unannotatedTypeName(AnnotatedTypeMirror mirror) {
