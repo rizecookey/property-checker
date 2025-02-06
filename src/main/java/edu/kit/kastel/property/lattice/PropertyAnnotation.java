@@ -20,6 +20,8 @@ import com.google.common.collect.Streams;
 import edu.kit.kastel.property.checker.PropertyChecker;
 import edu.kit.kastel.property.lattice.PropertyAnnotationType.Parameter;
 import edu.kit.kastel.property.lattice.compiler.ClassBuilder;
+import org.checkerframework.dataflow.expression.JavaExpression;
+import org.checkerframework.javacutil.AnnotationMirrorSet;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -77,6 +79,29 @@ public class PropertyAnnotation {
 
     public String getName() {
         return getAnnotationType().getName();
+    }
+
+    /**
+     * Returns the complete, concrete refinement expression (well-formedness condition + property)
+     * for this property annotation as Java code. The actual arguments are inserted for the parameter placeholders,
+     * and the subject placeholder is substituted by the value given as a parameter to this method.
+     *
+     * @param subject The subject this property annotation should apply to
+     * @return A boolean Java expression in string form.
+     */
+    public String combinedRefinement(CharSequence subject) {
+        String property = annotationType.getProperty()
+                .replace("§subject§", "(" + subject + ")");
+        String wfCondition = annotationType.getWFCondition()
+                .replace("§subject§", "(" + subject + ")");
+        var actualParams = actualParameters.iterator();
+        for (PropertyAnnotationType.Parameter param : annotationType.getParameters()) {
+            String actual = "(" + actualParams.next() + ")";
+            String placeholder = "§" + param.getName() + "§";
+            wfCondition = wfCondition.replace(placeholder, actual);
+            property = property.replace(placeholder, actual);
+        }
+        return String.format("(%s) && (%s)", wfCondition, property);
     }
 
     @SuppressWarnings("nls")

@@ -1,17 +1,17 @@
 package edu.kit.kastel.property.packing;
 
 import com.sun.source.tree.*;
-import com.sun.tools.javac.tree.JCTree;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityTransfer;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.ReadOnly;
-import org.checkerframework.dataflow.analysis.TransferInput;
-import org.checkerframework.dataflow.analysis.TransferResult;
+import edu.kit.kastel.property.util.JavaExpressionUtil;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.cfg.UnderlyingAST;
 import org.checkerframework.dataflow.cfg.node.*;
 import org.checkerframework.dataflow.expression.FieldAccess;
 import org.checkerframework.dataflow.expression.JavaExpression;
+import org.checkerframework.dataflow.expression.MethodCall;
 import org.checkerframework.dataflow.expression.ThisReference;
 import org.checkerframework.framework.flow.CFAbstractAnalysis;
 import org.checkerframework.framework.flow.CFAbstractTransfer;
@@ -47,14 +47,12 @@ public abstract class PackingClientTransfer<
 
     protected abstract V initialThisValue(MethodTree methodDeclTree);
 
-    // TODO: what's the type of parameters that aren't added to the store explicitly?
     @Override
     public S initialStore(UnderlyingAST underlyingAST, List<LocalVariableNode> parameters) {
         S initStore = super.initialStore(underlyingAST, parameters);
         PackingClientAnnotatedTypeFactory factory = getAnalysis().getTypeFactory();
 
         if (underlyingAST.getKind() == UnderlyingAST.Kind.METHOD) {
-            // TODO: add parameters and all their fields too (using the same logic)
             // Add receiver value
             UnderlyingAST.CFGMethod method = (UnderlyingAST.CFGMethod) underlyingAST;
             MethodTree methodDeclTree = method.getMethod();
@@ -64,61 +62,69 @@ public abstract class PackingClientTransfer<
                 initStore.initializeThisValue(initialThisValue);
             }
 
-            // The default implementation only adds fields declared in this class.
-            // To make type-checking of pack statements more precise, we also add all fields declared in superclasses.
-            ClassTree classTree = method.getClassTree();
-
             if (!ElementUtils.isStatic(TreeUtils.elementFromDeclaration(methodDeclTree))) {
-                List<VariableElement> allFields = ElementUtils.getAllFieldsIn(
-                        TypesUtils.getTypeElement(((JCTree) classTree).type),
-                        factory.getElementUtils());
+                // add fields declared in this class and all superclasses to store
+                PackingFieldAccessAnnotatedTypeFactory packingFactory =
+                        factory.getChecker().getTypeFactoryOfSubcheckerOrNull(PackingFieldAccessSubchecker.class);
+
                 AnnotatedTypeMirror receiverType =
                         factory.getSelfType(methodDeclTree.getBody());
                 if (initialThisValue != null) {
                     receiverType.replaceAnnotations(initStore.getValue((ThisNode) null).getAnnotations());
                 }
 
-                PackingFieldAccessAnnotatedTypeFactory packingFactory =
-                        factory.getChecker().getTypeFactoryOfSubcheckerOrNull(PackingFieldAccessSubchecker.class);
-
                 AnnotatedTypeMirror receiverPackingType =
                         packingFactory.getSelfType(methodDeclTree.getBody());
-
-                for (VariableElement field : allFields) {
-                    if (!ElementUtils.isStatic(field)) {
-                        FieldAccess fieldAccess = new FieldAccess(new ThisReference(receiverType.getUnderlyingType()), field);
-                        TypeMirror fieldOwnerType = field.getEnclosingElement().asType();
-                        AnnotatedTypeMirror declaredType = factory.getAnnotatedType(field);
-
-                        // Viewpoint-adapt type
-                        AnnotatedTypeMirror adaptedType =
-                                AnnotatedTypes.asMemberOf(
-                                        analysis.getTypes(),
-                                        analysis.getTypeFactory(),
-                                        receiverType,
-                                        field,
-                                        declaredType);
-
-                        if (adaptedType == null) {
-                            adaptedType = declaredType;
-                        }
-
-                        // Use @ReadOnly if receiver is not sufficiently packed
-                        if (!packingFactory.isInitializedForFrame(receiverPackingType, fieldOwnerType)
-                                && (!adaptedType.getKind().isPrimitive() || uncommitPrimitiveFields())) {
-                            adaptedType.clearAnnotations();
-                            adaptedType.addAnnotations(factory.getQualifierHierarchy().getTopAnnotations());
-                        }
-
-                        V value = analysis.createAbstractValue(adaptedType);
-
-                        initStore.insertValue(fieldAccess, value);
-                    }
-                }
+                insertFieldsUpToFrame(initStore, receiverType, receiverPackingType);
             }
         }
 
         return initStore;
+    }
+
+    protected void insertFieldsUpToFrame(S store, AnnotatedTypeMirror receiverType, AnnotatedTypeMirror receiverPackingType) {
+        var factory = getAnalysis().getTypeFactory();
+        PackingFieldAccessAnnotatedTypeFactory packingFactory =
+                factory.getChecker().getTypeFactoryOfSubcheckerOrNull(PackingFieldAccessSubchecker.class);
+        List<VariableElement> allFields = ElementUtils.getAllFieldsIn(
+                TypesUtils.getTypeElement(receiverType.getUnderlyingType()),
+                factory.getElementUtils());
+        for (VariableElement field : allFields) {
+            if (!ElementUtils.isStatic(field)) {
+                FieldAccess fieldAccess = new FieldAccess(new ThisReference(receiverType.getUnderlyingType()), field);
+                TypeMirror fieldOwnerType = field.getEnclosingElement().asType();
+                AnnotatedTypeMirror declaredType = factory.getAnnotatedType(field);
+
+                // Viewpoint-adapt type
+                AnnotatedTypeMirror adaptedType =
+                        AnnotatedTypes.asMemberOf(
+                                analysis.getTypes(),
+                                analysis.getTypeFactory(),
+                                receiverType,
+                                field,
+                                declaredType);
+
+                if (adaptedType == null) {
+                    adaptedType = declaredType;
+                }
+
+                // Use top type if receiver is not sufficiently packed
+                if (!packingFactory.isInitializedForFrame(receiverPackingType, fieldOwnerType)
+                        && (!adaptedType.getKind().isPrimitive() || uncommitPrimitiveFields())) {
+                    adaptedType.clearAnnotations();
+                    adaptedType.addAnnotations(factory.getQualifierHierarchy().getTopAnnotations());
+                }
+
+                V value = analysis.createAbstractValue(adaptedType);
+                processFieldValue(field, value);
+                store.insertValue(fieldAccess, value);
+            }
+        }
+
+    }
+
+    protected void processFieldValue(VariableElement field, V value) {
+        // do nothing
     }
 
     protected abstract boolean uncommitPrimitiveFields();
@@ -134,28 +140,34 @@ public abstract class PackingClientTransfer<
             exclFactory = analysis.getTypeFactory().getTypeFactoryOfSubchecker(ExclusivityChecker.class);
         }
 
+        AnnotationMirror top = analysis.getTypeFactory().getQualifierHierarchy().getTopAnnotations().first();
+        MethodCall invocation;
         boolean sideEffectFree;
         StringToJavaExpression stringToJavaExpr = null;
-        if (invocationNode instanceof MethodInvocationNode) {
-            sideEffectFree = analysis.getTypeFactory().isSideEffectFree(((MethodInvocationNode) invocationNode).getTarget().getMethod());
+        if (invocationNode instanceof MethodInvocationNode mi) {
+            invocation = JavaExpressionUtil.methodCall(mi.getTree());
+            sideEffectFree = analysis.getTypeFactory().isSideEffectFree(mi.getTarget().getMethod());
             stringToJavaExpr =
                     stringExpr ->
                             StringToJavaExpression.atMethodInvocation(
                                     stringExpr,
-                                    (MethodInvocationNode) invocationNode,
+                                    mi,
                                     analysis.getTypeFactory().getChecker());
 
             // Set receiver output type to input type by default (unless receiver is @ReadOnly).
-            Node receiver = ((MethodInvocationNode) invocationNode).getTarget().getReceiver();
+            Node receiver = mi.getTarget().getReceiver();
 
             AnnotatedTypeFactory.ParameterizedExecutableType method =
-                    analysis.getTypeFactory().methodFromUse((MethodInvocationTree) invocationNode.getTree());
+                    analysis.getTypeFactory().methodFromUse(mi.getTree());
             AnnotatedTypeFactory.ParameterizedExecutableType exclMethod =
-                    exclFactory.methodFromUse((MethodInvocationTree) invocationNode.getTree());
+                    exclFactory.methodFromUse(mi.getTree());
             AnnotatedTypeMirror receiverType = method.executableType.getReceiverType();
             AnnotatedTypeMirror exclReceiverType = exclMethod.executableType.getReceiverType();
 
+
             if (receiverType != null && !exclReceiverType.hasAnnotation(ReadOnly.class)) {
+                AnnotationMirror anno = receiverType.getAnnotationInHierarchy(top);
+                V receiverValue = createPostconditionValue(anno, receiver.getType(), "this", invocation);
                 V receiverDefaultValue = analysis.createAbstractValue(
                         receiverType.getAnnotations(),
                         receiverType.getUnderlyingType());
@@ -163,12 +175,15 @@ public abstract class PackingClientTransfer<
                 AnnotationMirror nonNull = receiverType.getAnnotations().stream()
                         .filter(a -> a.getAnnotationType().asElement().getSimpleName().contentEquals("NonNull"))
                         .findAny().orElse(null);
+                JavaExpression receiverExpr = JavaExpression.fromNode(receiver);
                 if (nonNull != null) {
-                    store.insertOrRefine(JavaExpression.fromNode(receiver), nonNull);
+                    store.insertOrRefine(receiverExpr, nonNull);
+                } else if (receiverValue != null) {
+                    store.insertValue(receiverExpr, receiverValue);
                 } else if (sideEffectFree) {
-                    store.insertOrRefine(JavaExpression.fromNode(receiver), receiverDefaultValue.getAnnotations().first());
+                    store.insertOrRefine(receiverExpr, receiverDefaultValue.getAnnotations().first());
                 } else {
-                    store.insertValue(JavaExpression.fromNode(receiver), receiverDefaultValue);
+                    store.insertValue(receiverExpr, receiverDefaultValue);
                 }
             }
 
@@ -181,20 +196,25 @@ public abstract class PackingClientTransfer<
                     V paramDefaultValue = analysis.createAbstractValue(
                             paramType.getAnnotations(),
                             paramType.getUnderlyingType());
-                    if (sideEffectFree) {
-                        store.insertOrRefine(
-                                JavaExpression.fromNode(((MethodInvocationNode) invocationNode).getArgument(i)),
-                                paramDefaultValue.getAnnotations().first());
+                    V paramValue = createPostconditionValue(
+                            paramType.getAnnotationInHierarchy(top), paramType.getUnderlyingType(),
+                            method.executableType.getElement().getParameters().get(i).getSimpleName().toString(),
+                            invocation
+                    );
+                    JavaExpression argument = JavaExpression.fromNode(mi.getArgument(i));
+                    if (paramValue != null) {
+                        store.insertValue(argument, paramValue);
+                    } else if (sideEffectFree) {
+                        store.insertOrRefine(argument, paramDefaultValue.getAnnotations().first());
                     } else {
-                        store.insertValue(
-                                JavaExpression.fromNode(((MethodInvocationNode) invocationNode).getArgument(i)),
-                                paramDefaultValue);
+                        store.insertValue(argument, paramDefaultValue);
                     }
                 }
 
                 ++i;
             }
-        } else if (invocationNode instanceof ObjectCreationNode) {
+        } else if (invocationNode instanceof ObjectCreationNode oc) {
+            invocation = JavaExpressionUtil.constructorCall(oc.getTree());
             sideEffectFree = false;
             stringToJavaExpr =
                     stringExpr ->
@@ -214,9 +234,17 @@ public abstract class PackingClientTransfer<
                     V paramDefaultValue = analysis.createAbstractValue(
                             paramType.getAnnotations(),
                             paramType.getUnderlyingType());
-                    store.insertValue(
-                            JavaExpression.fromNode(((ObjectCreationNode) invocationNode).getArgument(i)),
-                            paramDefaultValue);
+                    JavaExpression argument = JavaExpression.fromNode(oc.getArgument(i));
+                    V paramValue = createPostconditionValue(
+                            paramType.getAnnotationInHierarchy(top), paramType.getUnderlyingType(),
+                            method.executableType.getElement().getParameters().get(i).getSimpleName().toString(),
+                            invocation
+                    );
+                    if (paramValue != null) {
+                        store.insertValue(argument, paramValue);
+                    } else {
+                        store.insertValue(argument, paramDefaultValue);
+                    }
                 }
 
                 ++i;
@@ -244,7 +272,10 @@ public abstract class PackingClientTransfer<
                 // This is done because we use postconditions to implement output types for the parameters, which may
                 // be incompatible with the input types. If a parameter has no explicit output type, we use its input
                 // type as default, which is implemented above.
-                if (sideEffectFree) {
+                V newValue = createPostconditionValue(anno, je.getType(), p.expressionString, invocation);
+                if (newValue != null) {
+                    store.insertValue(je, newValue);
+                } else if (sideEffectFree) {
                     store.insertOrRefine(je, anno);
                 } else {
                     store.insertValue(je, anno);
@@ -264,5 +295,25 @@ public abstract class PackingClientTransfer<
                 }
             }
         }
+    }
+
+    /**
+     * Optional method to compute a custom post condition type value. If this method returns {@code null}, the default
+     * behaviour is chosen instead, which is to either insert the annotation into the store or use the annotation to
+     * refine the existing value for the subject if the method in question is side-effect free.
+     *
+     * @param annotation type annotation the post condition refers to
+     * @param subjectType subject base type.
+     * @param subject subject expression (not viewpoint-adapted)
+     * @param invocation method/constructor invocation
+     * @return a value or {@code null}
+     */
+    protected @Nullable V createPostconditionValue(
+            AnnotationMirror annotation,
+            TypeMirror subjectType,
+            String subject,
+            MethodCall invocation
+    ) {
+        return null;
     }
 }

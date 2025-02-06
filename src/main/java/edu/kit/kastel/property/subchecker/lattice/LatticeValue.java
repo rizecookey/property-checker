@@ -18,18 +18,56 @@ package edu.kit.kastel.property.subchecker.lattice;
 
 import javax.lang.model.type.TypeMirror;
 
+import edu.kit.kastel.property.lattice.PropertyAnnotation;
 import edu.kit.kastel.property.packing.PackingClientValue;
-import org.checkerframework.framework.flow.CFAbstractAnalysis;
+import org.apache.commons.lang3.function.FailableFunction;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.dataflow.expression.JavaExpression;
+import org.checkerframework.framework.util.JavaExpressionParseUtil;
 import org.checkerframework.javacutil.AnnotationMirrorSet;
 
 public final class LatticeValue extends PackingClientValue<LatticeValue> {
 
-	// TODO: add modifiable "dependents" field to keep track of who depends on this value
+	private JavaExpression refinement;
 
 	protected LatticeValue(
-			CFAbstractAnalysis<LatticeValue, ?, ?> analysis,
+			LatticeAnalysis analysis,
 			AnnotationMirrorSet annotations,
 			TypeMirror underlyingType) {
 		super(analysis, annotations, underlyingType);
+	}
+
+	public PropertyAnnotation toPropertyAnnotation() {
+		var factory = (LatticeAnnotatedTypeFactory) analysis.getTypeFactory();
+		var anno = factory.getQualifierHierarchy().findAnnotationInHierarchy(annotations, factory.getTop());
+		return factory.getLattice().getPropertyAnnotation(anno);
+	}
+
+	// TODO move refinement parsing from here to analysis class (need to figure out how to pass along subject and tree)
+	public void computeRefinement(
+			String subject,
+			FailableFunction<String, JavaExpression, JavaExpressionParseUtil.JavaExpressionParseException> parser
+	) {
+		if (this.refinement != null) {
+			return;
+		}
+
+		String refinement = toPropertyAnnotation().combinedRefinement(subject);
+        try {
+            this.refinement = parser.apply(refinement);
+        } catch (JavaExpressionParseUtil.JavaExpressionParseException e) {
+            // TODO: logging
+        }
+    }
+
+	public boolean onlyLiterals() {
+		var factory = (LatticeAnnotatedTypeFactory) analysis.getTypeFactory();
+		return factory.getLattice().getEvaluatedPropertyAnnotation(
+				factory.getQualifierHierarchy().findAnnotationInHierarchy(annotations, factory.getTop())) != null;
+	}
+
+	@Nullable
+	public JavaExpression getRefinement() {
+		return refinement;
 	}
 }

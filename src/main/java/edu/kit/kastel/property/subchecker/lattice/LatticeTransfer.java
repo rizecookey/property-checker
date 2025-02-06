@@ -18,19 +18,23 @@ package edu.kit.kastel.property.subchecker.lattice;
 
 import com.sun.source.tree.MethodTree;
 import edu.kit.kastel.property.packing.PackingClientTransfer;
+import edu.kit.kastel.property.packing.PackingFieldAccessAnnotatedTypeFactory;
+import edu.kit.kastel.property.packing.PackingFieldAccessSubchecker;
+import edu.kit.kastel.property.util.JavaExpressionUtil;
 import edu.kit.kastel.property.util.Packing;
 import org.checkerframework.dataflow.analysis.RegularTransferResult;
 import org.checkerframework.dataflow.analysis.TransferInput;
 import org.checkerframework.dataflow.analysis.TransferResult;
-import org.checkerframework.dataflow.cfg.node.ClassNameNode;
-import org.checkerframework.dataflow.cfg.node.MethodAccessNode;
-import org.checkerframework.dataflow.cfg.node.MethodInvocationNode;
-import org.checkerframework.dataflow.cfg.node.Node;
+import org.checkerframework.dataflow.cfg.node.*;
+import org.checkerframework.dataflow.expression.MethodCall;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
-import org.checkerframework.javacutil.ElementUtils;
-import org.checkerframework.javacutil.TreeUtils;
+import org.checkerframework.framework.util.JavaExpressionParseUtil;
+import org.checkerframework.framework.util.StringToJavaExpression;
+import org.checkerframework.javacutil.*;
 
+import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 
@@ -44,7 +48,25 @@ public final class LatticeTransfer extends PackingClientTransfer<LatticeValue, L
     }
 
     @Override
+    public TransferResult<LatticeValue, LatticeStore> visitAssignment(AssignmentNode n, TransferInput<LatticeValue, LatticeStore> in) {
+        analysis.setCurrentTree(n.getTree());
+        if (n.isSynthetic() || !(n.getTarget() instanceof LocalVariableNode local)) {
+            return super.visitAssignment(n, in);
+        }
+        var store = in.getRegularStore();
+        // when a local variable is assigned to, we store its declared type
+        var val = analysis.createAbstractValue(factory.getAnnotatedType(local.getElement()));
+        var localPath = factory.getPath(n.getTree());
+        val.computeRefinement(n.getTarget().toString(),
+                ref -> StringToJavaExpression.atPath(ref, localPath, factory.getChecker()));
+        // this stores the type and invalidates all local dependents
+        this.processCommonAssignment(in, n.getTarget(), n.getExpression(), store, val);
+        return new RegularTransferResult<>(this.finishValue(val, store), store);
+    }
+
+    @Override
     public TransferResult<LatticeValue, LatticeStore> visitMethodInvocation(MethodInvocationNode node, TransferInput<LatticeValue, LatticeStore> in) {
+        analysis.setCurrentTree(node.getTree());
         TypeMirror receiverType;
         LatticeStore store = in.getRegularStore();
         MethodAccessNode target = node.getTarget();
@@ -52,9 +74,27 @@ public final class LatticeTransfer extends PackingClientTransfer<LatticeValue, L
         Node receiver = target.getReceiver();
         receiverType = method.getReceiverType();
 
-        if (receiver instanceof ClassNameNode && ((ClassNameNode) receiver).getElement().toString().equals(Packing.class.getName())) {
-            // Packing statements don't change the store
-            return new RegularTransferResult<>(null, store, false);
+        var packingClass = ElementUtils.getTypeElement(factory.getProcessingEnv(), Packing.class);
+        if (receiver instanceof ClassNameNode name && name.getElement() == packingClass) {
+            var packMethod = TreeUtils.getMethod(Packing.class, "pack", 2, analysis.getEnv());
+            boolean isPackingCall = packMethod == node.getTarget().getMethod();
+            if (isPackingCall) {
+                // restore declared types up to specified frame after call to Packing.pack
+                var packingReceiverType = node.getArgument(0).getType();
+                var factory = getAnalysis().getTypeFactory();
+                PackingFieldAccessAnnotatedTypeFactory packingFactory =
+                        factory.getChecker().getTypeFactoryOfSubcheckerOrNull(PackingFieldAccessSubchecker.class);
+                TypeMirror frame = ((FieldAccessNode) node.getArgument(1)).getReceiver().getType();
+                AnnotationMirror initializedToFrameAnno = packingFactory.createUnderInitializationAnnotation(frame);
+                AnnotatedTypeMirror packingType = AnnotatedTypeMirror.createType(packingReceiverType, packingFactory, false);
+                packingType.addAnnotation(initializedToFrameAnno);
+                insertFieldsUpToFrame(
+                        store,
+                        AnnotatedTypeMirror.createType(packingReceiverType, factory, false),
+                        packingType
+                );
+            }
+            return new RegularTransferResult<>(null, store, isPackingCall);
         }
 
         if (!ElementUtils.isStatic(TreeUtils.elementFromUse(node.getTree()))
@@ -75,17 +115,56 @@ public final class LatticeTransfer extends PackingClientTransfer<LatticeValue, L
     }
 
     @Override
+    protected void processFieldValue(VariableElement field, LatticeValue value) {
+        var declaration = factory.declarationFromElement(field);
+        if (declaration != null) {
+            value.computeRefinement(field.getSimpleName().toString(),
+                    ref -> StringToJavaExpression.atFieldDecl(ref, field, factory.getChecker()));
+        }
+    }
+
+    @Override
     protected LatticeValue initialThisValue(MethodTree methodDeclTree) {
         if (!TreeUtils.isConstructor(methodDeclTree)) {
             AnnotatedTypeMirror thisType = factory.getAnnotatedType(methodDeclTree.getReceiverParameter());
-            return analysis.createSingleAnnotationValue(
+            var value =  analysis.createSingleAnnotationValue(
                     thisType.getAnnotationInHierarchy(factory.getTop()),
                     thisType.getUnderlyingType());
+            value.computeRefinement("this",
+                    ref -> StringToJavaExpression.atPath(ref, factory.getPath(methodDeclTree), factory.getChecker()));
+            return value;
         } else {
             AnnotatedTypeMirror thisType = factory.getSelfType(methodDeclTree.getBody());
             return analysis.createSingleAnnotationValue(
                     factory.getTop(),
                     thisType.getUnderlyingType());
         }
+    }
+
+    @Override
+    protected LatticeValue createPostconditionValue(
+            AnnotationMirror annotation,
+            TypeMirror subjectType,
+            String subject,
+            MethodCall invocation
+    ) {
+        var builder = new AnnotationBuilder(analysis.getEnv(), annotation);
+        annotation.getElementValues().forEach((element, val) -> {
+            if (val.getValue() instanceof String expr) {
+                String newValue;
+                try {
+                    newValue = JavaExpressionUtil.parseAtCallsite(expr, invocation, factory.getChecker()).toString();
+                } catch (JavaExpressionParseUtil.JavaExpressionParseException e) {
+                    // expression can't be parsed; new value should be something that will also
+                    // prevent parsing of final refinement for consistency
+                    newValue = "< " + e.getMessage() + " >";
+                }
+                builder.setValue(element.getSimpleName(), newValue);
+            }
+        });
+        var val = analysis.createSingleAnnotationValue(builder.build(), subjectType);
+        val.computeRefinement(subject,
+                ref -> JavaExpressionUtil.parseAtCallsite(ref, invocation, factory.getChecker()));
+        return val;
     }
 }

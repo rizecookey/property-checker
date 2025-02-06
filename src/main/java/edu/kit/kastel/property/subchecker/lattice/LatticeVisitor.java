@@ -66,7 +66,6 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
     private final ExecutableElement packMethod;
     private final ExecutableElement unpackMethod;
-    private final Set<VariableTree> localVars;
     private final Resolver resolver;
     private final TypeMirror bool;
 
@@ -91,7 +90,6 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         super(checker);
         packMethod = TreeUtils.getMethod(Packing.class, "pack", 2, atypeFactory.getProcessingEnv());
         unpackMethod = TreeUtils.getMethod(Packing.class, "unpack", 2, atypeFactory.getProcessingEnv());
-        localVars = new HashSet<>();
         resolver = new Resolver(checker.getProcessingEnvironment());
         bool = types.getPrimitiveType(TypeKind.BOOLEAN);
 
@@ -151,11 +149,9 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
     @Override
     public Void visitNewClass(NewClassTree tree, Void p) {
-        ExecutableElement invokedConstructor = TreeUtils.elementFromUse(tree);
-        var arguments = tree.getArguments().stream().map(JavaExpression::fromTree).toList();
         // Construct a pseudo method call. We're "pretending" that the constructor is actually a method so that
         // we can reuse the logic for getting the parameter refinements.
-        var methodCall = new MethodCall(invokedConstructor.getReturnType(), invokedConstructor, null, arguments);
+        var methodCall = JavaExpressionUtil.constructorCall(tree);
         // The resulting invocation context doesn't have a return or receiver refinement.
         // receiver refinements don't make sense for constructors, and return refinements are not supported because
         // the checker framework does not support "new" expressions
@@ -180,24 +176,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             // Don't type-check arguments of packing calls.
             return p;
         }
-        JavaExpression receiver = null;
-        var receiverTree = TreeUtils.getReceiverTree(tree);
-        if (receiverTree == null) {
-            // no explicit receiver
-            if (ElementUtils.isStatic(invokedMethod)) {
-                // static method => class is the receiver
-                receiver = new ClassName(invokedMethod.getEnclosingElement().asType());
-            } else if (invokedMethod.getReceiverType() != null) {
-                // instance method => `this` is the receiver
-                receiver = new ThisReference(invokedMethod.getReceiverType());
-            }
-        } else {
-            // explicit receiver
-            receiver = JavaExpression.fromTree(receiverTree);
-        }
-        var arguments = tree.getArguments().stream().map(JavaExpression::fromTree).toList();
-        var methodCall = new MethodCall(invokedMethod.getReturnType(), invokedMethod, receiver, arguments);
-        invocationContext = methodCallRefinements(methodCall);
+        invocationContext = methodCallRefinements(JavaExpressionUtil.methodCall(tree));
         return super.visitMethodInvocation(tree, p);
     }
 
@@ -212,7 +191,6 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
     public Void visitVariable(VariableTree node, Void p) {
         call(() -> super.visitVariable(node, p), () -> result.illTypedVars.add(node));
 
-        localVars.add(node);
         AnnotatedTypeMirror varType = atypeFactory.getAnnotatedTypeLhs(node);
         ExclusivityAnnotatedTypeFactory exclFactory = atypeFactory.getTypeFactoryOfSubchecker(ExclusivityChecker.class);
         AnnotatedTypeMirror exclType = exclFactory.getAnnotatedTypeLhs(node);
@@ -251,6 +229,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         enclClass = classTree;
 
         // add refinements for all fields in this class and its super classes to the result
+        // these are the _declared_ types that may need to be proven later for packing calls.
         addFieldRefinements(classTree);
 
         super.processClassTree(classTree);
@@ -282,15 +261,9 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                                 types, atypeFactory, e.getKey(), e.getValue())))
                 .collect(Collectors.toList()));
 
-        localVars.addAll(node.getParameters());
-        if (node.getReceiverParameter() != null) {
-            localVars.add(node.getReceiverParameter());
-        }
         super.visitMethod(node, p);
 
         enclMethod = prevEnclMethod;
-
-        localVars.clear();
 
         return null;
     }
@@ -378,8 +351,9 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             @CompilerMessageKey String errorKey,
             Object... extraArgs) {
         commonAssignmentCheckStartDiagnostic(varType, valueType, valueTree);
-
         AnnotatedTypeMirror widenedValueType = atypeFactory.getWidenedType(valueType, varType);
+        // FIXME: soundness bug here? valueType is always declared type, even when field is uncommitted
+        // TODO: any field accesses that are not in store should get top type
         boolean success = atypeFactory.getTypeHierarchy().isSubtype(widenedValueType, varType);
 
         if (!success && valueTree instanceof LiteralTree) {
@@ -821,7 +795,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                     ? invocationContext.receiverRefinement
                     : invocationContext.argRefinements.get(paramIndex);
         } else {
-            String refinement = getRefinement(targetType, valueExpTree);
+            String refinement = getProperty(targetType).combinedRefinement(valueExpTree.toString());
             toProve = parseOrUnknown(refinement, ref -> StringToJavaExpression.atPath(ref, getCurrentPath(), checker));
         }
 
@@ -848,23 +822,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         Queue<JavaExpression> refs = new ArrayDeque<>(initialRefs);
 
         // collect all locally available refinements (params + vars)
-        List<JavaExpression> localRefinements = new ArrayList<>();
-        for (VariableTree local : localVars) {
-            if (local != methodTree.getReceiverParameter()
-                    && resolver.findLocalVariableOrParameter(local.getName().toString(), getCurrentPath()) == null) {
-                continue;
-            }
-
-
-            AnnotatedTypeMirror type = atypeFactory.getAnnotatedTypeBefore(
-                    new LocalVariable(TreeUtils.elementFromDeclaration(local)), (ExpressionTree) tree);
-            String refinement = getRefinement(type, local.getName());
-            JavaExpression expr = parseOrUnknown(refinement, ref -> StringToJavaExpression.atPath(ref, getCurrentPath(), checker));
-            if (!(expr instanceof Unknown)) {
-                localRefinements.add(expr);
-            }
-
-        }
+        Collection<JavaExpression> localRefinements = atypeFactory.getStoreBefore(tree).getLocalRefinements();
 
         while (!refs.isEmpty()) {
             // reference is always viewpoint-adapted from original context
@@ -917,7 +875,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                 // get the type for the field at the current tree. This is either the declared type or the top type,
                 // depending on whether it is committed or not
                 AnnotatedTypeMirror type = atypeFactory.getAnnotatedTypeBefore(fieldRefFromRoot, (ExpressionTree) tree);
-                String refinement = getRefinement(type, localFieldRef);
+                String refinement = getProperty(type).combinedRefinement(localFieldRef.toString());
                 JavaExpression expr = viewpointAdapt(
                         parseOrUnknown(refinement,
                                 r -> StringToJavaExpression.atFieldDecl(refinement, field, checker)),
@@ -1017,28 +975,17 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
         // Function that parses a declaration-level expression, where parameters are referenced by name
         Function<String, JavaExpression> parser = refinement -> {
-            // 1. parse refinement in method body scope
-            JavaExpression expression;
             try {
-                expression = StringToJavaExpression.atPath(refinement, methodPath, checker);
+                return JavaExpressionUtil.parseAtCallsite(refinement, method, checker);
             } catch (JavaExpressionParseUtil.JavaExpressionParseException e) {
-                expression = new Unknown(bool, refinement);
+                return new Unknown(bool, refinement);
             }
-
-            // 2. convert nominal parameter references to FormalParameters
-            expression = expression.accept(new JavaExpressionConverter() {
-                @Override
-                protected JavaExpression visitLocalVariable(LocalVariable localVarExpr, Void unused) {
-                    return params.get(localVarExpr.getElement());
-                }
-            }, null);
-            // 3. viewpoint adapt to call site
-            return viewpointAdapt(expression, receiver, method.getArguments());
         };
 
         List<JavaExpression> argRefinements = new ArrayList<>();
         for (VariableElement parameter : method.getElement().getParameters()) {
-            String refinement = getRefinement(atypeFactory.getAnnotatedType(parameter), parameter.getSimpleName());
+            String refinement = getProperty(atypeFactory.getAnnotatedType(parameter))
+                    .combinedRefinement(parameter.getSimpleName());
             argRefinements.add(parser.apply(refinement));
         }
 
@@ -1047,20 +994,20 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         JavaExpression receiverRefinement =
                 type.getReceiverType() == null || constructorCall
                         ? new ValueLiteral(bool, true)
-                        : parser.apply(getRefinement(type.getReceiverType(), new ThisReference(type.getReceiverType().getUnderlyingType())));
+                        : parser.apply(getProperty(type.getReceiverType()).combinedRefinement("this"));
 
         // return value refinement, unless the method returns void (equivalent to top type)
         // or it's a constructor (expression syntax doesn't support constructor calls)
         JavaExpression returnRefinement = type.getReturnType().getKind() == TypeKind.VOID || constructorCall
                 ? new ValueLiteral(bool, true)
-                : parser.apply(getRefinement(type.getReturnType(),
+                : parser.apply(getProperty(type.getReturnType()).combinedRefinement(
                 // the input method call with parameters and receiver simplified
                 new MethodCall(
                         method.getType(),
                         method.getElement(),
                         receiver instanceof ClassName ? receiver : new ThisReference(receiver.getType()),
                         List.copyOf(JavaExpression.getFormalParameters(method.getElement()))
-                )));
+                ).toString()));
         return new MethodCallRefinements(returnRefinement, receiverRefinement, argRefinements);
     }
 
@@ -1076,7 +1023,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             var fieldType = atypeFactory.getAnnotatedType(field);
             if (!qualHierarchy.isSubtypeQualifiersOnly(top, fieldType.getAnnotationInHierarchy(top))) {
                 // only include refinement if field type is not a top type
-                JavaExpression expr = parseOrUnknown(getRefinement(fieldType, field.getSimpleName()),
+                JavaExpression expr = parseOrUnknown(getProperty(fieldType).combinedRefinement(field.getSimpleName()),
                         ref -> StringToJavaExpression.atFieldDecl(ref, field, checker));
                 try {
                     result.fieldRefinements.put(field, JavaToSmtExpression.convert(expr).smt());
@@ -1088,20 +1035,8 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         }
     }
 
-    private String getRefinement(AnnotatedTypeMirror type, Object subject) {
-        PropertyAnnotation anno = atypeFactory.getLattice().getPropertyAnnotation(type);
-        String property = anno.getAnnotationType().getProperty()
-                .replace("§subject§", "(" + subject + ")");
-        String wfCondition = anno.getAnnotationType().getWFCondition()
-                .replace("§subject§", "(" + subject + ")");
-        var actualParams = anno.getActualParameters().iterator();
-        for (PropertyAnnotationType.Parameter param : anno.getAnnotationType().getParameters()) {
-            String actual = "(" + actualParams.next() + ")";
-            String placeholder = "§" + param.getName() + "§";
-            wfCondition = wfCondition.replace(placeholder, actual);
-            property = property.replace(placeholder, actual);
-        }
-        return String.format("(%s) && (%s)", wfCondition, property);
+    private PropertyAnnotation getProperty(AnnotatedTypeMirror type) {
+        return atypeFactory.getLattice().getPropertyAnnotation(type);
     }
 
     private boolean hasCycle(JavaExpression expr) {
