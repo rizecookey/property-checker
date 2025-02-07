@@ -17,10 +17,7 @@
 package edu.kit.kastel.property.printer;
 
 import com.google.common.collect.Streams;
-import com.sun.source.tree.BlockTree;
-import com.sun.source.tree.MemberSelectTree;
-import com.sun.source.tree.StatementTree;
-import com.sun.source.tree.VariableTree;
+import com.sun.source.tree.*;
 import com.sun.tools.javac.code.Attribute;
 import com.sun.tools.javac.code.Flags;
 import com.sun.tools.javac.tree.JCTree;
@@ -54,6 +51,7 @@ import org.checkerframework.javacutil.TypesUtils;
 
 import javax.lang.model.element.*;
 import javax.lang.model.type.TypeKind;
+import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -317,6 +315,24 @@ public class JavaJMLPrinter extends PrettyPrinter {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    @Override
+    public void visitReturn(JCReturn tree) {
+        // Print inferred packing statements
+        try {
+            TypeMirror unpackFrame = propertyFactory.getInferredUnpackFrame(enclMethod);
+            TypeMirror packFrame = propertyFactory.getInferredPackFrame(enclMethod);
+            if (unpackFrame != null) {
+                printUnpackStatement(enclMethod, unpackFrame.toString());
+            } else if (packFrame != null) {
+                printPackStatement(enclMethod, packFrame.toString());
+            }
+        } catch (IOException e) {
+            throw new java.io.UncheckedIOException(e);
+        }
+
+        super.visitReturn(tree);
     }
 
     @Override
@@ -594,6 +610,19 @@ public class JavaJMLPrinter extends PrettyPrinter {
                     }
                 }
 
+                // Print inferred packing statements
+                try {
+                    TypeMirror unpackFrame = propertyFactory.getInferredUnpackFrame(enclMethod);
+                    TypeMirror packFrame = propertyFactory.getInferredPackFrame(enclMethod);
+                    if (unpackFrame != null) {
+                        printUnpackStatement(enclMethod, unpackFrame.toString());
+                    } else if (packFrame != null) {
+                        printPackStatement(enclMethod, packFrame.toString());
+                    }
+                } catch (IOException e) {
+                    throw new java.io.UncheckedIOException(e);
+                }
+
                 undent();
                 printlnAligned("}");
             } else {
@@ -687,6 +716,75 @@ public class JavaJMLPrinter extends PrettyPrinter {
         }
     }
 
+    protected void printPackStatement(Tree tree, String frame) throws IOException {
+        AssertionSequence assertionsSeq = new AssertionSequence();
+
+        println();
+
+        List<VariableElement> allFields = enclClass.type == null
+                ? List.of()
+                : ElementFilter.fieldsIn(TypesUtils.getTypeElement(enclClass.type).getEnclosedElements());
+        for (VariableElement field : allFields) {
+            if (!field.asType().getKind().isPrimitive()) {
+                printlnAligned(String.format(
+                        "//@ assume \\invariant_free_for(%s);",
+                        field.getSimpleName()));
+            }
+        }
+        for (LatticeVisitor.Result result : results) {
+            List<VariableElement> uninitFields = result.getUninitializedFields(tree);
+            for (VariableElement field : allFields) {
+                if (!field.asType().getKind().isPrimitive()) {
+                    printlnAligned(String.format(
+                            "//@ assume %s;",
+                            getPackedCondition(
+                                    propertyFactory.getAnnotatedType(field).getAnnotationInHierarchy(propertyFactory.getInitialized()),
+                                    field.getSimpleName().toString())));
+                }
+
+                AnnotatedTypeMirror type = result.getTypeFactory().getAnnotatedType(field);
+                PropertyAnnotation pa = result.getLattice().getPropertyAnnotation(type);
+                if (!pa.getAnnotationType().isTrivial()) {
+                    Condition cond = new Condition(
+                            !uninitFields.contains(field),
+                            ConditionLocation.ASSERTION,
+                            pa,
+                            field.toString());
+                    assertionsSeq.addClause(cond);
+                }
+            }
+        }
+
+        printlnAligned(assertionsSeq.toString());
+        assertions += assertionsSeq.assertions.size();
+        align();
+        //TODO Workaround for KeY not supporting set statement for \TYPE variable because Recoder is terrible
+        //print(String.format("//@ set packed = \\type(%s)", typeElement));
+        println(String.format("havocPacked(); //@ assume packed == \\type(%s)", frame));
+        align();
+    }
+
+    protected void printUnpackStatement(Tree tree, String frame) throws IOException {
+        //TODO Workaround for KeY not supporting set statement for \TYPE variable because Recoder is terrible
+        //print(String.format("//@ set packed = \\type(%s)", typeElement.getSuperclass()));
+        println(String.format("havocPacked(); //@ assume packed == \\type(%s)", frame));
+        align();
+    }
+
+    protected void printInferredPackingStatements(Tree tree) {
+        try {
+            TypeMirror unpackFrame = propertyFactory.getInferredUnpackFrame(tree);
+            TypeMirror packFrame = propertyFactory.getInferredPackFrame(tree);
+            if (unpackFrame != null) {
+                printUnpackStatement(tree, unpackFrame.toString());
+            } else if (packFrame != null) {
+                printPackStatement(tree, packFrame.toString());
+            }
+        } catch (IOException e) {
+            throw new java.io.UncheckedIOException(e);
+        }
+    }
+
     @Override
     public void visitApply(JCMethodInvocation tree) {
         if (tree.meth.toString().equals("super") || tree.meth.toString().equals("this")) {
@@ -695,71 +793,19 @@ public class JavaJMLPrinter extends PrettyPrinter {
         }
 
         try {
+            printInferredPackingStatements(tree);
+
+            // Explicit packing statement
             if (tree.meth.toString().equals("Packing.pack")) {
-                AssertionSequence assertionsSeq = new AssertionSequence();
-
-                println();
-
-                List<VariableElement> allFields = enclClass.type == null
-                        ? List.of()
-                        : ElementFilter.fieldsIn(TypesUtils.getTypeElement(enclClass.type).getEnclosedElements());
-                for (VariableElement field : allFields) {
-                    if (!field.asType().getKind().isPrimitive()) {
-                        printlnAligned(String.format(
-                                "//@ assume \\invariant_free_for(%s);",
-                                field.getSimpleName()));
-                    }
-                }
-                for (LatticeVisitor.Result result : results) {
-                    List<VariableElement> uninitFields = result.getUninitializedFields(tree);
-                    for (VariableElement field : allFields) {
-                        if (!field.asType().getKind().isPrimitive()) {
-                            printlnAligned(String.format(
-                                    "//@ assume %s;",
-                                    getPackedCondition(
-                                            propertyFactory.getAnnotatedType(field).getAnnotationInHierarchy(propertyFactory.getInitialized()),
-                                            field.getSimpleName().toString())));
-                        }
-
-                        AnnotatedTypeMirror type = result.getTypeFactory().getAnnotatedType(field);
-                        PropertyAnnotation pa = result.getLattice().getPropertyAnnotation(type);
-                        if (!pa.getAnnotationType().isTrivial()) {
-                            Condition cond = new Condition(
-                                    !uninitFields.contains(field),
-                                    ConditionLocation.ASSERTION,
-                                    pa,
-                                    field.toString());
-                            assertionsSeq.addClause(cond);
-                        }
-                    }
-                }
-                
-                printlnAligned(assertionsSeq.toString());
-                assertions += assertionsSeq.assertions.size();
-                align();
-                TypeElement typeElement = (TypeElement) TreeUtils.elementFromUse(((MemberSelectTree) tree.args.get(1)).getExpression());
-                //TODO Workaround for KeY not supporting set statement for \TYPE variable because Recoder is terrible
-                //print(String.format("//@ set packed = \\type(%s)", typeElement));
-                print(String.format("havocPacked(); //@ assume packed == \\type(%s)", typeElement));
-                return;
-            }
-
-            if (tree.meth.toString().equals("Packing.unpack")) {
-                TypeElement typeElement = (TypeElement) TreeUtils.elementFromUse(((MemberSelectTree) tree.args.get(1)).getExpression());
-                //TODO Workaround for KeY not supporting set statement for \TYPE variable because Recoder is terrible
-                //print(String.format("//@ set packed = \\type(%s)", typeElement.getSuperclass()));
-                print(String.format("havocPacked(); //@ assume packed == \\type(%s)", typeElement.getSuperclass()));
-                return;
-            }
-
-            if (tree.meth.toString().equals("Ghost.set")) {
+                printPackStatement(tree, TreeUtils.elementFromUse(((MemberSelectTree) tree.args.get(1)).getExpression()).toString());
+            } else if (tree.meth.toString().equals("Packing.unpack")) {
+                printUnpackStatement(tree, ((TypeElement) TreeUtils.elementFromUse(((MemberSelectTree) tree.args.get(1)).getExpression())).getSuperclass().toString());
+            } else if (tree.meth.toString().equals("Ghost.set")) {
                 JCLiteral name = (JCLiteral) tree.args.get(0);
                 JCLiteral value = (JCLiteral) tree.args.get(1);
                 print(String.format("//@ set %s = %s", name.getValue(), value.getValue()));
                 return;
-            }
-
-            if (tree.meth.toString().equals("Assert.immutableFieldUnchanged") ||
+            } else if (tree.meth.toString().equals("Assert.immutableFieldUnchanged") ||
                     (tree.meth.toString().equals("Assert.immutableFieldUnchanged_TranslationOnly") && TRANSLATION_RAW)) {
                 JCLiteral immutableObject = (JCLiteral) tree.args.get(0);
                 JCLiteral unchangedField = (JCLiteral) tree.args.get(1);
@@ -767,9 +813,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
                         immutableObject.getValue(), immutableObject.getValue(),
                         unchangedField.getValue(), unchangedField.getValue()));
                 return;
-            }
-
-            if (tree.meth.toString().equals("Assert.immutableFieldEqual") ||
+            } else if (tree.meth.toString().equals("Assert.immutableFieldEqual") ||
                     (tree.meth.toString().equals("Assert.immutableFieldEqual_TranslationOnly") && TRANSLATION_RAW)) {
                 JCLiteral immutableObject0 = (JCLiteral) tree.args.get(0);
                 JCLiteral immutableObject1 = (JCLiteral) tree.args.get(1);
@@ -779,20 +823,14 @@ public class JavaJMLPrinter extends PrettyPrinter {
                         immutableObject0.getValue(), immutableObject1.getValue(),
                         equalField0.getValue(), equalField1.getValue()));
                 return;
-            }
-
-            if ((tree.meth.toString().equals("Assert.immutableFieldUnchanged_TranslationOnly") && !TRANSLATION_RAW) ||
+            } else if ((tree.meth.toString().equals("Assert.immutableFieldUnchanged_TranslationOnly") && !TRANSLATION_RAW) ||
                     (tree.meth.toString().equals("Assert.immutableFieldEqual_TranslationOnly") && !TRANSLATION_RAW)) {
                 return;
-            }
-
-            if (tree.meth.toString().equals("Assert._assert")) {
+            } else if (tree.meth.toString().equals("Assert._assert")) {
                 JCLiteral assertion = (JCLiteral) tree.args.get(0);
                 print(String.format("//@ assert %s", assertion.getValue()));
                 return;
-            }
-
-            if (tree.meth.toString().equals("Assert._assume")) {
+            } else if (tree.meth.toString().equals("Assert._assume")) {
                 JCLiteral assertion = (JCLiteral) tree.args.get(0);
                 print(String.format("//@ assume %s", assertion.getValue()));
                 return;
@@ -859,6 +897,8 @@ public class JavaJMLPrinter extends PrettyPrinter {
 
     @Override
     public void visitAssign(JCAssign tree) {
+        printInferredPackingStatements(tree);
+
         // Only assignments to local variables need an assertion; fields are checked at the next packing statement.
         if (tree.getVariable() instanceof MemberSelectTree) {
             super.visitAssign(tree);
@@ -877,6 +917,8 @@ public class JavaJMLPrinter extends PrettyPrinter {
 
     @Override
     public void visitVarDef(JCVariableDecl tree) {
+        printInferredPackingStatements(tree);
+
         if (enclMethod == null) {
             try {
                 print("public ");

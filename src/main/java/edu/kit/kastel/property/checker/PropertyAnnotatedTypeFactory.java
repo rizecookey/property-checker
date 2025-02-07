@@ -17,6 +17,7 @@
 package edu.kit.kastel.property.checker;
 
 import com.sun.source.tree.MethodTree;
+import com.sun.source.tree.Tree;
 import edu.kit.kastel.property.packing.PackingAnnotatedTypeFactory;
 import edu.kit.kastel.property.packing.PackingStore;
 import edu.kit.kastel.property.packing.PackingTransfer;
@@ -26,6 +27,7 @@ import org.checkerframework.dataflow.cfg.visualize.CFGVisualizer;
 import org.checkerframework.framework.flow.CFValue;
 
 import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.type.TypeMirror;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -64,5 +66,13 @@ public final class PropertyAnnotatedTypeFactory extends PackingAnnotatedTypeFact
     public List<AnnotationMirror> getOutputPackingTypes(MethodTree tree) {
         AnnotationMirror[] arr = getChecker().getVisitor().outputPackingTypes.get(tree);
         return arr == null ? Collections.emptyList() : Collections.unmodifiableList(Arrays.asList(arr));
+    }
+
+    public TypeMirror getInferredUnpackFrame(Tree tree) {
+        return getChecker().getVisitor().inferredUnpackStatements.get(tree);
+    }
+
+    public TypeMirror getInferredPackFrame(Tree tree) {
+        return getChecker().getVisitor().inferredPackStatements.get(tree);
     }
 }

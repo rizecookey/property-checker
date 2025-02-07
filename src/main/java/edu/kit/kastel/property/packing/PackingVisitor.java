@@ -74,6 +74,7 @@ public class PackingVisitor
         if (valueTree.toString().equals("this")
                 && canInferPackingStatement(
                         valueTree,
+                        enclosingStatement(valueTree),
                         varType.getAnnotationInHierarchy(atypeFactory.getInitialized()),
                         valueType.getAnnotationInHierarchy(atypeFactory.getInitialized()))) {
             return;
@@ -90,6 +91,7 @@ public class PackingVisitor
         if (recv instanceof MemberSelectTree && ((MemberSelectTree) recv).getExpression().toString().equals("this")
                 && canInferPackingStatement(
                 ((MemberSelectTree) recv).getExpression(),
+                tree,
                 expected.getAnnotationInHierarchy(atypeFactory.getInitialized()),
                 found.getAnnotationInHierarchy(atypeFactory.getInitialized()))) {
             return;
@@ -134,6 +136,7 @@ public class PackingVisitor
 
         // Infer unpack statement if possible
         if (types.isSubtype(valFrame, varFrame) && !atypeFactory.isUnknownInitialization(valAnno)) {
+            inferUnpackStatement(methodTree, varFrame);
             return true;
         }
 
@@ -142,26 +145,28 @@ public class PackingVisitor
             checkFieldsInitializedUpToFrame(methodTree, varFrame);
             // checkFieldsInitializedUpToFrame reports an error if necessary.
             // We return true to not report another error.
+            inferPackStatement(methodTree, varFrame);
             return true;
         }
 
         return false;
     }
     protected final boolean canInferPackingStatement(
-            Tree tree,
+            Tree varTree,
+            Tree stmtTree,
             AnnotationMirror varAnno,
             AnnotationMirror valAnno) {
         TypeMirror varFrame;
         if (atypeFactory.isInitialized(varAnno)) {
             // If an object is initalized up to its most specific known subclass and no function with a receiver type
             // @UnderInitialization was called, the object is @Initialized
-            if (atypeFactory.getStoreBefore(tree).isHelperFunctionCalled()) {
+            if (atypeFactory.getStoreBefore(varTree).isHelperFunctionCalled()) {
                 return false;
             }
-            varFrame = ((JCTree) tree).type;
+            varFrame = ((JCTree) varTree).type;
         } else {
             varFrame = atypeFactory.getTypeFrameFromAnnotation(varAnno);
-            boolean unique = atypeFactory.getTypeFactoryOfSubchecker(ExclusivityChecker.class).getAnnotatedType(tree).hasAnnotation(Unique.class);
+            boolean unique = atypeFactory.getTypeFactoryOfSubchecker(ExclusivityChecker.class).getAnnotatedType(varTree).hasAnnotation(Unique.class);
             if (!unique) {
                 return false;
             }
@@ -170,19 +175,24 @@ public class PackingVisitor
 
         // Infer unpack statement if possible
         if (types.isSubtype(valFrame, varFrame) && !atypeFactory.isUnknownInitialization(valAnno)) {
+            inferUnpackStatement(stmtTree, varFrame);
             return true;
         }
 
         // Infer pack statement if possible
         if (types.isSubtype(varFrame, valFrame) && !atypeFactory.isUnknownInitialization(valAnno)) {
-            checkFieldsInitializedUpToFrame(tree, varFrame);
+            checkFieldsInitializedUpToFrame(varTree, varFrame);
             // checkFieldsInitializedUpToFrame reports an error if necessary.
             // We return true to not report another error.
+            inferPackStatement(stmtTree, varFrame);
             return true;
         }
 
         return false;
     }
+
+    protected void inferUnpackStatement(Tree tree, TypeMirror frame) {}
+    protected void inferPackStatement(Tree tree, TypeMirror frame) {}
 
     @Override
     public Void visitMethodInvocation(MethodInvocationTree node, Void p) {

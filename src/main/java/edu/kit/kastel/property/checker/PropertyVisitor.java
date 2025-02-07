@@ -37,6 +37,7 @@ import org.checkerframework.javacutil.TreeUtils;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.VariableElement;
+import javax.lang.model.type.TypeMirror;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -52,6 +53,9 @@ public final class PropertyVisitor extends PackingVisitor {
 
     Map<MethodTree, AnnotationMirror[]> inputPackingTypes = new HashMap<>();
     Map<MethodTree, AnnotationMirror[]> outputPackingTypes = new HashMap<>();
+
+    Map<Tree, TypeMirror> inferredUnpackStatements = new HashMap<>();
+    Map<Tree, TypeMirror> inferredPackStatements = new HashMap<>();
 
     protected PropertyVisitor(BaseTypeChecker checker) {
         super(checker);
@@ -141,6 +145,16 @@ public final class PropertyVisitor extends PackingVisitor {
             LatticeVisitor latticeVisitor = (LatticeVisitor) targetChecker.getVisitor();
             latticeVisitor.addUninitializedFields(tree, uninitializedFields);
         }
+    }
+
+    @Override
+    protected void inferPackStatement(Tree tree, TypeMirror frame) {
+        this.inferredPackStatements.put(tree, frame);
+    }
+
+    @Override
+    protected void inferUnpackStatement(Tree tree, TypeMirror frame) {
+        this.inferredUnpackStatements.put(tree, frame);
     }
 
     @Override
