@@ -7,6 +7,7 @@ import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.tree.TreeInfo;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
+import edu.kit.kastel.property.subchecker.exclusivity.qual.Unique;
 import edu.kit.kastel.property.util.Assert;
 import edu.kit.kastel.property.util.Packing;
 import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
@@ -81,13 +82,34 @@ public class PackingVisitor
         super.reportCommonAssignmentError(varType, valueType, valueTree, "packing." + errorKey, extraArgs);
     }
 
+
+    @Override
+    protected void reportMethodInvocabilityError(
+            MethodInvocationTree tree, AnnotatedTypeMirror found, AnnotatedTypeMirror expected) {
+        ExpressionTree recv = tree.getMethodSelect();
+        if (recv instanceof MemberSelectTree && ((MemberSelectTree) recv).getExpression().toString().equals("this")
+                && canInferPackingStatement(
+                ((MemberSelectTree) recv).getExpression(),
+                expected.getAnnotationInHierarchy(atypeFactory.getInitialized()),
+                found.getAnnotationInHierarchy(atypeFactory.getInitialized()))) {
+            return;
+        }
+
+        checker.reportError(
+                tree,
+                "packing.method.invocation.invalid",
+                TreeUtils.elementFromUse(tree),
+                found.toString(),
+                expected.toString());
+    }
+
     protected final boolean canInferPackingStatement(
             MethodTree methodTree,
             AnnotationMirror varAnno,
             AnnotationMirror valAnno) {
         TypeMirror varFrame;
         if (atypeFactory.isInitialized(varAnno)) {
-            // If an object is initalized up to its most specific known subclass and no function with a receiver type
+            // If an object is initialized up to its most specific known subclass and no function with a receiver type
             // @UnderInitialization was called, the object is @Initialized
             if (atypeFactory.getRegularExitStore(methodTree).isHelperFunctionCalled()) {
                 return false;
@@ -100,6 +122,10 @@ public class PackingVisitor
                 varFrame = classType;
             } else {
                 varFrame = ((JCTree) methodTree.getReceiverParameter()).type;
+                boolean unique = methodTree.getReceiverParameter().getModifiers().getAnnotations().stream().anyMatch(anno -> anno.toString().equals("@Unique"));
+                if (!unique) {
+                    return false;
+                }
             }
         } else {
             varFrame = atypeFactory.getTypeFrameFromAnnotation(varAnno);
@@ -113,7 +139,9 @@ public class PackingVisitor
 
         // Infer pack statement if possible
         if (types.isSubtype(varFrame, valFrame) && !atypeFactory.isUnknownInitialization(valAnno)) {
-            checkFieldsInitializedUpToFrame(methodTree, atypeFactory.getTypeFrameFromAnnotation(valAnno));
+            checkFieldsInitializedUpToFrame(methodTree, varFrame);
+            // checkFieldsInitializedUpToFrame reports an error if necessary.
+            // We return true to not report another error.
             return true;
         }
 
@@ -133,6 +161,10 @@ public class PackingVisitor
             varFrame = ((JCTree) tree).type;
         } else {
             varFrame = atypeFactory.getTypeFrameFromAnnotation(varAnno);
+            boolean unique = atypeFactory.getTypeFactoryOfSubchecker(ExclusivityChecker.class).getAnnotatedType(tree).hasAnnotation(Unique.class);
+            if (!unique) {
+                return false;
+            }
         }
         TypeMirror valFrame = atypeFactory.getTypeFrameFromAnnotation(valAnno);
 
@@ -143,22 +175,13 @@ public class PackingVisitor
 
         // Infer pack statement if possible
         if (types.isSubtype(varFrame, valFrame) && !atypeFactory.isUnknownInitialization(valAnno)) {
-            checkFieldsInitializedUpToFrame(tree, atypeFactory.getTypeFrameFromAnnotation(valAnno));
+            checkFieldsInitializedUpToFrame(tree, varFrame);
+            // checkFieldsInitializedUpToFrame reports an error if necessary.
+            // We return true to not report another error.
             return true;
         }
 
         return false;
-    }
-
-    @Override
-    protected void reportMethodInvocabilityError(
-            MethodInvocationTree tree, AnnotatedTypeMirror found, AnnotatedTypeMirror expected) {
-        checker.reportError(
-                tree,
-                "packing.method.invocation.invalid",
-                TreeUtils.elementFromUse(tree),
-                found.toString(),
-                expected.toString());
     }
 
     @Override
@@ -199,17 +222,17 @@ public class PackingVisitor
             }
             TypeMirror newTypeFrame;
             if (ElementUtils.isMethod(invokedMethod, unpackMethod, env)) {
-                // Type-check unpack statement: new type frame must be supertype of old type frame.
-                newTypeFrame = typeElement.getSuperclass();
-                if (newTypeFrame instanceof NoType) {
-                    checker.reportError(node, "initialization.unpacking.object.class");
-                } else if (oldTypeFrame != null && (!types.isSubtype(oldTypeFrame, newTypeFrame) || types.isSameType(oldTypeFrame, newTypeFrame))) {
-                    checker.reportError(node, "initialization.already.unpacked");
-                }
-
                 // Type-check unpack statement: cannot unpack UnknownInitialization
                 if (AnnotationUtils.areSameByName(oldAnnotation, atypeFactory.getUnknownInitialization())) {
                     checker.reportError(node, "initialization.unpacking.unknown");
+                } else {
+                    // Type-check unpack statement: new type frame must be supertype of old type frame.
+                    newTypeFrame = typeElement.getSuperclass();
+                    if (newTypeFrame instanceof NoType) {
+                        checker.reportError(node, "initialization.unpacking.object.class");
+                    } else if (oldTypeFrame != null && (!types.isSubtype(oldTypeFrame, newTypeFrame) || types.isSameType(oldTypeFrame, newTypeFrame))) {
+                        checker.reportError(node, "initialization.already.unpacked");
+                    }
                 }
             } else {
                 // Type-check pack statement:
@@ -449,7 +472,7 @@ public class PackingVisitor
             // cast is safe: a field access can only be an IdentifierTree or MemberSelectTree
             ExpressionTree lhs = (ExpressionTree) varTree;
             AnnotatedTypeMirror xType = atypeFactory.getReceiverType(lhs);
-            if (atypeFactory.isInitializedForFrame(xType, TreeInfo.symbol((JCTree) varTree).owner.type)) {
+            if (atypeFactory.isUnknownInitialization(xType) || atypeFactory.isInitializedForFrame(xType, TreeInfo.symbol((JCTree) varTree).owner.type)) {
                 checker.reportError(varTree, "initialization.write.committed.field", varTree);
                 return false;
             }

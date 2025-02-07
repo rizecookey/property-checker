@@ -10,13 +10,13 @@ class ReferenceSplitting {
     // :: error: initialization.field.uninitialized
     @Unique Foo field;
 
-    void refTransfer() {
+    // :: error: initialization.fields.uninitialized
+    void refTransfer(@Unique ReferenceSplitting this) {
         @ReadOnly @NullTop Foo x;
         @Unique @NullTop Foo a;
 
-        x = new Foo();  // x is refined to @ExclMut
+        x = new Foo();  // x is updated to @Unique
         a = x;          // x is updated to @ReadOnly
-        // :: error: exclusivity.type.invalidated :: error: initialization.write.committed.field
-        this.field = x; // invalid, x is not @ExclMut anymore
+        this.field = x; // invalid, x is not @Unique anymore
     }
 }

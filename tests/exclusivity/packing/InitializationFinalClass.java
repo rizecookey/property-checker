@@ -12,7 +12,7 @@ public final class InitializationFinalClass {
 
     InitializationFinalClass() {
         this.unique = new Obj();
-        // :: error: packing.method.invocation.invalid
+        // :: error: initialization.fields.uninitialized
         this.foo();
     }
 

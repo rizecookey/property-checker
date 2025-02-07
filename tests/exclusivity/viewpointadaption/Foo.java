@@ -18,7 +18,7 @@ public class Foo {
     }
 
     public @ReadOnly @UnknownInitialization(Object.class) @NullTop Bar getReadOnly(@ReadOnly @UnknownInitialization(Object.class) @NullTop Foo this) {
-        return readOnly;
+        return this.readOnly;
     }
 
     public @ReadOnly @UnknownInitialization(Object.class) @NullTop Bar getReadOnlyFake(@ReadOnly @UnknownInitialization(Object.class) @NullTop Foo this) {
@@ -29,39 +29,39 @@ public class Foo {
         // :: error: exclusivity.type.invalidated :: error: packing.method.invocation.invalid
         this.readOnly.change();
         // :: error: exclusivity.type.invalidated
-        return readOnly;
+        return this.readOnly;
     }
 
     public @Unique @NullTop Bar getUniqueFromReadOnly(@ReadOnly @UnknownInitialization(Object.class) @NullTop Foo this) {
         // :: error: exclusivity.type.invalidated :: error: packing.return.type.incompatible
-        return unique;
+        return this.unique;
     }
 
     public @MaybeAliased Bar getAliasedFromReadOnly(@ReadOnly @UnknownInitialization(Object.class) @NullTop Foo this) {
         // :: error: exclusivity.type.invalidated :: error: nullness.return.type.incompatible :: error: packing.return.type.incompatible
-        return aliased;
+        return this.aliased;
     }
 
     public @Unique Bar getUniqueFromAliasedWrong(@MaybeAliased Foo this) {
         // :: error: exclusivity.type.invalidated
-        return unique;
+        return this.unique;
     }
 
     public @MaybeAliased Bar getUniqueFromAliasedRight(@MaybeAliased Foo this) {
-        return unique;
+        return this.unique;
     }
 
     public @MaybeAliased Bar getAliasedFromAliased(@MaybeAliased Foo this) {
-        return aliased;
+        return this.aliased;
     }
 
+    // The adapted field type is compatible with the result type, but we're not allowed to leak a unique field
+    // :: error: initialization.fields.uninitialized
     public @Unique Bar getUniqueFromUnique(@Unique Foo this) {
-        // The adapted field type is compatible with the result type, we we're not allowed to leak a unique field
-        // :: error: exclusivity.type.invalidated
-        return unique;
+        return this.unique;
     }
 
     public @MaybeAliased Bar getAliasedFromUnique(@Unique Foo this) {
-        return aliased;
+        return this.aliased;
     }
 }

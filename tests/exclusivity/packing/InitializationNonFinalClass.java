@@ -12,7 +12,7 @@ public class InitializationNonFinalClass {
 
     @Initialized InitializationNonFinalClass() {
         this.unique = new Obj();
-        // :: error: nullness.method.invocation.invalid :: error: packing.method.invocation.invalid
+        // :: error: nullness.method.invocation.invalid :: error: initialization.fields.uninitialized
         this.foo();
     }
 
@@ -20,7 +20,7 @@ public class InitializationNonFinalClass {
         this.aliased = new Obj();
         this.unique = new Obj();
 
-        // :: error: nullness.method.invocation.invalid :: error: packing.method.invocation.invalid
+        // :: error: nullness.method.invocation.invalid
         this.foo();
     }
 

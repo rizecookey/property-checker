@@ -15,14 +15,14 @@ public final class IntInitTest {
     public IntInitTest() {
         this.helper();
         
-        even = 2;
-        odd = 1;
+        this.even = 2;
+        this.odd = 1;
         
-        // :: error: packing.method.invocation.invalid
+        // :: error: initialization.fields.uninitialized
         this.nonHelper();
     }
 
-    public @Remainder(remainder="0", modulus="2") int helper(@Unique @UnknownInitialization IntInitTest this) {
+    public @Remainder(remainder="0", modulus="2") int helper(@Unique @UnderInitialization IntInitTest this) {
     	// :: error: remainder.return.type.incompatible :: error: packing.return.type.incompatible
         return this.even;
     }

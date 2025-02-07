@@ -13,19 +13,18 @@ public final class ListClient {
     @MaybeAliased @Length(len="1") List b;
     @Unique @Length(len="a.size") List c;
 
+    // :: error: initialization.fields.uninitialized
     public ListClient() {
         this.a = new List(42);
         this.b = new List(42);
         this.c = new List(42);
-
-        // :: error: (initialization.fields.uninitialized)
     }
 
+    // :: error: initialization.fields.uninitialized
     public void correctPacking(@Unique ListClient this) {
         // :: error: length.method.invocation.invalid
         a.insert(42, 1);
         // :: error: length.method.invocation.invalid
         c.insert(42, 1);
-        // :: error: initialization.fields.uninitialized
     }
 }

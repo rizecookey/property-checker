@@ -16,29 +16,25 @@ public final class List {
 
     @JMLClause("ensures this.head == head && this.tail == null && this.size == 1;")
     @JMLClause("assignable \\nothing;")
-    // :: error: length.inconsistent.constructor.type
+    // :: error: length.inconsistent.constructor.type :: error: initialization.fields.uninitialized
     public @Unique @Length(len="1") List(int head) {
         this.head = head;
         this.tail = null;
         this.size = 1;
-
-        // :: error: initialization.fields.uninitialized
     }
 
     @JMLClause("ensures this.head == head && this.tail == tail;")
     @JMLClause("assignable \\nothing;")
-    // :: error: length.inconsistent.constructor.type :: error: length.contracts.postcondition.not.satisfied
+    // :: error: length.inconsistent.constructor.type :: error: length.contracts.postcondition.not.satisfied :: error: initialization.fields.uninitialized
     public @Unique @Length(len="n+1") List(int head, @Nullable @Length(len="n") List tail, int n) {
         this.head = head;
         this.tail = tail;
         this.size = tail == null ? 1 : tail.size + 1;
-
-        // :: error: initialization.fields.uninitialized
     }
 
     @EnsuresLength(value="this", len="n+1")
     @JMLClause("assignable this.*;")
-    // :: error: length.contracts.postcondition.not.satisfied
+    // :: error: length.contracts.postcondition.not.satisfied :: error: initialization.fields.uninitialized
     public void insert(
             @Unique @Length(len="n") List this,
             int newHead,
@@ -47,11 +43,9 @@ public final class List {
         if (this.tail == null) {
             this.tail = new List(head);
         } else {
-            // :: error: length.argument.type.incompatible
             this.tail = new List(this.head, this.tail, n - 1);
         }
         this.head = newHead;
         ++this.size;
-        // :: error: initialization.fields.uninitialized
     }
 }

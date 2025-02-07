@@ -12,9 +12,9 @@ class MutateOtherObjects {
     void mutate(@Unique MutateOtherObjects this, @Unique MutateOtherObjects other) {
         this.foo = new Foo();
 
-        // :: error: assignment.invalid-lhs
+        // :: error: assignment.invalid-lhs :: error: initialization.write.committed.field
         this.foo.i = 42;
-        // :: error: assignment.invalid-lhs
+        // :: error: assignment.invalid-lhs :: error: initialization.write.committed.field
         other.foo = new Foo();
     }
 }

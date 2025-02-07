@@ -14,23 +14,21 @@ public abstract class LengthInitTest {
     public @MaybeAliased @Length(len="1") List i3;
     public @MaybeAliased @Length(len="2") List i4;
 
+    // :: error: initialization.fields.uninitialized
     public LengthInitTest(@MaybeAliased @Length(len="1") List arg) {
-        i2 = arg;
-        i3 = arg;
+        this.i2 = arg;
+        this.i3 = arg;
 
         @Length(len="1") List l3 = arg;
-
-        // :: error: initialization.fields.uninitialized
     }
 
+    // :: error: initialization.fields.uninitialized
     public LengthInitTest(@MaybeAliased @Length(len="1") List arg, int dummy) {
-        i2 = arg;
-        i3 = arg;
-        i4 = arg;
+        this.i2 = arg;
+        this.i3 = arg;
+        this.i4 = arg;
 
         // :: error: length.assignment.type.incompatible
         @Length(len="2") List l3 = arg;
-
-        // :: error: initialization.fields.uninitialized
     }
 }

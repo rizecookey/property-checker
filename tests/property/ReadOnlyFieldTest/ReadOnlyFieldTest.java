@@ -11,8 +11,8 @@ public final class ReadOnlyFieldTest {
 
     @ReadOnly @UnknownInitialization(Object.class) ReadOnlyFieldTest test2;
 
+    // :: error: initialization.fields.uninitialized
     public ReadOnlyFieldTest() {
-        // :: error: initialization.fields.uninitialized
     }
 
     public void fooThis(@Unique ReadOnlyFieldTest this) {

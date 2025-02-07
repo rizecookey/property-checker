@@ -136,6 +136,11 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
     @Override
     public Void visitAssignment(AssignmentTree node, Void p) {
+        if (TreeUtils.isFieldAccess(node.getVariable())) {
+            // Fields can be assigned any value if the receiver is sufficiently unpacked, and cannot be assigned at all
+            // otherwise. Nothing to check.
+            return null;
+        }
         call(() -> super.visitAssignment(node, p), () -> result.illTypedAssignments.add(node));
         return null;
     }

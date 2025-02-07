@@ -38,57 +38,57 @@ public final class BasicPackingB extends BasicPackingA {
         this.isFullyPacked();
     }
 
-    // :: error: packing.postcondition.not.satisfied
     void unpackingCovariant(@UnknownInitialization(BasicPackingA.class) @Unique BasicPackingB this) {
+        // :: error: initialization.write.committed.field
+        this.bField = null;
         // :: error: initialization.unpacking.unknown
+        Packing.unpack(this, BasicPackingB.class);
     }
 
-    void correctPackingCovariant(@UnknownInitialization(BasicPackingA.class) @Unique BasicPackingB this) {
-        this.bField = new Obj();
+    void incorrectPackingCovariant(@UnknownInitialization(BasicPackingA.class) @Unique BasicPackingB this) {
+        // :: error: packing.method.invocation.invalid
         this.isFullyPacked();
     }
 
-    // :: error: packing.postcondition.not.satisfied
-    void returnTypeIncompatible(@Unique BasicPackingB this) {
-    }
-
-    // :: error: packing.postcondition.not.satisfied
     void unpackNonReceiver(@Unique BasicPackingB this, @Unique BasicPackingB other) {
         // :: error: initialization.packing.nonreceiver
+        Packing.unpack(other, BasicPackingB.class);
     }
 
     // :: error: packing.postcondition.not.satisfied
     void unpackAliased(@MaybeAliased BasicPackingB this) {
+        // :: error: initialization.write.committed.field
+        this.bField = null;
         // :: error: exclusivity.packing.aliased
+        Packing.unpack(this, BasicPackingB.class);
     }
 
     void unpackObject(@Unique BasicPackingB this) {
         // :: error: initialization.unpacking.object.class
+        Packing.unpack(this, Object.class);
     }
 
+    // :: error: initialization.fields.uninitialized
     void incorrectModification(@Unique BasicPackingB this) {
-
         this.bField = null;
-
-
-        // :: error: initialization.fields.uninitialized
     }
 
     void correctModification(@Unique BasicPackingB this) {
-
         this.bField = null;
-
-
         this.bField = new Obj();
     }
 
     void doublePacking0(@Unique BasicPackingB this) {
         // :: error: initialization.already.unpacked
+        Packing.unpack(this, BasicPackingB.class);
+        Packing.pack(this, BasicPackingB.class);
         // :: error: initialization.already.packed
+        Packing.pack(this, BasicPackingB.class);
     }
 
     void doublePacking1(@Unique BasicPackingB this) {
         // :: error: initialization.already.unpacked
-        // :: error: initialization.already.packed
+        Packing.unpack(this, BasicPackingB.class);
+        Packing.pack(this, BasicPackingB.class);
     }
 }

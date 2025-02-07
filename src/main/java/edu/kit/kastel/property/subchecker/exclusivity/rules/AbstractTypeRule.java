@@ -113,11 +113,10 @@ abstract class AbstractTypeRule<N extends Node> implements TypeRule {
 
     protected final void canUpdateType(Node node, AnnotationMirror refinedType)
             throws RuleNotApplicable {
+        // Does nothing.
         // Local variables have a declared type that's only used to determine what rule to use when assigning to them.
         // It can be violated.
-        if (!(node instanceof LocalVariableNode)) {
-            canUpdateType(getAdaptedTypeAnnotation(node), refinedType);
-        }
+        // Field type can be violated too if the receiver is sufficiently unpacked.
     }
 
     protected final void canUpdateType(AnnotationMirror declTypeAnno, AnnotationMirror refinedType)

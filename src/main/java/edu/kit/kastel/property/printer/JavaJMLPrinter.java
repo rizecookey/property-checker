@@ -42,7 +42,6 @@ import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.Unique;
 import edu.kit.kastel.property.subchecker.lattice.LatticeAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.lattice.LatticeVisitor;
-import edu.kit.kastel.property.util.Packing;
 import edu.kit.kastel.property.util.TypeUtils;
 import edu.kit.kastel.property.util.Union;
 import org.apache.commons.lang3.StringUtils;
@@ -58,8 +57,6 @@ import javax.lang.model.type.TypeKind;
 import javax.lang.model.util.ElementFilter;
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.lang.ref.Cleaner;
-import java.time.format.TextStyle;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -107,9 +104,6 @@ public class JavaJMLPrinter extends PrettyPrinter {
     protected JCClassDecl enclClass;
     protected JCMethodDecl enclMethod;
     protected boolean enclBlock = false;
-
-    * CLEAN UP TESTS
-    * ADD INFERRED PACKING STATEMENTS TO TRANSLATION
 
     public JavaJMLPrinter(
             List<LatticeVisitor.Result> results,

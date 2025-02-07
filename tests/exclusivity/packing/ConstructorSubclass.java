@@ -17,7 +17,6 @@ public class ConstructorSubclass extends ConstructorSuperclass {
 
     ConstructorSubclass(int dummy) {
         super(dummy);
-        // :: error: packing.method.invocation.invalid
         this.isPackedToSuperclass();
         this.subField = new Obj();
     }

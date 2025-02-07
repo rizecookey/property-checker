@@ -11,10 +11,10 @@ public final class Constructor {
     @MaybeAliased Object aliased;
     @Unique Object unique;
 
-    // :: error: initialization.constructor.return.type.incompatible
+    // :: error: initialization.fields.uninitialized
     public Constructor() { }
 
-    // :: error: initialization.constructor.return.type.incompatible
+    // :: error: initialization.fields.uninitialized
     public @UnknownInitialization(Constructor.class) Constructor(short dummy) {
     }
 
@@ -22,8 +22,8 @@ public final class Constructor {
     }
 
     public Constructor(int dummy) {
-        aliased = new Obj();
-        unique = new Obj();
+        this.aliased = new Obj();
+        this.unique = new Obj();
     }
 
     public void foo(Constructor this) {}

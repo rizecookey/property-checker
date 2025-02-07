@@ -5,8 +5,6 @@ import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.NewClassTree;
 import com.sun.tools.javac.code.Symbol;
-import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
-import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
 import edu.kit.kastel.property.util.ClassUtils;
 import edu.kit.kastel.property.util.Packing;
 import org.checkerframework.checker.initialization.InitializationAbstractTransfer;
@@ -32,6 +30,7 @@ import org.checkerframework.javacutil.*;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.type.TypeMirror;
 import java.lang.reflect.Modifier;
 import java.util.List;
 import java.util.Set;
@@ -50,11 +49,14 @@ public class PackingTransfer extends InitializationAbstractTransfer<CFValue, Pac
         if (underlyingAST instanceof UnderlyingAST.CFGMethod) {
             UnderlyingAST.CFGMethod method = (UnderlyingAST.CFGMethod) underlyingAST;
             MethodTree methodDeclTree = method.getMethod();
-            if (!TreeUtils.isConstructor(methodDeclTree) && methodDeclTree.getReceiverParameter() != null) {
+            if (TreeUtils.isConstructor(methodDeclTree)) {
+                TypeMirror thisType = TreeUtils.elementFromTree(method.getClassTree()).asType();
+                TypeMirror superType = TypesUtils.getSuperclass(thisType, atypeFactory.types);
+                initStore.initializeThisValue(atypeFactory.createUnderInitializationAnnotation(superType), thisType);
+            } else if (methodDeclTree.getReceiverParameter() != null) {
                 AnnotatedTypeMirror thisType = atypeFactory.getAnnotatedType(methodDeclTree.getReceiverParameter());
                 AnnotationMirror thisAnno = thisType.getAnnotationInHierarchy(
                         AnnotationBuilder.fromClass(atypeFactory.getElementUtils(), UnderInitialization.class));
-                ExclusivityAnnotatedTypeFactory exclFactory = atypeFactory.getChecker().getUltimateParentChecker().getTypeFactoryOfSubcheckerOrNull(ExclusivityChecker.class);
                 boolean thisUnique = methodDeclTree.getReceiverParameter().getModifiers().getAnnotations().stream().anyMatch(anno -> anno.toString().equals("@Unique"));
 
                 if (atypeFactory.isUnknownInitialization(thisAnno) || !thisUnique) {
@@ -62,7 +64,7 @@ public class PackingTransfer extends InitializationAbstractTransfer<CFValue, Pac
                     // so we use the input type in the initial store
                     initStore.initializeThisValue(thisAnno, thisType.getUnderlyingType());
                 } else {
-                    // Other variables may be unpacked. We make them @UnknownInitialization(Object.class) in the initial
+                    // Other variables may be unpacked. We make them @UnderInitialization(Object.class) in the initial
                     // store, so the programmer doesn't need to write the unpack statement explicitly.
                     initStore.initializeThisValue(atypeFactory.createUnderInitializationAnnotation(Object.class), thisType.getUnderlyingType());
                 }

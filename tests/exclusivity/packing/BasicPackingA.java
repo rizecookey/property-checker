@@ -10,6 +10,6 @@ public class BasicPackingA {
     @Unique Object aField;
 
     BasicPackingA() {
-        aField = new Obj();
+        this.aField = new Obj();
     }
 }
