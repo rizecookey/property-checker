@@ -3,6 +3,8 @@ package edu.kit.kastel.property.smt;
 import edu.kit.kastel.property.util.UniqueIdMap;
 import org.checkerframework.dataflow.expression.FieldAccess;
 import org.checkerframework.dataflow.expression.JavaExpression;
+import org.checkerframework.dataflow.expression.ThisReference;
+import org.checkerframework.dataflow.expression.ValueLiteral;
 import org.checkerframework.javacutil.ElementUtils;
 import org.sosy_lab.java_smt.api.*;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
@@ -132,6 +134,7 @@ public final class SmtCompiler {
                 case FLOAT -> fpmgr().makeNumber((float) value, FormulaType.getSinglePrecisionFloatingPointType());
                 case DOUBLE -> fpmgr().makeNumber((double) value, getDoublePrecisionFloatingPointType());
                 case BOOLEAN -> bmgr().makeBoolean((boolean) value);
+                // null or string literal
                 case UNKNOWN -> unknownValue(value);
             };
             case SmtExpression.UnaryOperation(var type, var op, var expr) -> {
@@ -261,11 +264,13 @@ public final class SmtCompiler {
     }
 
     private Formula variable(JavaExpression expr) {
-        String variableName = "v_" + variables.getId(expr);
         SmtType type = SmtType.fromTypeMirror(expr.getType());
-        return type == SmtType.UNKNOWN
-                ? unknownValue(expr)
-                : context.getFormulaManager().makeVariable(formulaType(type), variableName);
+        if (type == SmtType.UNKNOWN && expr instanceof ThisReference) {
+            // this gets assigned a fixed number.
+            return unknownValue(expr);
+        }
+        String variableName = "v_" + variables.getId(expr);
+        return context.getFormulaManager().makeVariable(formulaType(type), variableName);
     }
 
     private FunctionDeclaration<?> function(ExecutableElement method) {
@@ -283,7 +288,6 @@ public final class SmtCompiler {
         );
     }
 
-    // TODO: change object expression representation from literals to variables (`this` and `null` get literals, others get variables)
     // represent a value of unknown type (literal value or expression) in SMT by assigning it an integer value
     private IntegerFormula unknownValue(Object value) {
         return imgr().makeNumber(unknownValues.getId(value));
