@@ -162,9 +162,8 @@ public final class LatticeParser {
 
         matchChar(tokenizer, ';');
         return new PropertyAnnotationType(
-        		ClassUtils.classOrPrimitiveForName(
-        				factory.getChecker().getQualPackage() + "." + annotationName, factory.getChecker()).asSubclass(Annotation.class),
-        		ClassUtils.classOrPrimitiveForName(annotatedTypeName, factory.getChecker()),
+                ClassUtils.classForName(factory.getChecker().getQualPackage() + "." + annotationName, factory.getChecker()).asSubclass(Annotation.class),
+        		ClassUtils.typeForName(annotatedTypeName, factory.getChecker()),
         		parameters,
         		property,
         		precondition);

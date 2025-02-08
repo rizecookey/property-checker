@@ -18,8 +18,11 @@ package edu.kit.kastel.property.lattice;
 
 import edu.kit.kastel.property.config.Config;
 import edu.kit.kastel.property.subchecker.lattice.LatticeAnnotatedTypeFactory;
+import edu.kit.kastel.property.util.ClassUtils;
 import org.checkerframework.javacutil.AnnotationBuilder;
+import org.checkerframework.javacutil.TypesUtils;
 
+import javax.lang.model.type.TypeMirror;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -32,7 +35,7 @@ import java.util.stream.Collectors;
 public final class PropertyAnnotationType {
 
     private Class<? extends Annotation> annotationType;
-    private Class<?> annotatedType;
+    private TypeMirror annotatedType;
     private List<Parameter> parameters;
     private String wfCondition;
     private String property;
@@ -42,7 +45,7 @@ public final class PropertyAnnotationType {
 
     public PropertyAnnotationType(
             Class<? extends Annotation> annotationType,
-            Class<?> annotatedType,
+            TypeMirror annotatedType,
             List<Parameter> parameters,
             String property,
             String precondition) {
@@ -60,7 +63,7 @@ public final class PropertyAnnotationType {
                 "@%s(%s) %s <==> %s for %s",
                 annotationType.getSimpleName(),
                 parameters.stream().map(Parameter::toString).collect(Collectors.joining(", ")),
-                annotatedType == null ? "any" : annotatedType.getSimpleName(),
+                annotatedType == null ? "any" : TypesUtils.simpleTypeName(annotatedType),
                 property,
                 wfCondition);
     }
@@ -68,7 +71,7 @@ public final class PropertyAnnotationType {
     @Override
     public int hashCode() {
         return Objects.hash(
-                annotatedType == null ? 0 : annotatedType.getName(),
+                annotatedType == null ? 0 : ClassUtils.getCanonicalName(annotatedType),
                 annotationType.getName(),
                 parameters,
                 wfCondition,
@@ -87,7 +90,7 @@ public final class PropertyAnnotationType {
             return false;
         }
         PropertyAnnotationType other = (PropertyAnnotationType) obj;
-        return Objects.equals(annotatedType.getName(), other.annotatedType.getName())
+        return Objects.equals(ClassUtils.getCanonicalName(annotatedType), ClassUtils.getCanonicalName(other.annotatedType))
                 && Objects.equals(annotationType.getName(), other.annotationType.getName())
                 && Objects.equals(parameters, other.parameters)
                 && Objects.equals(wfCondition, other.wfCondition)
@@ -110,7 +113,7 @@ public final class PropertyAnnotationType {
         return annotationType.getSimpleName();
     }
 
-    public Class<?> getSubjectType() {
+    public TypeMirror getSubjectType() {
         return annotatedType;
     }
 
@@ -332,7 +335,7 @@ public final class PropertyAnnotationType {
         @Override
         public Class<?>[] getParameterTypes() {
             List<Class<?>> result = new ArrayList<>();
-            result.add(annotatedType);
+            result.add(annotatedType == null ? null : TypesUtils.getClassFromType(annotatedType));
             result.addAll(PropertyAnnotationType.this.parameters.stream()
                     .map(Parameter::getType).map(ParameterType::toClass).collect(Collectors.toList()));
             return result.toArray(new Class<?>[0]);

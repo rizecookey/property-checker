@@ -49,6 +49,7 @@ public abstract class PackingClientTransfer<
 
     @Override
     public S initialStore(UnderlyingAST underlyingAST, List<LocalVariableNode> parameters) {
+        ((PackingClientAnalysis<?, ?, ?>) analysis).setPosition(underlyingAST.getCode());
         S initStore = super.initialStore(underlyingAST, parameters);
         PackingClientAnnotatedTypeFactory factory = getAnalysis().getTypeFactory();
 
@@ -91,6 +92,7 @@ public abstract class PackingClientTransfer<
                 factory.getElementUtils());
         for (VariableElement field : allFields) {
             if (!ElementUtils.isStatic(field)) {
+                ((PackingClientAnalysis<V, S, T>) analysis).setPosition(factory.declarationFromElement(field));
                 FieldAccess fieldAccess = new FieldAccess(new ThisReference(receiverType.getUnderlyingType()), field);
                 TypeMirror fieldOwnerType = field.getEnclosingElement().asType();
                 AnnotatedTypeMirror declaredType = factory.getAnnotatedType(field);
@@ -116,15 +118,10 @@ public abstract class PackingClientTransfer<
                 }
 
                 V value = analysis.createAbstractValue(adaptedType);
-                processFieldValue(field, value);
                 store.insertValue(fieldAccess, value);
             }
         }
 
-    }
-
-    protected void processFieldValue(VariableElement field, V value) {
-        // do nothing
     }
 
     protected abstract boolean uncommitPrimitiveFields();
@@ -172,13 +169,8 @@ public abstract class PackingClientTransfer<
                         receiverType.getAnnotations(),
                         receiverType.getUnderlyingType());
 
-                AnnotationMirror nonNull = receiverType.getAnnotations().stream()
-                        .filter(a -> a.getAnnotationType().asElement().getSimpleName().contentEquals("NonNull"))
-                        .findAny().orElse(null);
                 JavaExpression receiverExpr = JavaExpression.fromNode(receiver);
-                if (nonNull != null) {
-                    store.insertOrRefine(receiverExpr, nonNull);
-                } else if (receiverValue != null) {
+                if (receiverValue != null) {
                     store.insertValue(receiverExpr, receiverValue);
                 } else if (sideEffectFree) {
                     store.insertOrRefine(receiverExpr, receiverDefaultValue.getAnnotations().first());
@@ -258,13 +250,11 @@ public abstract class PackingClientTransfer<
         }
 
         for (Contract p : postconditions) {
-            // Viewpoint-adapt to the method use (the call site).
-            AnnotationMirror anno =
-                    p.viewpointAdaptDependentTypeAnnotation(
-                            analysis.getTypeFactory(), stringToJavaExpr, /* errorTree= */ null);
+            AnnotationMirror anno = p.annotation;
 
             String expressionString = p.expressionString;
             try {
+                // TODO: parse with params as locals (StringToJavaExpression.atPath)
                 JavaExpression je = stringToJavaExpr.toJavaExpression(expressionString);
 
                 // Unlike the superclass implementation, this calls
@@ -272,7 +262,7 @@ public abstract class PackingClientTransfer<
                 // This is done because we use postconditions to implement output types for the parameters, which may
                 // be incompatible with the input types. If a parameter has no explicit output type, we use its input
                 // type as default, which is implemented above.
-                V newValue = createPostconditionValue(anno, je.getType(), p.expressionString, invocation);
+                V newValue = createPostconditionValue(anno, je.getType(), expressionString, invocation);
                 if (newValue != null) {
                     store.insertValue(je, newValue);
                 } else if (sideEffectFree) {

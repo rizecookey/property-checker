@@ -9,8 +9,10 @@ import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.tree.JCTree;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityStore;
+import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityViewpointAdapter;
 import org.checkerframework.dataflow.expression.*;
 import org.checkerframework.framework.source.SourceChecker;
+import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.framework.util.JavaExpressionParseUtil;
 import org.checkerframework.framework.util.StringToJavaExpression;
@@ -19,10 +21,13 @@ import org.checkerframework.javacutil.*;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.VariableElement;
+import javax.lang.model.type.TypeMirror;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.checkerframework.dataflow.expression.ViewpointAdaptJavaExpression.viewpointAdapt;
 
@@ -38,8 +43,10 @@ public class JavaExpressionUtil {
 
     public static MethodCall constructorCall(NewClassTree tree) {
         ExecutableElement invokedConstructor = TreeUtils.elementFromUse(tree);
+        TypeMirror type = invokedConstructor.getEnclosingElement().asType();
         var arguments = tree.getArguments().stream().map(JavaExpression::fromTree).toList();
-        return new MethodCall(invokedConstructor.getReturnType(), invokedConstructor, null, arguments);
+        return new MethodCall(type, invokedConstructor,
+                new ClassName(type), arguments);
     }
 
     public static MethodCall methodCall(MethodInvocationTree tree) {
@@ -75,6 +82,7 @@ public class JavaExpressionUtil {
         ClassTree classTree = TreePathUtil.enclosingClass(methodPath);
         // FIXME: bug in checker framework or compiler (?!): `type` field of classTree is sometimes null,
         //  which breaks checker framework. This is a very bad, not good hack to make sure it is set.
+        //  (bug can be demonstrated on the CaseStudyMutable test case)
         ((JCTree) classTree).setType((Type) TreeUtils.elementFromDeclaration(classTree).asType());
         JavaExpression expression = StringToJavaExpression.atPath(stringExpression, methodPath, checker);
 
@@ -115,8 +123,7 @@ public class JavaExpressionUtil {
             this.reference = reference;
             this.exclFactory = exclFactory;
             this.exclHierarchy = exclFactory.getQualifierHierarchy();
-            this.ownerAnno = Objects.requireNonNullElse(exclAnnotation(reference.getReceiver()),
-                    exclFactory.MAYBE_ALIASED);
+            this.ownerAnno = store.deriveExclusivityValue(reference);
         }
 
         @Override
@@ -140,26 +147,21 @@ public class JavaExpressionUtil {
         }
 
         private boolean possibleAlias(FieldAccess expr) {
+            if (expr.equals(reference)) {
+                return true;
+            }
+
             if (expr.getField() != reference.getField()) {
                 return false;
             }
-            var anno = Objects.requireNonNullElse(exclAnnotation(expr.getReceiver()), exclFactory.READ_ONLY);
+
+
+            var anno = store.deriveExclusivityValue(expr);
             if (AnnotationUtils.areSame(ownerAnno, exclFactory.UNIQUE)) {
-                return exclHierarchy.isSubtypeQualifiersOnly(anno, exclFactory.READ_ONLY);
+                return exclHierarchy.isSubtypeQualifiersOnly(exclFactory.READ_ONLY, anno);
             } else {
                 return exclHierarchy.isSubtypeQualifiersOnly(anno, ownerAnno);
             }
-        }
-
-        private AnnotationMirror exclAnnotation(JavaExpression expr) {
-            var val = store.getValue(expr);
-            if (val != null) {
-                return exclFactory.getExclusivityAnnotation(val.getAnnotations());
-            } else if (expr instanceof MethodCall mc) {
-                var methodType = exclFactory.getAnnotatedType(mc.getElement());
-                return exclFactory.getExclusivityAnnotation(methodType.getReturnType());
-            }
-            return null;
         }
     }
 }

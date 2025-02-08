@@ -164,7 +164,7 @@ public final class PropertyVisitor extends PackingVisitor {
             var fields = result.getUninitializedFields().getOrDefault(packingCall, Collections.emptyList()).iterator();
             while (fields.hasNext()) {
                 var condition = result.getFieldRefinement(fields.next());
-                if (universallyValid(solverContext, compiler, conjunction, condition)) {
+                if (condition != null && universallyValid(solverContext, compiler, conjunction, condition)) {
                     fields.remove();
                 }
             }
@@ -281,6 +281,7 @@ public final class PropertyVisitor extends PackingVisitor {
             List<VariableElement> uninitializedFields =
                     atypeFactory.getUninitializedFields(
                             atypeFactory.getStoreBefore(tree),
+                            // FIXME null pointer exception (getStoreBefore can return null)
                             targetFactory.getStoreBefore(tree),
                             getCurrentPath(),
                             false,

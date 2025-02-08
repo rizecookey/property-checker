@@ -17,11 +17,12 @@
 package edu.kit.kastel.property.subchecker.lattice;
 
 import com.sun.source.tree.Tree;
-import com.sun.tools.javac.code.Type;
 import edu.kit.kastel.property.lattice.EvaluatedPropertyAnnotation;
 import edu.kit.kastel.property.lattice.PropertyAnnotation;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
-import edu.kit.kastel.property.util.ClassUtils;
+
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.type.TypeMirror;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.BaseTypeValidator;
 import org.checkerframework.common.basetype.BaseTypeVisitor;
@@ -29,8 +30,6 @@ import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedArrayType;
 import org.checkerframework.javacutil.AnnotationUtils;
-
-import javax.lang.model.element.AnnotationMirror;
 
 public final class LatticeTypeValidator extends BaseTypeValidator {
 
@@ -72,12 +71,11 @@ public final class LatticeTypeValidator extends BaseTypeValidator {
             return true;
         }
 
-        Class<?> expectedSubjectType = epa.getAnnotationType().getSubjectType();
-        Class<?> actualSubjectType = ClassUtils.classOrPrimitiveForName(
-                ((Type) type.getUnderlyingType()).asElement().toString(), getLatticeSubchecker());
+        TypeMirror expectedSubjectType = epa.getAnnotationType().getSubjectType();
+        TypeMirror actualSubjectType = type.getUnderlyingType();
 
         if (actualSubjectType != null && expectedSubjectType != null
-                && !expectedSubjectType.isAssignableFrom(actualSubjectType)) {
+                && !checker.getTypeUtils().isAssignable(actualSubjectType, expectedSubjectType)) {
             reportInvalidType(type, tree);
             return false;
         }

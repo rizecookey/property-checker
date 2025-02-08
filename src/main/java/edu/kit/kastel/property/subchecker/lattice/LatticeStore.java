@@ -17,6 +17,7 @@
 package edu.kit.kastel.property.subchecker.lattice;
 
 import com.sun.source.tree.Tree;
+import com.sun.source.tree.VariableTree;
 import edu.kit.kastel.property.packing.PackingClientStore;
 import edu.kit.kastel.property.packing.PackingFieldAccessAnnotatedTypeFactory;
 import edu.kit.kastel.property.packing.PackingFieldAccessSubchecker;
@@ -25,7 +26,6 @@ import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFa
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
 import edu.kit.kastel.property.util.JavaExpressionUtil;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.checkerframework.dataflow.cfg.node.LocalVariableNode;
 import org.checkerframework.dataflow.cfg.node.MethodInvocationNode;
 import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.dataflow.cfg.node.ThisNode;
@@ -35,22 +35,23 @@ import org.checkerframework.framework.flow.CFValue;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
 import org.checkerframework.framework.type.QualifierHierarchy;
-import org.checkerframework.framework.util.StringToJavaExpression;
 import org.checkerframework.javacutil.ElementUtils;
-import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TypesUtils;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
-import javax.lang.model.util.Types;
 import java.util.*;
 import java.util.function.Predicate;
-import java.util.stream.Stream;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+import static org.checkerframework.dataflow.expression.ViewpointAdaptJavaExpression.viewpointAdapt;
 
 public final class LatticeStore extends PackingClientStore<LatticeValue, LatticeStore> {
+
+	private static final Pattern subjectFieldPattern = Pattern.compile("§subject§\\s*\\.\\s*.");
 
 	public LatticeStore(CFAbstractAnalysis<LatticeValue, LatticeStore, ?> analysis, boolean sequentialSemantics) {
 		super(analysis, sequentialSemantics);
@@ -67,13 +68,7 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 
 	@Override
 	protected void removeConflicting(FieldAccess fieldAccess, @Nullable LatticeValue val) {
-		LatticeAnnotatedTypeFactory factory = (LatticeAnnotatedTypeFactory) analysis.getTypeFactory();
-
-		clearDependents(fieldAccess);
-
-		if (thisValue != null && thisValue.toPropertyAnnotation().getAnnotationType().isNonNull()) {
-			thisValue = createTopValue(thisValue.getUnderlyingType());
-		}
+        clearDependents(fieldAccess);
 	}
 
 	@Override
@@ -82,34 +77,53 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 	}
 
 	private void clearDependents(JavaExpression dependency) {
-		Predicate<JavaExpression> maybeDependent;
+		Predicate<JavaExpression> exprAnalyzer;
+		Tree currentTree = ((LatticeAnalysis) analysis).getPosition();
+		if (currentTree instanceof VariableTree) {
+			// we are in a variable declaration/assignment. No type can depend on an undeclared variable,
+			// so there are no dependents up to this point.
+			return;
+		}
+
 		if (dependency instanceof FieldAccess fieldAccess) {
 			var exclFactory = (ExclusivityAnnotatedTypeFactory) analysis.getTypeFactory()
 					.getTypeFactoryOfSubchecker(ExclusivityChecker.class);
-			Tree currentTree = analysis.getCurrentTree();
 			// dependency on fields may be expressed through aliases of the field owner object.
 			// the util method takes this into account when searching for dependencies.
-			maybeDependent = expr -> JavaExpressionUtil.maybeDependent(expr, fieldAccess, currentTree, exclFactory);
+			exprAnalyzer = expr -> JavaExpressionUtil.maybeDependent(expr, fieldAccess, currentTree, exclFactory);
 		} else {
 			// if it's not a field access, it's a local variable, and dependencies on local variables cannot
 			// exist through a layer of aliases.
-			maybeDependent = expr -> expr.containsSyntacticEqualJavaExpression(dependency);
+			exprAnalyzer = expr -> expr.containsSyntacticEqualJavaExpression(dependency);
 		}
 
 		// this predicate is an _approximation_ for "does a given type depend on `dependency`"?
 		// - if the property's arguments are all literals, it cannot depend on anything else
 		// - otherwise, if the parsed concrete refinement is available
 		//   (which may not be the case if unsupported language features are part of it, such as constructor calls)
-		//   the type is dependent if the maybeDependent predicate defined above holds.
-		Predicate<LatticeValue> isDependent =
-				val -> !val.onlyLiterals() && (val.getRefinement() == null || maybeDependent.test(val.getRefinement()));
+		//   the type is dependent if the exprAnalyzer predicate defined above holds.
+
+		// compromise: refinement analysis, and if that's not possible, check if it only has literals and invalidate
+		// it if it accesses any fields on subject
+
+
+		Predicate<Map.Entry<? extends JavaExpression, LatticeValue>> isDependent =
+				entry -> entry.getValue().getProperty(entry.getKey()).map(exprAnalyzer::test).orElse(true);
 
 		// TODO: why do we set local variables to top type, but remove field values?
 		localVariableValues.entrySet().stream()
-				.filter(entry -> isDependent.test(entry.getValue()))
+				.filter(isDependent)
 				.forEach(entry -> entry.setValue(createTopValue(entry.getKey().getElement().asType())));
-		fieldValues.values().removeIf(isDependent);
-		Optional.ofNullable(thisValue).filter(isDependent).ifPresent(val -> thisValue = null);
+		fieldValues.entrySet().removeIf(isDependent);
+		Optional.ofNullable(thisValue)
+				// special case for non null annotations on `this` - they can never be invalidated
+				.filter(val -> !val.toPropertyAnnotation().getAnnotationType().isNonNull())
+				.filter(val -> isDependent.test(Map.entry(new ThisReference(val.getUnderlyingType()), val)))
+				.ifPresent(val -> thisValue = createTopValue(val.getUnderlyingType()));
+	}
+
+	private static boolean isDependent(Predicate<JavaExpression> exprAnalyzer) {
+		return false;
 	}
 
 	protected LatticeValue createTopValue(TypeMirror underlyingType) {
@@ -129,11 +143,13 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 	 * @return collection of boolean java expressions.
 	 */
 	public Collection<JavaExpression> getLocalRefinements() {
-		// all local variable values should have the refinement set
-		return Stream.concat(localVariableValues.values().stream()
-				.map(LatticeValue::getRefinement), Stream.of(thisValue == null ? null : thisValue.getRefinement()))
-				.filter(Objects::nonNull)
-				.toList();
+		var list = localVariableValues.entrySet().stream()
+				.flatMap(entry -> entry.getValue().getProperty(entry.getKey()).stream())
+				.collect(Collectors.toCollection(ArrayList::new));
+		if (thisValue != null) {
+			thisValue.getProperty(new ThisReference(thisValue.getUnderlyingType())).ifPresent(list::add);
+		}
+		return list;
 	}
 
 	@Override
@@ -228,6 +244,7 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 
             FieldAccess fieldAccess = new FieldAccess(owner, field);
 			clearValue(fieldAccess);
+
 			if (exclHierarchy.isSubtypeQualifiersOnly(exclAnno, exclFactory.UNIQUE)
 					|| (exclHierarchy.isSubtypeQualifiersOnly(exclAnno, exclFactory.MAYBE_ALIASED)
 					&& packingFactory.isInitializedForFrame(inputPackingType, fieldOwnerType))) {
@@ -237,7 +254,6 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 				clearDependents(fieldAccess);
 			}
 
-
 			// add declared type of field to store if
 			// - field is part of `this` (we currently only track such fields)
 			// - `this` has packed state after method
@@ -246,22 +262,10 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 					&& outputPackingValue != null
 					&& packingFactory.isInitializedForFrame(outputPackingType, fieldOwnerType)) {
 				AnnotatedTypeMirror adaptedType = atypeFactory.getAnnotatedType(field);
+				((LatticeAnalysis) analysis).setPosition(atypeFactory.declarationFromElement(field));
 				LatticeValue val = analysis.createAbstractValue(adaptedType);
-				val.computeRefinement(fieldAccess.toString(),
-						ref -> StringToJavaExpression.atFieldDecl(ref, field, atypeFactory.getChecker()));
 				insertValue(fieldAccess, val);
             }
 		}
-	}
-
-	@Override
-	public void initializeMethodParameter(LocalVariableNode p, @Nullable LatticeValue value) {
-		if (value != null) {
-			var factory = (LatticeAnnotatedTypeFactory) analysis.getTypeFactory();
-			var localPath = analysis.getTypeFactory().getPath(p.getTree());
-			value.computeRefinement(p.getName(),
-					ref -> StringToJavaExpression.atPath(ref, localPath, factory.getChecker()));
-		}
-		super.initializeMethodParameter(p, value);
 	}
 }

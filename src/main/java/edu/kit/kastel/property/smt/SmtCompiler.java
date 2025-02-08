@@ -283,8 +283,7 @@ public final class SmtCompiler {
         );
     }
 
-    // TODO: change object expression representation from literals to variables
-    // TODO: make it so this == null cannot be true (optimisation)
+    // TODO: change object expression representation from literals to variables (`this` and `null` get literals, others get variables)
     // represent a value of unknown type (literal value or expression) in SMT by assigning it an integer value
     private IntegerFormula unknownValue(Object value) {
         return imgr().makeNumber(unknownValues.getId(value));

@@ -1,0 +1,97 @@
+package edu.kit.kastel.property.subchecker.lattice;
+
+import org.checkerframework.checker.nullness.qual.NonNull;
+
+import javax.lang.model.element.*;
+import javax.lang.model.type.TypeMirror;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Array;
+import java.util.List;
+import java.util.Set;
+
+public class SubjectVariableElement implements VariableElement {
+    private static final String NAME = "subject";
+
+    private final TypeMirror type;
+
+    public SubjectVariableElement(TypeMirror type) {
+        this.type = type;
+    }
+
+    @Override
+    public TypeMirror asType() {
+        return type;
+    }
+
+    @Override
+    public ElementKind getKind() {
+        return ElementKind.OTHER;
+    }
+
+    @Override
+    public Set<Modifier> getModifiers() {
+        return Set.of();
+    }
+
+    @Override
+    public Object getConstantValue() {
+        return null;
+    }
+
+    @Override
+    public Name getSimpleName() {
+        return new Name() {
+
+            @Override
+            public boolean contentEquals(CharSequence cs) {
+                return cs.toString().equals(NAME);
+            }
+
+            @Override
+            public int length() {
+                return NAME.length();
+            }
+
+            @Override
+            public char charAt(int index) {
+                return NAME.charAt(index);
+            }
+
+            @NonNull
+            @Override
+            public CharSequence subSequence(int start, int end) {
+                return NAME.subSequence(start, end);
+            }
+        };
+    }
+
+    @Override
+    public Element getEnclosingElement() {
+        return null;
+    }
+
+    @Override
+    public List<? extends Element> getEnclosedElements() {
+        return List.of();
+    }
+
+    @Override
+    public List<? extends AnnotationMirror> getAnnotationMirrors() {
+        return List.of();
+    }
+
+    @Override
+    public <A extends Annotation> A getAnnotation(Class<A> annotationType) {
+        return null;
+    }
+
+    @Override
+    public <A extends Annotation> A[] getAnnotationsByType(Class<A> annotationType) {
+        return (A[]) Array.newInstance(annotationType, 0);
+    }
+
+    @Override
+    public <R, P> R accept(ElementVisitor<R, P> v, P p) {
+        return v.visitVariable(this, p);
+    }
+}

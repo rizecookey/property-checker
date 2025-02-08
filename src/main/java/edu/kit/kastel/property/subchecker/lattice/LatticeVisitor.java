@@ -150,6 +150,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
     @Override
     protected void checkDefaultContract(VariableTree param, MethodTree methodTree, PackingClientStore<?, ?> exitStore) {
+        // TODO: missing smt analysis (analogous to checkPostconditions)
         JavaExpression paramExpr;
         if (param.getName().contentEquals("this")) {
             paramExpr = new ThisReference(((JCTree) param).type);
@@ -370,8 +371,6 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             Object... extraArgs) {
         commonAssignmentCheckStartDiagnostic(varType, valueType, valueTree);
         AnnotatedTypeMirror widenedValueType = atypeFactory.getWidenedType(valueType, varType);
-        // FIXME: soundness bug here? valueType is always declared type, even when field is uncommitted
-        // TODO: any field accesses that are not in store should get top type
         boolean success = atypeFactory.getTypeHierarchy().isSubtype(widenedValueType, varType);
 
         if (!success && valueTree instanceof LiteralTree) {
@@ -385,10 +384,11 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             } else if (epa != null) {
                 PropertyAnnotationType pat = epa.getAnnotationType();
 
+
                 Class<?> literalClass = ClassUtils.literalKindToClass(literal.getKind());
-                if (literalClass != null && literalClass.equals(pat.getSubjectType())) {
+                if (types.isSameType(valueType.getUnderlyingType(), pat.getSubjectType())) {
                     success = epa.checkProperty(literal.getValue());
-                } else if (literal.getKind() == Kind.NULL_LITERAL && !pat.getSubjectType().isPrimitive()) {
+                } else if (literal.getKind() == Kind.NULL_LITERAL && !pat.getSubjectType().getKind().isPrimitive()) {
                     success = epa.checkProperty(null);
                 }
             }
@@ -810,6 +810,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                     : invocationContext.argRefinements.get(paramIndex);
         } else {
             String refinement = getProperty(targetType).combinedRefinement(valueExpTree.toString());
+            // TODO: skip proof goal if it contains impure method calls
             toProve = parseOrUnknown(refinement, ref -> StringToJavaExpression.atPath(ref, getCurrentPath(), checker));
         }
 

@@ -20,45 +20,72 @@ import javax.lang.model.type.TypeMirror;
 
 import edu.kit.kastel.property.lattice.PropertyAnnotation;
 import edu.kit.kastel.property.packing.PackingClientValue;
-import org.apache.commons.lang3.function.FailableFunction;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.dataflow.expression.FormalParameter;
 import org.checkerframework.dataflow.expression.JavaExpression;
+import org.checkerframework.dataflow.expression.ThisReference;
 import org.checkerframework.framework.util.JavaExpressionParseUtil;
 import org.checkerframework.javacutil.AnnotationMirrorSet;
+import org.checkerframework.javacutil.TreePathUtil;
+import org.checkerframework.javacutil.TreeUtils;
+import org.checkerframework.javacutil.TypesUtils;
+
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+
+import static org.checkerframework.dataflow.expression.ViewpointAdaptJavaExpression.viewpointAdapt;
 
 public final class LatticeValue extends PackingClientValue<LatticeValue> {
 
-	private JavaExpression refinement;
+	private final JavaExpression property;
 
 	protected LatticeValue(
 			LatticeAnalysis analysis,
 			AnnotationMirrorSet annotations,
 			TypeMirror underlyingType) {
 		super(analysis, annotations, underlyingType);
-	}
+		var tree = analysis.getPosition();
+		JavaExpression parsed = null;
+		if (tree != null) {
+			// if we have a location where the refinement should be parsed, we parse it
+			PropertyAnnotation property = toPropertyAnnotation();
+			// for the subject, we use the checker framework's special parameter # syntax.
+			String refinement = property.combinedRefinement("#1");
+			var subjectParam = new FormalParameter(1, new SubjectVariableElement(
+					Objects.requireNonNullElse(
+							property.getAnnotationType().getSubjectType(),
+							TypesUtils.getObjectTypeMirror(analysis.getEnv()))
+			));
+
+			var localPath = analysis.getTypeFactory().getPath(tree);
+			TypeMirror enclosingType = TreeUtils.elementFromDeclaration(TreePathUtil.enclosingClass(localPath)).asType();
+			ThisReference thisReference = TreePathUtil.isTreeInStaticScope(localPath) ? null : new ThisReference(enclosingType);
+			LatticeSubchecker checker = analysis.getTypeFactory().getChecker();
+			try {
+				parsed = JavaExpressionParseUtil.parse(
+						refinement, enclosingType, thisReference,
+						List.of(subjectParam), localPath,
+						checker.getPathToCompilationUnit(), checker.getProcessingEnvironment());
+			} catch (JavaExpressionParseUtil.JavaExpressionParseException e) {
+				// ignored
+			}
+		}
+		this.property = parsed;
+    }
 
 	public PropertyAnnotation toPropertyAnnotation() {
 		var factory = (LatticeAnnotatedTypeFactory) analysis.getTypeFactory();
 		var anno = factory.getQualifierHierarchy().findAnnotationInHierarchy(annotations, factory.getTop());
-		return factory.getLattice().getPropertyAnnotation(anno);
+		return factory.getLattice().getPropertyAnnotation(anno == null ? factory.getTop() : anno);
 	}
 
-	// TODO move refinement parsing from here to analysis class (need to figure out how to pass along subject and tree)
-	public void computeRefinement(
-			String subject,
-			FailableFunction<String, JavaExpression, JavaExpressionParseUtil.JavaExpressionParseException> parser
-	) {
-		if (this.refinement != null) {
-			return;
-		}
+	public Optional<JavaExpression> getProperty(JavaExpression subject) {
+		return Optional.ofNullable(property).map(prop -> viewpointAdapt(prop, List.of(subject)));
+	}
 
-		String refinement = toPropertyAnnotation().combinedRefinement(subject);
-        try {
-            this.refinement = parser.apply(refinement);
-        } catch (JavaExpressionParseUtil.JavaExpressionParseException e) {
-            // TODO: logging
-        }
-    }
+	public boolean isParsed() {
+		return property != null;
+	}
 
 	public boolean onlyLiterals() {
 		var factory = (LatticeAnnotatedTypeFactory) analysis.getTypeFactory();
@@ -66,8 +93,4 @@ public final class LatticeValue extends PackingClientValue<LatticeValue> {
 				factory.getQualifierHierarchy().findAnnotationInHierarchy(annotations, factory.getTop())) != null;
 	}
 
-	@Nullable
-	public JavaExpression getRefinement() {
-		return refinement;
-	}
 }

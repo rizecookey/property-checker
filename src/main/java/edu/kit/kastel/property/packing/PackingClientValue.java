@@ -12,4 +12,6 @@ public abstract class PackingClientValue<V extends PackingClientValue<V>> extend
     protected PackingClientValue(CFAbstractAnalysis<V, ?, ?> analysis, AnnotationMirrorSet annotations, TypeMirror underlyingType) {
         super(analysis, annotations, underlyingType);
     }
+
+
 }
