@@ -20,7 +20,6 @@ import com.sun.source.tree.*;
 import com.sun.source.tree.Tree.Kind;
 import com.sun.source.util.TreePath;
 import com.sun.tools.javac.code.Type;
-import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.tree.JCTree.JCClassDecl;
 import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
 import edu.kit.kastel.property.checker.PropertyChecker;
@@ -38,9 +37,9 @@ import edu.kit.kastel.property.util.*;
 import edu.kit.kastel.property.util.CollectionUtils;
 import org.apache.commons.lang3.function.FailableFunction;
 import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.TypeValidator;
-import org.checkerframework.dataflow.cfg.UnderlyingAST;
 import org.checkerframework.dataflow.expression.*;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedDeclaredType;
@@ -124,25 +123,14 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
     protected void checkPostcondition(MethodTree methodTree, AnnotationMirror annotation, JavaExpression expression) {
         final int paramIdx = TypeUtils.getParameterIndex(methodTree, expression);
         result.methodOutputTypes.get(methodTree)[paramIdx] = annotation;
-
-        // postcondition for the receiver: use the method tree as the key (there is no tree for implicit receivers)
-        // parameter postcondition: use the variable tree of the parameter
-        Tree treeKey = paramIdx == 0 ? methodTree : methodTree.getParameters().get(paramIdx - 1);
-        var refinement = atypeFactory.getLattice().getPropertyAnnotation(annotation).combinedRefinement(expression.toString());
-        var goal = convertGoal(
-                parseOrUnknown(refinement, ref -> StringToJavaExpression.atPath(ref, getCurrentPath(), checker)),
-                expression.toString()
-        );
-        var store = atypeFactory.getRegularExitStore(methodTree);
-        if (goal != null && store != null) {
-            computeSmtContext(store, treeKey, goal.references());
-        }
+        var treeKey = postconditionKey(methodTree, paramIdx);
+        var goal = computePostconditionSmt(treeKey, annotation, expression, atypeFactory.getRegularExitStore(methodTree));
 
         call(
                 () -> super.checkPostcondition(methodTree, annotation, expression),
                 () -> {
                     if (goal != null) {
-                        result.mendingConditions.put(treeKey, goal.smt());
+                        result.mendingConditions.put(treeKey, goal);
                     }
                     result.addIllTypedMethodOutputParam(methodTree, paramIdx);
                 });
@@ -150,20 +138,33 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
     @Override
     protected void checkDefaultContract(VariableTree param, MethodTree methodTree, PackingClientStore<?, ?> exitStore) {
-        // TODO: missing smt analysis (analogous to checkPostconditions)
         JavaExpression paramExpr;
         if (param.getName().contentEquals("this")) {
-            paramExpr = new ThisReference(((JCTree) param).type);
+            paramExpr = new ThisReference(TreeUtils.typeOf(param));
         } else {
             paramExpr = JavaExpression.fromVariableTree(param);
         }
         final int paramIdx = TypeUtils.getParameterIndex(methodTree, param);
+        var treeKey = postconditionKey(methodTree, paramIdx);
+        var annotation = atypeFactory.getAnnotatedTypeLhs(param).getAnnotationInHierarchy(atypeFactory.getTop());
+        var goal = computePostconditionSmt(treeKey, annotation, paramExpr, (LatticeStore) exitStore);
         if (!paramsInContract.contains(paramExpr)) {
-            result.methodOutputTypes.get(methodTree)[paramIdx] = atypeFactory.getAnnotatedTypeLhs(param).getAnnotationInHierarchy(atypeFactory.getTop());
+            result.methodOutputTypes.get(methodTree)[paramIdx] = annotation;
         }
         call(
                 () -> super.checkDefaultContract(param, methodTree, exitStore),
-                () -> result.addIllTypedMethodOutputParam(methodTree, paramIdx));
+                () -> {
+                    if (goal != null) {
+                        result.mendingConditions.put(treeKey, goal);
+                    }
+                    result.addIllTypedMethodOutputParam(methodTree, paramIdx);
+                });
+    }
+
+    private Tree postconditionKey(MethodTree tree, int paramIndex) {
+        // postcondition for the receiver: use the method tree as the key (there is no tree for implicit receivers)
+        // parameter postcondition: use the variable tree of the parameter
+        return paramIndex == 0 ? tree : tree.getParameters().get(paramIndex - 1);
     }
 
     @Override
@@ -384,8 +385,6 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             } else if (epa != null) {
                 PropertyAnnotationType pat = epa.getAnnotationType();
 
-
-                Class<?> literalClass = ClassUtils.literalKindToClass(literal.getKind());
                 if (types.isSameType(valueType.getUnderlyingType(), pat.getSubjectType())) {
                     success = epa.checkProperty(literal.getValue());
                 } else if (literal.getKind() == Kind.NULL_LITERAL && !pat.getSubjectType().getKind().isPrimitive()) {
@@ -782,6 +781,23 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
     /* ==== SMT SOLVING CODE ==== */
 
+    // parse refinement goal for postcondition, compute and add context to result, return goal (or null)
+    @Nullable
+    private SmtExpression computePostconditionSmt(
+            Tree treeKey, AnnotationMirror annotation,
+            JavaExpression subject, LatticeStore exitStore) {
+        var refinement = atypeFactory.getLattice().getPropertyAnnotation(annotation).combinedRefinement(subject.toString());
+        var goal = convertGoal(
+                parseOrUnknown(refinement, ref -> StringToJavaExpression.atPath(ref, getCurrentPath(), checker)),
+                subject.toString()
+        );
+        if (goal != null && exitStore != null) {
+            computeSmtContext(exitStore, treeKey, goal.references());
+            return goal.smt();
+        }
+        return null;
+    }
+
     private void amendSmtResultForValue(AnnotatedTypeMirror varType, Tree valueTree, boolean typeCheckSuccess) {
         JavaToSmtExpression.Result smtGoal = computeSmtGoalForValue(varType, valueTree);
 
@@ -809,7 +825,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                     ? invocationContext.receiverRefinement
                     : invocationContext.argRefinements.get(paramIndex);
         } else {
-            String refinement = getProperty(targetType).combinedRefinement(valueExpTree.toString());
+            String refinement = atypeFactory.getLattice().getPropertyAnnotation(targetType).combinedRefinement(valueExpTree.toString());
             // TODO: skip proof goal if it contains impure method calls
             toProve = parseOrUnknown(refinement, ref -> StringToJavaExpression.atPath(ref, getCurrentPath(), checker));
         }
@@ -1003,30 +1019,38 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
         List<JavaExpression> argRefinements = new ArrayList<>();
         for (VariableElement parameter : method.getElement().getParameters()) {
-            String refinement = getProperty(atypeFactory.getAnnotatedType(parameter))
+            AnnotatedTypeMirror type1 = atypeFactory.getAnnotatedType(parameter);
+            String refinement = atypeFactory.getLattice().getPropertyAnnotation(type1)
                     .combinedRefinement(parameter.getSimpleName());
             argRefinements.add(parser.apply(refinement));
         }
 
         // Receiver parameter `this` may have refinements too
         // If there is no receiver or it's a constructor, it's just "true" (method can always be called)
-        JavaExpression receiverRefinement =
-                type.getReceiverType() == null || constructorCall
-                        ? new ValueLiteral(bool, true)
-                        : parser.apply(getProperty(type.getReceiverType()).combinedRefinement("this"));
+        JavaExpression receiverRefinement;
+        if (type.getReceiverType() == null || constructorCall) {
+            receiverRefinement = new ValueLiteral(bool, true);
+        } else {
+            AnnotatedTypeMirror type1 = type.getReceiverType();
+            receiverRefinement = parser.apply(atypeFactory.getLattice().getPropertyAnnotation(type1).combinedRefinement("this"));
+        }
 
         // return value refinement, unless the method returns void (equivalent to top type)
         // or it's a constructor (expression syntax doesn't support constructor calls)
-        JavaExpression returnRefinement = type.getReturnType().getKind() == TypeKind.VOID || constructorCall
-                ? new ValueLiteral(bool, true)
-                : parser.apply(getProperty(type.getReturnType()).combinedRefinement(
-                // the input method call with parameters and receiver simplified
-                new MethodCall(
-                        method.getType(),
-                        method.getElement(),
-                        receiver instanceof ClassName ? receiver : new ThisReference(receiver.getType()),
-                        List.copyOf(JavaExpression.getFormalParameters(method.getElement()))
-                ).toString()));
+        JavaExpression returnRefinement;
+        if (type.getReturnType().getKind() == TypeKind.VOID || constructorCall) {
+            returnRefinement = new ValueLiteral(bool, true);
+        } else {
+            AnnotatedTypeMirror type1 = type.getReturnType();
+            returnRefinement = parser.apply(atypeFactory.getLattice().getPropertyAnnotation(type1).combinedRefinement(
+            // the input method call with parameters and receiver simplified
+            new MethodCall(
+                    method.getType(),
+                    method.getElement(),
+                    receiver instanceof ClassName ? receiver : new ThisReference(receiver.getType()),
+                    List.copyOf(JavaExpression.getFormalParameters(method.getElement()))
+            ).toString()));
+        }
         return new MethodCallRefinements(returnRefinement, receiverRefinement, argRefinements);
     }
 
@@ -1042,7 +1066,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             var fieldType = atypeFactory.getAnnotatedType(field);
             if (!qualHierarchy.isSubtypeQualifiersOnly(top, fieldType.getAnnotationInHierarchy(top))) {
                 // only include refinement if field type is not a top type
-                JavaExpression expr = parseOrUnknown(getProperty(fieldType).combinedRefinement(field.getSimpleName()),
+                JavaExpression expr = parseOrUnknown(atypeFactory.getLattice().getPropertyAnnotation(fieldType).combinedRefinement(field.getSimpleName()),
                         ref -> StringToJavaExpression.atFieldDecl(ref, field, checker));
                 try {
                     result.fieldRefinements.put(field, JavaToSmtExpression.convert(expr).smt());
@@ -1052,10 +1076,6 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                 }
             }
         }
-    }
-
-    private PropertyAnnotation getProperty(AnnotatedTypeMirror type) {
-        return atypeFactory.getLattice().getPropertyAnnotation(type);
     }
 
     private boolean hasCycle(JavaExpression expr) {
