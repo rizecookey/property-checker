@@ -9,6 +9,13 @@ import java.lang.reflect.Array;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * A custom {@code VariableElement} implementation to "simulate" the subject variable in property refinements.
+ * <p>
+ * This is essentially a workaround for the fact that all variables/parameters in the checker framework's
+ * {@code JavaExpression} abstraction must be backed by a "real" variable from the program. Since there is no "real"
+ * subject variable in code, we synthesise our own.
+ */
 public class SubjectVariableElement implements VariableElement {
     private static final String NAME = "subject";
 

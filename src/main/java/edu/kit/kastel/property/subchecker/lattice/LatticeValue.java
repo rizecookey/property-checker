@@ -20,13 +20,11 @@ import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
 
-import com.sun.source.tree.VariableTree;
 import edu.kit.kastel.property.lattice.PropertyAnnotation;
 import edu.kit.kastel.property.packing.PackingClientValue;
 import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.framework.util.JavaExpressionParseUtil;
 import org.checkerframework.javacutil.AnnotationMirrorSet;
-import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
 
 import java.util.List;
@@ -36,7 +34,7 @@ import static org.checkerframework.dataflow.expression.ViewpointAdaptJavaExpress
 
 public final class LatticeValue extends PackingClientValue<LatticeValue> {
 
-	private final JavaExpression property;
+	private final JavaExpression refinement;
 
 	// TODO: verify that there are no ambiguities when parsing
 	//  e.g.: are there situations where LatticeValues originally parsed at field declarations are recreated in a local context?
@@ -62,7 +60,7 @@ public final class LatticeValue extends PackingClientValue<LatticeValue> {
                 // ignored
             }
         }
-		this.property = parsed;
+		this.refinement = parsed;
     }
 
 	public PropertyAnnotation toPropertyAnnotation() {
@@ -71,12 +69,19 @@ public final class LatticeValue extends PackingClientValue<LatticeValue> {
 		return factory.getLattice().getPropertyAnnotation(anno == null ? factory.getTop() : anno);
 	}
 
-	public Optional<JavaExpression> getProperty(JavaExpression subject) {
-		return Optional.ofNullable(property).map(prop -> viewpointAdapt(prop, List.of(subject)));
+	/**
+	 * Returns the parsed behind this value with the {@code §subject§} variable substituted for the given expression.
+	 *
+	 * @param subject the subject to insert into the refinement.
+	 * @return An empty optional if the refinement couldn't be parsed, otherwise an optional containing the
+	 * refinement applied to the subject.
+	 */
+	public Optional<JavaExpression> getRefinement(JavaExpression subject) {
+		return Optional.ofNullable(refinement).map(prop -> viewpointAdapt(prop, List.of(subject)));
 	}
 
 	public boolean isParsed() {
-		return property != null;
+		return refinement != null;
 	}
 
 	public boolean onlyLiterals() {

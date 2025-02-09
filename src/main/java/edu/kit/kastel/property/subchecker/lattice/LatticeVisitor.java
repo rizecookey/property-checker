@@ -996,7 +996,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         }
 
         var refinements = methodCallRefinements(method);
-        if (refinements == null || refinements.returnRefinement() instanceof Unknown) {
+        if (refinements == null || refinements.returnRefinement().containsUnknown()) {
             // either method source code is not available or the refinement for the return value could not be parsed
             // => no dependent type analysis possible
             return Collections.emptySet();

@@ -153,6 +153,7 @@ public final class LatticeTransfer extends PackingClientTransfer<LatticeValue, L
             return null;
         }
         var builder = new AnnotationBuilder(analysis.getEnv(), annotation);
+        // viewpoint-adapt each field of the annotation to the invocation site
         annotation.getElementValues().forEach((element, val) -> {
             if (val.getValue() instanceof String expr) {
                 String newValue;

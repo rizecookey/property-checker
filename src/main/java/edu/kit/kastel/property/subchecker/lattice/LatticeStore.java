@@ -44,16 +44,11 @@ import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
 import java.util.*;
 import java.util.function.Predicate;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
-import static org.checkerframework.dataflow.expression.ViewpointAdaptJavaExpression.viewpointAdapt;
 
 public final class LatticeStore extends PackingClientStore<LatticeValue, LatticeStore> {
 
-	private static final Pattern subjectFieldPattern = Pattern.compile("§subject§\\s*\\.\\s*.");
-
-	public LatticeStore(CFAbstractAnalysis<LatticeValue, LatticeStore, ?> analysis, boolean sequentialSemantics) {
+    public LatticeStore(CFAbstractAnalysis<LatticeValue, LatticeStore, ?> analysis, boolean sequentialSemantics) {
 		super(analysis, sequentialSemantics);
 	}
 
@@ -97,18 +92,10 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 			exprAnalyzer = expr -> expr.containsSyntacticEqualJavaExpression(dependency);
 		}
 
-		// this predicate is an _approximation_ for "does a given type depend on `dependency`"?
-		// - if the property's arguments are all literals, it cannot depend on anything else
-		// - otherwise, if the parsed concrete refinement is available
-		//   (which may not be the case if unsupported language features are part of it, such as constructor calls)
-		//   the type is dependent if the exprAnalyzer predicate defined above holds.
-
-		// compromise: refinement analysis, and if that's not possible, check if it only has literals and invalidate
-		// it if it accesses any fields on subject
-
-
+		// this predicate is a conservative _approximation_ for "does a given type depend on `dependency`"?
+		// it will always return true if the refinement information is missing.
 		Predicate<Map.Entry<? extends JavaExpression, LatticeValue>> isDependent =
-				entry -> entry.getValue().getProperty(entry.getKey()).map(exprAnalyzer::test).orElse(true);
+				entry -> entry.getValue().getRefinement(entry.getKey()).map(exprAnalyzer::test).orElse(true);
 
 		// TODO: why do we set local variables to top type, but remove field values?
 		localVariableValues.entrySet().stream()
@@ -134,9 +121,11 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 	/**
 	 * Returns the collection of "local refinements" that are currently in this store.
 	 * They include
-	 * - local variable refinements
-	 * - parameter refinements
-	 * - refinement for the receiver ("this")
+	 * <ul>
+	 *     <li>local variable refinements</li>
+	 *     <li>parameter refinements</li>
+	 *     <li>refinement for the receiver ("this")</li>
+	 * </ul>
 	 *
 	 * The collection only contains the refinements that can be parsed as JavaExpressions.
 	 *
@@ -144,10 +133,10 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 	 */
 	public Collection<JavaExpression> getLocalRefinements() {
 		var list = localVariableValues.entrySet().stream()
-				.flatMap(entry -> entry.getValue().getProperty(entry.getKey()).stream())
+				.flatMap(entry -> entry.getValue().getRefinement(entry.getKey()).stream())
 				.collect(Collectors.toCollection(ArrayList::new));
 		if (thisValue != null) {
-			thisValue.getProperty(new ThisReference(thisValue.getUnderlyingType())).ifPresent(list::add);
+			thisValue.getRefinement(new ThisReference(thisValue.getUnderlyingType())).ifPresent(list::add);
 		}
 		return list;
 	}
