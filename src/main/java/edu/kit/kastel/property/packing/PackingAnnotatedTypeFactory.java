@@ -89,7 +89,7 @@ public class PackingAnnotatedTypeFactory
                 getUninitializedFields(initStore, path, isStatic, receiverAnnotations);
         ClassTree currentClass = TreePathUtil.enclosingClass(path);
 
-        PackingClientAnnotatedTypeFactory factory = ((PackingClientStore) targetStore).getFactory();
+        PackingClientAnnotatedTypeFactory<?, ?, ?, ?> factory = ((PackingClientStore<?, ?>) targetStore).getFactory();
 
         if (factory == null) {
             throw new BugInCF(

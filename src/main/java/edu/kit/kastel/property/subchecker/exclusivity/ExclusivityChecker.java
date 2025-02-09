@@ -35,6 +35,7 @@ public class ExclusivityChecker extends BaseTypeChecker {
     @Override
     public <T extends BaseTypeChecker> @Nullable T getSubchecker(Class<T> checkerClass) {
         if (checkerClass == PackingFieldAccessSubchecker.class) {
+            //noinspection unchecked
             return (T) getParentChecker().getFieldAccessChecker();
         }
 

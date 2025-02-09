@@ -124,7 +124,7 @@ public class PackingVisitor
             } else {
                 // Type-check pack statement:
                 // New type frame must be subtype of old type frame.
-                newTypeFrame = types.getDeclaredType((TypeElement) typeElement);
+                newTypeFrame = types.getDeclaredType(typeElement);
                 if (oldTypeFrame == null || (!types.isSubtype(newTypeFrame, oldTypeFrame) || types.isSameType(oldTypeFrame, newTypeFrame))) {
                     checker.reportError(node, "initialization.already.packed");
                 }

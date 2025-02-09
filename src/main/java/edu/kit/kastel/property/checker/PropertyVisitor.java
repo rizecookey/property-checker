@@ -34,6 +34,7 @@ import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
 import org.checkerframework.javacutil.ElementUtils;
+import org.checkerframework.javacutil.TreePathUtil;
 import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TypesUtils;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -104,8 +105,7 @@ public final class PropertyVisitor extends PackingVisitor {
     }
 
     private void mendTypeErrors(List<LatticeVisitor.Result> results) {
-        System.out.println();
-        System.out.println("File: " + root.getSourceFile().getName());
+        System.out.println("\nFile: \033[4m" + root.getSourceFile().getName() + "\033[0m");
         // merge contexts from all lattices
         Map<Tree, Set<SmtExpression>> contexts = new HashMap<>();
         for (LatticeVisitor.Result result : results) {
@@ -174,7 +174,7 @@ public final class PropertyVisitor extends PackingVisitor {
     private Deque<BooleanFormula> contextConjunction(SmtCompiler compiler, Tree tree, Set<SmtExpression> context) {
         var lineMap = root.getLineMap();
         var pos = trees.getSourcePositions().getStartPosition(root, tree);
-        System.out.printf("=== Mending type errors for %s (%d:%d) using combined context:%n",
+        System.out.printf("=== Mending type errors for \033[1;33m%s (%d:%d)\033[0m using combined context:%n",
                 describeTree(tree), lineMap.getLineNumber(pos), lineMap.getColumnNumber(pos));
         Deque<BooleanFormula> conjunction = new ArrayDeque<>();
 
@@ -194,11 +194,13 @@ public final class PropertyVisitor extends PackingVisitor {
     }
 
     private String describeTree(Tree tree) {
+        var path = atypeFactory.getPath(tree);
+        final Tree parent = path.getParentPath().getLeaf();
         return switch (tree) {
-            case MethodTree m -> "`this` postcondition";
-            case VariableTree v -> "`" + v.getName() + "` postcondition";
-            case MemberSelectTree m -> "receiver in method call " + m;
-            case ExpressionTree e -> "expression " + e;
+            case MethodTree m -> "postconditions on `this` (" + m.getName() + "(...))";
+            case VariableTree v -> "postconditions on `" + v.getName() + "` (" + ((MethodTree) parent).getName() + "(...))";
+            case ExpressionTree e ->
+                    parent instanceof MethodInvocationTree ? "receiver in method call " + parent : "expression " + e;
             default -> "???";
         };
     }
@@ -215,11 +217,11 @@ public final class PropertyVisitor extends PackingVisitor {
             return false;
         }
 
-        System.out.printf("Proof goal: %s", condition);
+        System.out.printf("\033[1mProof goal:\033[0m %s", condition);
         try (var proverEnv = solverContext.newProverEnvironment()) {
             proverEnv.addConstraint(bmgr.and(contextConjunction));
             var assignmentValid = proverEnv.isUnsat();
-            System.out.println(assignmentValid ? " (success)" : " (failed)");
+            System.out.println((assignmentValid ? " \033[32m(success)" : " \033[31m(failed)") + "\033[0m");
             return assignmentValid;
         } catch (InterruptedException | SolverException e) {
             System.out.println("Encountered exception while trying to prove goal " + condition);

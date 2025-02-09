@@ -45,8 +45,8 @@ dependencies {
     // Testing
     testImplementation 'junit:junit:4.13'
     if (checkerframework_local) {
-        implementation files('checker-framework/dist/checker-3.42.0-eisop3-SNAPSHOT.jar')
-        implementation files('checker-framework/dist/framework-test-3.42.0-eisop3-SNAPSHOT.jar')
+        testImplementation files('checker-framework/dist/checker-3.42.0-eisop3-SNAPSHOT.jar')
+        testImplementation files('checker-framework/dist/framework-test-3.42.0-eisop3-SNAPSHOT.jar')
     } else {
         testImplementation "org.checkerframework:framework-test:${versions.checkerFramework}"
     }
@@ -79,6 +79,7 @@ def javaModuleOpts = [
 
 tasks.withType(JavaCompile).all {
     options.compilerArgs.add("-Xlint:all")
+    options.compilerArgs.add('-proc:none')
     options.compilerArgs += javaModuleOpts
 }
 
@@ -102,7 +103,6 @@ java {
     }
 }
 
-
 jar {
     from {
         configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
@@ -123,6 +123,7 @@ test {
     inputs.files("tests/property")
 
     systemProperty 'translationOnly', System.getProperty('translationOnly')
+    systemProperty 'emit.test.debug', true
 
     jvmArgs += javaModuleOpts
     testLogging.showStandardStreams = true

@@ -58,6 +58,7 @@ public class ExclusivityStore extends PackingClientStore<ExclusivityValue, Exclu
             return null;
         }
         exclType.addAnnotation(rootAnno);
+        //noinspection unchecked
         for (FieldAccess component : (List<FieldAccess>) fieldPath.subList(0, fieldPath.size() - 1)) {
             var field = component.getField();
             var declaredType = factory.getAnnotatedType(field);

@@ -51,7 +51,7 @@ public abstract class PackingClientTransfer<
     public S initialStore(UnderlyingAST underlyingAST, List<LocalVariableNode> parameters) {
         ((PackingClientAnalysis<?, ?, ?>) analysis).setPosition(underlyingAST.getCode());
         S initStore = super.initialStore(underlyingAST, parameters);
-        PackingClientAnnotatedTypeFactory factory = getAnalysis().getTypeFactory();
+        PackingClientAnnotatedTypeFactory<?, ?, ?, ?> factory = getAnalysis().getTypeFactory();
 
         if (underlyingAST.getKind() == UnderlyingAST.Kind.METHOD) {
             // Add receiver value
