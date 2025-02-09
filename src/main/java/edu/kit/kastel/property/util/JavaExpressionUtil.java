@@ -49,6 +49,7 @@ public class JavaExpressionUtil {
                 new ClassName(type), arguments);
     }
 
+    // TODO: why does this exist? JavaExpression.fromTree is already a thing
     public static MethodCall methodCall(MethodInvocationTree tree) {
         ExecutableElement invokedMethod = TreeUtils.elementFromUse(tree);
         JavaExpression receiver = null;
@@ -72,8 +73,7 @@ public class JavaExpressionUtil {
 
     public static JavaExpression parseAtCallsite(String stringExpression, MethodCall invocation, SourceChecker checker)
             throws JavaExpressionParseUtil.JavaExpressionParseException {
-        Map<VariableElement, FormalParameter> params = JavaExpression.getFormalParameters(invocation.getElement())
-                .stream().collect(Collectors.toMap(FormalParameter::getElement, Function.identity()));
+
         TreePath methodPath = checker.getTreeUtils().getPath(invocation.getElement());
         JavaExpression receiver = invocation.getReceiver();
 
@@ -87,14 +87,20 @@ public class JavaExpressionUtil {
         JavaExpression expression = StringToJavaExpression.atPath(stringExpression, methodPath, checker);
 
         // 2. convert nominal parameter references to FormalParameters
-        expression = expression.accept(new JavaExpressionConverter() {
+        expression = convertParams(expression, invocation.getElement());
+        // 3. viewpoint adapt to call site
+        return viewpointAdapt(expression, receiver, invocation.getArguments());
+    }
+
+    public static JavaExpression convertParams(JavaExpression expression, ExecutableElement element) {
+        Map<VariableElement, FormalParameter> params = JavaExpression.getFormalParameters(element)
+                .stream().collect(Collectors.toMap(FormalParameter::getElement, Function.identity()));
+        return expression.accept(new JavaExpressionConverter() {
             @Override
             protected JavaExpression visitLocalVariable(LocalVariable localVarExpr, Void unused) {
                 return params.get(localVarExpr.getElement());
             }
         }, null);
-        // 3. viewpoint adapt to call site
-        return viewpointAdapt(expression, receiver, invocation.getArguments());
     }
 
     public static boolean maybeDependent(

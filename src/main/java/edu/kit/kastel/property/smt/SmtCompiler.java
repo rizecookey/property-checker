@@ -9,6 +9,7 @@ import org.checkerframework.javacutil.ElementUtils;
 import org.sosy_lab.java_smt.api.*;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
+import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.VariableElement;
 import java.math.BigInteger;
@@ -278,7 +279,7 @@ public final class SmtCompiler {
         Stream<SmtType> paramTypes = method.getParameters().stream()
                 .map(VariableElement::asType)
                 .map(SmtType::fromTypeMirror);
-        if (!ElementUtils.isStatic(method)) {
+        if (!ElementUtils.isStatic(method) && method.getKind() != ElementKind.CONSTRUCTOR) {
             paramTypes = Stream.concat(Stream.of(SmtType.UNKNOWN), paramTypes);
         }
         return ufmgr().declareUF(

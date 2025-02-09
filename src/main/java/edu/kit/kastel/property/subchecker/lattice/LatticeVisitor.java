@@ -16,6 +16,8 @@
  */
 package edu.kit.kastel.property.subchecker.lattice;
 
+import com.github.javaparser.ast.expr.BinaryExpr;
+import com.google.common.collect.Streams;
 import com.sun.source.tree.*;
 import com.sun.source.tree.Tree.Kind;
 import com.sun.source.util.TreePath;
@@ -31,11 +33,11 @@ import edu.kit.kastel.property.packing.PackingClientStore;
 import edu.kit.kastel.property.packing.PackingClientVisitor;
 import edu.kit.kastel.property.smt.JavaToSmtExpression;
 import edu.kit.kastel.property.smt.SmtExpression;
+import edu.kit.kastel.property.smt.SmtType;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
 import edu.kit.kastel.property.util.*;
 import edu.kit.kastel.property.util.CollectionUtils;
-import org.apache.commons.lang3.function.FailableFunction;
 import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
@@ -56,7 +58,7 @@ import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -786,9 +788,9 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
     private SmtExpression computePostconditionSmt(
             Tree treeKey, AnnotationMirror annotation,
             JavaExpression subject, LatticeStore exitStore) {
-        var refinement = atypeFactory.getLattice().getPropertyAnnotation(annotation).combinedRefinement(subject.toString());
+        var property = atypeFactory.getLattice().getPropertyAnnotation(annotation);
         var goal = convertGoal(
-                parseOrUnknown(refinement, ref -> StringToJavaExpression.atPath(ref, getCurrentPath(), checker)),
+                viewpointAdapt(parseOrUnknown(property, getCurrentPath()), List.of(subject)),
                 subject.toString()
         );
         if (goal != null && exitStore != null) {
@@ -825,16 +827,24 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                     ? invocationContext.receiverRefinement
                     : invocationContext.argRefinements.get(paramIndex);
         } else {
-            String refinement = atypeFactory.getLattice().getPropertyAnnotation(targetType).combinedRefinement(valueExpTree.toString());
-            // TODO: skip proof goal if it contains impure method calls
-            toProve = parseOrUnknown(refinement, ref -> StringToJavaExpression.atPath(ref, getCurrentPath(), checker));
+            var property = atypeFactory.getLattice().getPropertyAnnotation(targetType);
+            // the checker framework expression parser does not support constructor calls yet.
+            // but we want to support (pure) constructor calls in property subjects anyway, so we represent them as a
+            // special method call. Currently, this only works for top level constructor calls, and not if they're nested
+            // in a deeper expression.
+            // TODO: allow nested constructor calls as well (need to implement own version of JavaExpression.fromTree for that)
+            var subject = valueExpTree instanceof NewClassTree nc
+                    ? JavaExpressionUtil.constructorCall(nc)
+                    : JavaExpression.fromTree((ExpressionTree) valueExpTree);
+            toProve = viewpointAdapt(parseOrUnknown(property, getCurrentPath()), List.of(subject));
         }
 
+        // TODO: skip proof goal if it contains impure method calls
         return convertGoal(toProve, valueExpTree.toString());
     }
 
     private JavaToSmtExpression.Result convertGoal(JavaExpression goal, String subject) {
-        if (goal instanceof Unknown) {
+        if (goal.containsUnknown()) {
             // checker framework couldn't parse the goal refinement
             System.out.printf(
                     "Skipping SMT analysis for expression %s because its refinement %s uses language features not supported by the Checker Framework%n",
@@ -914,10 +924,11 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                 PropertyAnnotation property = storedType == null
                         ? atypeFactory.getLattice().getPropertyAnnotation(atypeFactory.getTop())
                         : storedType.toPropertyAnnotation();
-                String refinement = property.combinedRefinement(localFieldRef.toString());
                 JavaExpression expr = viewpointAdapt(
-                        parseOrUnknown(refinement,
-                                r -> StringToJavaExpression.atFieldDecl(refinement, field, checker)),
+                        viewpointAdapt(
+                                parseOrUnknown(property, field),
+                                List.of(localFieldRef)
+                        ),
                         fa.getReceiver()
                 );
 
@@ -934,19 +945,25 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
     }
 
     /**
-     * Parse a refinement string to a JavaExpression. If there is a parse error, return Unknown type.
+     * Parse the refinement of a PropertyAnnotation to a JavaExpression. If there is a parse error, return Unknown type.
      *
-     * @param refinement boolean expression as a string
-     * @param parser     Function that parses the refinement string
+     * @param property PropertyAnnotation
+     * @param localVarPath TreePath at which the variables used in the property are available.
      * @return resulting expression, or expression of type Unknown
      */
-    private JavaExpression parseOrUnknown(
-            String refinement,
-            FailableFunction<String, ? extends JavaExpression, JavaExpressionParseUtil.JavaExpressionParseException> parser) {
+    private JavaExpression parseOrUnknown(PropertyAnnotation property, TreePath localVarPath) {
         try {
-            return parser.apply(refinement);
+            return property.parseRefinement(localVarPath, checker);
         } catch (JavaExpressionParseUtil.JavaExpressionParseException e) {
-            return new Unknown(bool, refinement);
+            return new Unknown(bool, property.combinedRefinement("$subject"));
+        }
+    }
+
+    private JavaExpression parseOrUnknown(PropertyAnnotation property, VariableElement field) {
+        try {
+            return property.parseRefinement(field, checker);
+        } catch (JavaExpressionParseUtil.JavaExpressionParseException e) {
+            return new Unknown(bool, property.combinedRefinement("$subject"));
         }
     }
 
@@ -965,9 +982,11 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
         // construct the formula arg (including receiver) refinements => return refinement
         JavaExpression argumentConjunction = Stream.concat(
-                        Stream.of(refinements.receiverRefinement()),
-                        refinements.argRefinements().stream()
-                ).filter(expr -> !(expr instanceof Unknown))
+                        Stream.of(viewpointAdapt(refinements.receiverRefinement(), List.of(method))),
+                        Streams.zip(refinements.argRefinements().stream(), method.getArguments().stream(),
+                                        (ref, arg) -> viewpointAdapt(ref, List.of(arg))
+                ))
+                .filter(expr -> !expr.containsUnknown())
                 .reduce(new ValueLiteral(bool, true), (l, r) -> new BinaryOperation(bool, Tree.Kind.AND, l, r));
         var clause = new BinaryOperation(
                 bool, Tree.Kind.OR,
@@ -1009,20 +1028,21 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         JavaExpression receiver = method.getReceiver();
 
         // Function that parses a declaration-level expression, where parameters are referenced by name
-        Function<String, JavaExpression> parser = refinement -> {
-            try {
-                return JavaExpressionUtil.parseAtCallsite(refinement, method, checker);
-            } catch (JavaExpressionParseUtil.JavaExpressionParseException e) {
-                return new Unknown(bool, refinement);
-            }
+        BiFunction<PropertyAnnotation, JavaExpression, JavaExpression> parser = (property, subject) -> {
+            // refinement expression with subject as #1
+            JavaExpression refinement = parseOrUnknown(property, methodPath);
+            // refinement expression with subject inserted
+            refinement = viewpointAdapt(refinement, List.of(subject));
+            // refinement expression with all named params converted to enumerated
+            refinement = JavaExpressionUtil.convertParams(refinement, method.getElement());
+            // refinement expression, adapted to callsite
+            return viewpointAdapt(refinement, method.getReceiver(), method.getArguments());
         };
 
         List<JavaExpression> argRefinements = new ArrayList<>();
         for (VariableElement parameter : method.getElement().getParameters()) {
-            AnnotatedTypeMirror type1 = atypeFactory.getAnnotatedType(parameter);
-            String refinement = atypeFactory.getLattice().getPropertyAnnotation(type1)
-                    .combinedRefinement(parameter.getSimpleName());
-            argRefinements.add(parser.apply(refinement));
+            var property = atypeFactory.getLattice().getPropertyAnnotation(atypeFactory.getAnnotatedType(parameter));
+            argRefinements.add(parser.apply(property, new LocalVariable(parameter)));
         }
 
         // Receiver parameter `this` may have refinements too
@@ -1031,25 +1051,27 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         if (type.getReceiverType() == null || constructorCall) {
             receiverRefinement = new ValueLiteral(bool, true);
         } else {
-            AnnotatedTypeMirror type1 = type.getReceiverType();
-            receiverRefinement = parser.apply(atypeFactory.getLattice().getPropertyAnnotation(type1).combinedRefinement("this"));
+            var property = atypeFactory.getLattice().getPropertyAnnotation(type.getReceiverType());
+            receiverRefinement = parser.apply(property, new ThisReference(type.getReceiverType().getUnderlyingType()));
         }
 
         // return value refinement, unless the method returns void (equivalent to top type)
         // or it's a constructor (expression syntax doesn't support constructor calls)
         JavaExpression returnRefinement;
-        if (type.getReturnType().getKind() == TypeKind.VOID || constructorCall) {
+        if (type.getReturnType().getKind() == TypeKind.VOID) {
             returnRefinement = new ValueLiteral(bool, true);
         } else {
-            AnnotatedTypeMirror type1 = type.getReturnType();
-            returnRefinement = parser.apply(atypeFactory.getLattice().getPropertyAnnotation(type1).combinedRefinement(
+            PropertyAnnotation property = atypeFactory.getLattice().getPropertyAnnotation(type.getReturnType());
             // the input method call with parameters and receiver simplified
-            new MethodCall(
+            var simpleMethod = new MethodCall(
                     method.getType(),
                     method.getElement(),
                     receiver instanceof ClassName ? receiver : new ThisReference(receiver.getType()),
-                    List.copyOf(JavaExpression.getFormalParameters(method.getElement()))
-            ).toString()));
+                    method.getElement().getParameters().stream()
+                            .<JavaExpression>map(LocalVariable::new)
+                            .toList()
+            );
+            returnRefinement = parser.apply(property, simpleMethod);
         }
         return new MethodCallRefinements(returnRefinement, receiverRefinement, argRefinements);
     }
@@ -1063,11 +1085,13 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                 // field refinement in this lattice has already been collected
                 continue;
             }
+            FieldAccess fieldAccess = new FieldAccess(new ThisReference(field.getEnclosingElement().asType()), field);
             var fieldType = atypeFactory.getAnnotatedType(field);
             if (!qualHierarchy.isSubtypeQualifiersOnly(top, fieldType.getAnnotationInHierarchy(top))) {
                 // only include refinement if field type is not a top type
-                JavaExpression expr = parseOrUnknown(atypeFactory.getLattice().getPropertyAnnotation(fieldType).combinedRefinement(field.getSimpleName()),
-                        ref -> StringToJavaExpression.atFieldDecl(ref, field, checker));
+                var property = atypeFactory.getLattice().getPropertyAnnotation(fieldType);
+                JavaExpression expr =
+                        viewpointAdapt(parseOrUnknown(property, field), List.of(fieldAccess));
                 try {
                     result.fieldRefinements.put(field, JavaToSmtExpression.convert(expr).smt());
                 } catch (UnsupportedOperationException e) {

@@ -7,6 +7,7 @@ import org.checkerframework.dataflow.expression.FieldAccess;
 import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.dataflow.expression.LocalVariable;
 import org.checkerframework.dataflow.expression.ThisReference;
+import org.checkerframework.javacutil.ElementUtils;
 
 import javax.lang.model.element.ExecutableElement;
 import java.util.List;
@@ -38,8 +39,9 @@ public sealed interface SmtExpression {
 
         @Override
         public String toString() {
-            return underlyingMethod.getSimpleName() + "("
-                    + arguments.stream().map(Object::toString).collect(Collectors.joining(", ")) + ")";
+            return ElementUtils.getQualifiedName(underlyingMethod.getEnclosingElement())
+                    + "." + underlyingMethod.getSimpleName()
+                    + "(" + arguments.stream().map(Object::toString).collect(Collectors.joining(", ")) + ")";
         }
     }
 

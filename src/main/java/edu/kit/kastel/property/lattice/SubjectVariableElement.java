@@ -1,4 +1,4 @@
-package edu.kit.kastel.property.subchecker.lattice;
+package edu.kit.kastel.property.lattice;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
 

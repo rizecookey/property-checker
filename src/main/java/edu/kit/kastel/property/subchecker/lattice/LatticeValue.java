@@ -16,21 +16,20 @@
  */
 package edu.kit.kastel.property.subchecker.lattice;
 
+import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
 
+import com.sun.source.tree.VariableTree;
 import edu.kit.kastel.property.lattice.PropertyAnnotation;
 import edu.kit.kastel.property.packing.PackingClientValue;
-import org.checkerframework.dataflow.expression.FormalParameter;
 import org.checkerframework.dataflow.expression.JavaExpression;
-import org.checkerframework.dataflow.expression.ThisReference;
 import org.checkerframework.framework.util.JavaExpressionParseUtil;
 import org.checkerframework.javacutil.AnnotationMirrorSet;
-import org.checkerframework.javacutil.TreePathUtil;
+import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
-import org.checkerframework.javacutil.TypesUtils;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
 import static org.checkerframework.dataflow.expression.ViewpointAdaptJavaExpression.viewpointAdapt;
@@ -39,6 +38,8 @@ public final class LatticeValue extends PackingClientValue<LatticeValue> {
 
 	private final JavaExpression property;
 
+	// TODO: verify that there are no ambiguities when parsing
+	//  e.g.: are there situations where LatticeValues originally parsed at field declarations are recreated in a local context?
 	protected LatticeValue(
 			LatticeAnalysis analysis,
 			AnnotationMirrorSet annotations,
@@ -49,27 +50,18 @@ public final class LatticeValue extends PackingClientValue<LatticeValue> {
 		if (tree != null) {
 			// if we have a location where the refinement should be parsed, we parse it
 			PropertyAnnotation property = toPropertyAnnotation();
-			// for the subject, we use the checker framework's special parameter # syntax.
-			String refinement = property.combinedRefinement("#1");
-			var subjectParam = new FormalParameter(1, new SubjectVariableElement(
-					Objects.requireNonNullElse(
-							property.getAnnotationType().getSubjectType(),
-							TypesUtils.getObjectTypeMirror(analysis.getEnv()))
-			));
-
-			var localPath = analysis.getTypeFactory().getPath(tree);
-			TypeMirror enclosingType = TreeUtils.elementFromDeclaration(TreePathUtil.enclosingClass(localPath)).asType();
-			ThisReference thisReference = TreePathUtil.isTreeInStaticScope(localPath) ? null : new ThisReference(enclosingType);
-			LatticeSubchecker checker = analysis.getTypeFactory().getChecker();
+			var element = TreeUtils.elementFromTree(tree);
 			try {
-				parsed = JavaExpressionParseUtil.parse(
-						refinement, enclosingType, thisReference,
-						List.of(subjectParam), localPath,
-						checker.getPathToCompilationUnit(), checker.getProcessingEnvironment());
+				if (element instanceof VariableElement field && field.getKind() == ElementKind.FIELD) {
+					parsed = property.parseRefinement(field, analysis.getTypeFactory().getChecker());
+				} else {
+					var localPath = analysis.getTypeFactory().getPath(tree);
+					parsed = property.parseRefinement(localPath, analysis.getTypeFactory().getChecker());
+				}
 			} catch (JavaExpressionParseUtil.JavaExpressionParseException e) {
-				// ignored
-			}
-		}
+                // ignored
+            }
+        }
 		this.property = parsed;
     }
 
