@@ -1,7 +1,6 @@
 package edu.kit.kastel.property.util;
 
 import com.sun.source.tree.ClassTree;
-import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.NewClassTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.util.TreePath;
@@ -9,10 +8,8 @@ import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.tree.JCTree;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityStore;
-import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityViewpointAdapter;
 import org.checkerframework.dataflow.expression.*;
 import org.checkerframework.framework.source.SourceChecker;
-import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.framework.util.JavaExpressionParseUtil;
 import org.checkerframework.framework.util.StringToJavaExpression;
@@ -22,12 +19,9 @@ import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
-import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static org.checkerframework.dataflow.expression.ViewpointAdaptJavaExpression.viewpointAdapt;
 
@@ -47,28 +41,6 @@ public class JavaExpressionUtil {
         var arguments = tree.getArguments().stream().map(JavaExpression::fromTree).toList();
         return new MethodCall(type, invokedConstructor,
                 new ClassName(type), arguments);
-    }
-
-    // TODO: why does this exist? JavaExpression.fromTree is already a thing
-    public static MethodCall methodCall(MethodInvocationTree tree) {
-        ExecutableElement invokedMethod = TreeUtils.elementFromUse(tree);
-        JavaExpression receiver = null;
-        var receiverTree = TreeUtils.getReceiverTree(tree);
-        if (receiverTree == null) {
-            // no explicit receiver
-            if (ElementUtils.isStatic(invokedMethod)) {
-                // static method => class is the receiver
-                receiver = new ClassName(invokedMethod.getEnclosingElement().asType());
-            } else if (invokedMethod.getReceiverType() != null) {
-                // instance method => `this` is the receiver
-                receiver = new ThisReference(invokedMethod.getReceiverType());
-            }
-        } else {
-            // explicit receiver
-            receiver = JavaExpression.fromTree(receiverTree);
-        }
-        var arguments = tree.getArguments().stream().map(JavaExpression::fromTree).toList();
-        return new MethodCall(invokedMethod.getReturnType(), invokedMethod, receiver, arguments);
     }
 
     public static JavaExpression parseAtCallsite(String stringExpression, MethodCall invocation, SourceChecker checker)

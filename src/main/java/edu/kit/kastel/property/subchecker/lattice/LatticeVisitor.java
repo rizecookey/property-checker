@@ -198,7 +198,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             // Don't type-check arguments of packing calls.
             return p;
         }
-        invocationContext = methodCallRefinements(JavaExpressionUtil.methodCall(tree));
+        invocationContext = methodCallRefinements((MethodCall) JavaExpression.fromTree(tree));
         return super.visitMethodInvocation(tree, p);
     }
 
@@ -839,7 +839,6 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             toProve = viewpointAdapt(parseOrUnknown(property, getCurrentPath()), List.of(subject));
         }
 
-        // TODO: skip proof goal if it contains impure method calls
         return convertGoal(toProve, valueExpTree.toString());
     }
 
@@ -848,6 +847,29 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             // checker framework couldn't parse the goal refinement
             System.out.printf(
                     "Skipping SMT analysis for expression %s because its refinement %s uses language features not supported by the Checker Framework%n",
+                    subject, goal);
+            return null;
+        }
+
+        // all method calls that appear in the goal must be pure, otherwise we won't do analysis
+        var impureScanner = new JavaExpressionScanner<>() {
+            boolean found = false;
+
+            @Override
+            protected Void visitMethodCall(MethodCall methodCallExpr, Object o) {
+                var element = methodCallExpr.getElement();
+                if (!atypeFactory.isDeterministic(element) || !atypeFactory.isSideEffectFree(element)) {
+                    found = true;
+                    return null;
+                }
+                return super.visitMethodCall(methodCallExpr, o);
+            }
+        };
+
+        goal.accept(impureScanner, null);
+
+        if (impureScanner.found) {
+            System.out.printf("Skipping SMT analysis for expression %s because its refinement %s uses an impure method call%n",
                     subject, goal);
             return null;
         }
