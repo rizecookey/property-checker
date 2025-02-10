@@ -134,7 +134,6 @@ public class PropertyAnnotation {
     public JavaExpression parseRefinement(VariableElement field, SourceChecker checker)
             throws JavaExpressionParseUtil.JavaExpressionParseException {
         String refinement = combinedRefinement("#1");
-        var subjectParam = subject(checker.getProcessingEnvironment());
         TypeMirror enclosingType = field.getEnclosingElement().asType();
         ThisReference thisReference = ElementUtils.isStatic(field) ? null : new ThisReference(enclosingType);
         return JavaExpressionParseUtil.parse(refinement, enclosingType, thisReference,

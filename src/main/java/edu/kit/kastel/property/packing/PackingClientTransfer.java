@@ -76,14 +76,14 @@ public abstract class PackingClientTransfer<
 
                 AnnotatedTypeMirror receiverPackingType =
                         packingFactory.getSelfType(methodDeclTree.getBody());
-                insertFieldsUpToFrame(initStore, receiverType, receiverPackingType);
+                insertFieldsUpToFrame(initStore, receiverType, receiverPackingType, true);
             }
         }
 
         return initStore;
     }
 
-    protected void insertFieldsUpToFrame(S store, AnnotatedTypeMirror receiverType, AnnotatedTypeMirror receiverPackingType) {
+    protected void insertFieldsUpToFrame(S store, AnnotatedTypeMirror receiverType, AnnotatedTypeMirror receiverPackingType, boolean removeUncommitted) {
         var factory = getAnalysis().getTypeFactory();
         PackingFieldAccessAnnotatedTypeFactory packingFactory =
                 factory.getChecker().getTypeFactoryOfSubcheckerOrNull(PackingFieldAccessSubchecker.class);
@@ -92,7 +92,7 @@ public abstract class PackingClientTransfer<
                 factory.getElementUtils());
         for (VariableElement field : allFields) {
             if (!ElementUtils.isStatic(field)) {
-                ((PackingClientAnalysis<V, S, T>) analysis).setPosition(factory.declarationFromElement(field));
+                ((PackingClientAnalysis<V, S, T>) analysis).setPosition(field);
                 FieldAccess fieldAccess = new FieldAccess(new ThisReference(receiverType.getUnderlyingType()), field);
                 TypeMirror fieldOwnerType = field.getEnclosingElement().asType();
                 AnnotatedTypeMirror declaredType = factory.getAnnotatedType(field);
@@ -110,15 +110,22 @@ public abstract class PackingClientTransfer<
                     adaptedType = declaredType;
                 }
 
-                // Use top type if receiver is not sufficiently packed
+
                 if (!packingFactory.isInitializedForFrame(receiverPackingType, fieldOwnerType)
                         && (!adaptedType.getKind().isPrimitive() || uncommitPrimitiveFields())) {
-                    adaptedType.clearAnnotations();
-                    adaptedType.addAnnotations(factory.getQualifierHierarchy().getTopAnnotations());
+                    if (store.getValue(fieldAccess) == null || removeUncommitted) {
+                        // If field is not initialized and not in store yet or uncommitted field values
+                        // should be removed, insert the top value
+                        adaptedType.clearAnnotations();
+                        adaptedType.addAnnotations(factory.getQualifierHierarchy().getTopAnnotations());
+                        V value = analysis.createAbstractValue(adaptedType);
+                        store.insertValue(fieldAccess, value);
+                    }
+                } else {
+                    // if field is initialized, insert its declared type
+                    V value = analysis.createAbstractValue(adaptedType);
+                    store.insertValue(fieldAccess, value);
                 }
-
-                V value = analysis.createAbstractValue(adaptedType);
-                store.insertValue(fieldAccess, value);
             }
         }
 

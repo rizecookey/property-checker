@@ -6,6 +6,8 @@ import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.flow.CFAbstractAnalysis;
 import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
 
+import javax.lang.model.element.VariableElement;
+
 public abstract class PackingClientAnalysis<
         V extends PackingClientValue<V>,
         S extends PackingClientStore<V, S>,
@@ -15,6 +17,7 @@ public abstract class PackingClientAnalysis<
     // current position tracker. This _looks_ like a duplicate of currentTree or currentNode at first, but those are
     // not suitable replacements as they have other internal uses that are incompatible with what we need this value for.
     private Tree position = null;
+    private VariableElement field = null;
 
     protected PackingClientAnalysis(BaseTypeChecker checker, GenericAnnotatedTypeFactory<V, S, T, ? extends CFAbstractAnalysis<V, S, T>> factory, int maxCountBeforeWidening) {
         super(checker, factory, maxCountBeforeWidening);
@@ -37,12 +40,23 @@ public abstract class PackingClientAnalysis<
      * @return A {@code Tree}.
      */
     @Nullable
-    public Tree getPosition() {
+    public Tree getLocalTree() {
         return position;
     }
 
-    public void setPosition(@Nullable  Tree position) {
+    @Nullable
+    public VariableElement getField() {
+        return field;
+    }
+
+    public void setPosition(@Nullable Tree position) {
+        this.field = null;
         this.position = position;
+    }
+
+    public void setPosition(VariableElement field) {
+        this.position = null;
+        this.field = field;
     }
 
 }

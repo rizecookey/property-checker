@@ -32,6 +32,7 @@ import org.checkerframework.framework.util.JavaExpressionParseUtil;
 import org.checkerframework.javacutil.*;
 
 import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
@@ -97,14 +98,15 @@ public final class LatticeTransfer extends PackingClientTransfer<LatticeValue, L
                 insertFieldsUpToFrame(
                         store,
                         AnnotatedTypeMirror.createType(packingReceiverType, factory, false),
-                        packingType
+                        packingType,
+                        false
                 );
             }
             return new RegularTransferResult<>(null, store, isPackingCall);
         }
 
         if (!ElementUtils.isStatic(TreeUtils.elementFromUse(node.getTree()))
-                && !node.getTarget().getMethod().getSimpleName().contentEquals("<init>")) {
+                && node.getTarget().getMethod().getKind() != ElementKind.CONSTRUCTOR) {
             if (receiverType == null || receiverType.getKind().equals(TypeKind.NONE)) {
                 //TODO in LatticeStore::updateForMethodCall. See also TMethodInvocation
                 System.err.printf("warning: ignoring call to method without explicit 'this' parameter declaration: %s\n", node.getTarget());

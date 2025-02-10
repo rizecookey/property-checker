@@ -28,6 +28,7 @@ import edu.kit.kastel.property.util.JavaExpressionUtil;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.cfg.node.MethodInvocationNode;
 import org.checkerframework.dataflow.cfg.node.Node;
+import org.checkerframework.dataflow.cfg.node.ObjectCreationNode;
 import org.checkerframework.dataflow.cfg.node.ThisNode;
 import org.checkerframework.dataflow.expression.*;
 import org.checkerframework.framework.flow.CFAbstractAnalysis;
@@ -39,6 +40,7 @@ import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TypesUtils;
 
 import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
@@ -73,7 +75,7 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 
 	private void clearDependents(JavaExpression dependency) {
 		Predicate<JavaExpression> exprAnalyzer;
-		Tree currentTree = ((LatticeAnalysis) analysis).getPosition();
+		Tree currentTree = ((LatticeAnalysis) analysis).getLocalTree();
 		if (currentTree instanceof VariableTree) {
 			// we are in a variable declaration/assignment. No type can depend on an undeclared variable,
 			// so there are no dependents up to this point.
@@ -160,15 +162,19 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 		AnnotatedTypeMirror.AnnotatedExecutableType packingType = packingFactory.getAnnotatedType(method);
 		Node receiver = node.getTarget().getReceiver();
 
-		if (!ElementUtils.isStatic(method)) {
+		if (!ElementUtils.isStatic(method) && method.getKind() != ElementKind.CONSTRUCTOR) {
+			// receivers of instance method calls could be modified by the method
+			var exclReceiver = exclType.getReceiverType();
+			var packingReceiver = packingType.getReceiverType();
 			// TODO: before, we passed the local receiver packing type, not the declared one. is this important? why?
 			updateForPassedReference(atypeFactory, receiver,
-					exclType.getReceiverType(), packingType.getReceiverType(),
+					exclReceiver, packingReceiver,
 					packingStoreAfter);
 		}
 
 		TypeMirror stringType = ElementUtils.getTypeElement(atypeFactory.getProcessingEnv(), String.class).asType();
 
+		// go through all the passed arguments, see which ones could have been modified
 		for (int i = 0; i < node.getArguments().size(); ++i) {
 			Node arg = node.getArgument(i);
 			AnnotatedTypeMirror declaredExclType = exclType.getParameterTypes().get(i);
@@ -194,15 +200,22 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 			AnnotatedTypeMirror inputPackingType,
 			PackingStore storeAfter
 	) {
+		if (reference instanceof ObjectCreationNode) {
+			// reference is a constructor call. There can be no dependents on a value like new Foo().field
+			// because every invocation of "new" causes the creation of an independent field.
+			return;
+		}
+
 		TypeMirror underlyingType = declaredExclType.getUnderlyingType();
 		PackingFieldAccessAnnotatedTypeFactory packingFactory =
 				atypeFactory.getTypeFactoryOfSubcheckerOrNull(PackingFieldAccessSubchecker.class);
 		ExclusivityAnnotatedTypeFactory exclFactory = atypeFactory.getTypeFactoryOfSubchecker(ExclusivityChecker.class);
 
-		// Clear field values if they were possibly changed
+
 		QualifierHierarchy exclHierarchy = exclFactory.getQualifierHierarchy();
-		AnnotationMirror exclAnno = declaredExclType.getAnnotationInHierarchy(exclFactory.READ_ONLY);
+		AnnotationMirror exclAnno = exclFactory.getExclusivityAnnotation(declaredExclType);
 		if (!exclHierarchy.isSubtypeQualifiersOnly(exclAnno, exclFactory.MAYBE_ALIASED)) {
+			// readonly references can't be modified
 			return;
 		}
 
@@ -214,6 +227,7 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 			outputPackingType.addAnnotations(outputPackingValue.getAnnotations());
 		}
 
+		// Clear field values and their dependents if they were possibly changed
 		List<VariableElement> fields = ElementUtils.getAllFieldsIn(
 				TypesUtils.getTypeElement(underlyingType), atypeFactory.getElementUtils());
 		for (VariableElement field : fields) {
@@ -251,8 +265,11 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 					&& outputPackingValue != null
 					&& packingFactory.isInitializedForFrame(outputPackingType, fieldOwnerType)) {
 				AnnotatedTypeMirror adaptedType = atypeFactory.getAnnotatedType(field);
-				((LatticeAnalysis) analysis).setPosition(atypeFactory.declarationFromElement(field));
+				var invocationTree = ((LatticeAnalysis) analysis).getLocalTree();
+				// temporarily set analysis position to field so its refinement can be parsed at its declaration
+				((LatticeAnalysis) analysis).setPosition(field);
 				LatticeValue val = analysis.createAbstractValue(adaptedType);
+				((LatticeAnalysis) analysis).setPosition(invocationTree);
 				insertValue(fieldAccess, val);
             }
 		}

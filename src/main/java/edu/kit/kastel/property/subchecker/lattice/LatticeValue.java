@@ -43,23 +43,20 @@ public final class LatticeValue extends PackingClientValue<LatticeValue> {
 			AnnotationMirrorSet annotations,
 			TypeMirror underlyingType) {
 		super(analysis, annotations, underlyingType);
-		var tree = analysis.getPosition();
+
 		JavaExpression parsed = null;
-		if (tree != null) {
-			// if we have a location where the refinement should be parsed, we parse it
-			PropertyAnnotation property = toPropertyAnnotation();
-			var element = TreeUtils.elementFromTree(tree);
-			try {
-				if (element instanceof VariableElement field && field.getKind() == ElementKind.FIELD) {
-					parsed = property.parseRefinement(field, analysis.getTypeFactory().getChecker());
-				} else {
-					var localPath = analysis.getTypeFactory().getPath(tree);
-					parsed = property.parseRefinement(localPath, analysis.getTypeFactory().getChecker());
-				}
-			} catch (JavaExpressionParseUtil.JavaExpressionParseException e) {
-                // ignored
-            }
-        }
+		PropertyAnnotation property = toPropertyAnnotation();
+		try {
+			if (analysis.getLocalTree() != null) {
+				// if we have a location where the refinement should be parsed, we parse it
+				var localPath = analysis.getTypeFactory().getPath(analysis.getLocalTree());
+				parsed = property.parseRefinement(localPath, analysis.getTypeFactory().getChecker());
+			} else if (analysis.getField() != null) {
+				parsed = property.parseRefinement(analysis.getField(), analysis.getTypeFactory().getChecker());
+			}
+		} catch (JavaExpressionParseUtil.JavaExpressionParseException e) {
+			// ignored
+		}
 		this.refinement = parsed;
     }
 
