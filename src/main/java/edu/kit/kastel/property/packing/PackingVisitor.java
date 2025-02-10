@@ -220,7 +220,6 @@ public class PackingVisitor
 
     @Override
     public Void visitMethod(MethodTree tree, Void p) {
-        // FIXME: packing.return.type.incompatible for IntInitTest
         super.visitMethod(tree, p);
 
         // check that params not covered by explicit contract fulfill their input type
