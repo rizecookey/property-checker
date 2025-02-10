@@ -31,18 +31,16 @@ class LeakThis {
     }
 
     void mthReadOnly(@UnknownInitialization(Object.class) @ReadOnly @NullTop LeakThis this) {
-        // :: error: assignment.this-not-writable :: error: initialization.write.committed.field
+        // :: error: assignment.this-not-writable
         this.readOnly = this;
     }
 
     void mthAliased(@UnknownInitialization(Object.class) @MaybeAliased @NullTop LeakThis this) {
-        // :: error: initialization.write.committed.field
         this.aliased = this;
     }
 
     // :: error: exclusivity.postcondition.not.satisfied
     void mthUnique(@UnknownInitialization(Object.class) @Unique @NullTop LeakThis this) {
-        // :: error: initialization.write.committed.field
         this.unique = this;
     }
     

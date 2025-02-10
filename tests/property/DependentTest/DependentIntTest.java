@@ -8,13 +8,12 @@ import org.checkerframework.dataflow.qual.*;
 
 public class DependentIntTest {
     
-    public static final int MIN = 1, MAX = 1;
+    public static final @Dependable int MIN = 1, MAX = 1;
 
     // :: error: initialization.field.uninitialized
-    public @Interval(min="MIN", max="MAX") int field;
+    public @Dependable @Interval(min="MIN", max="MAX") int field;
 
     public static void foo0(@Interval(min="2", max="2") int arg0, @Interval(min="2", max="5") int arg1) {
-
         // :: error: interval.assignment.type.incompatible
         @Interval(min="MIN", max="MAX") int x = new DependentIntTest().field;
         

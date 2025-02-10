@@ -16,8 +16,15 @@
  */
 package edu.kit.kastel.property.subchecker.lattice;
 
+import com.sun.source.tree.LiteralTree;
 import com.sun.source.tree.MethodTree;
+import com.sun.source.tree.Tree;
+import edu.kit.kastel.property.lattice.EvaluatedPropertyAnnotation;
+import edu.kit.kastel.property.lattice.Lattice;
+import edu.kit.kastel.property.lattice.PropertyAnnotation;
+import edu.kit.kastel.property.lattice.PropertyAnnotationType;
 import edu.kit.kastel.property.packing.PackingClientTransfer;
+import edu.kit.kastel.property.util.ClassUtils;
 import edu.kit.kastel.property.util.Packing;
 import org.checkerframework.dataflow.analysis.RegularTransferResult;
 import org.checkerframework.dataflow.analysis.TransferInput;
@@ -26,6 +33,7 @@ import org.checkerframework.dataflow.cfg.node.ClassNameNode;
 import org.checkerframework.dataflow.cfg.node.MethodAccessNode;
 import org.checkerframework.dataflow.cfg.node.MethodInvocationNode;
 import org.checkerframework.dataflow.cfg.node.Node;
+import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
@@ -67,6 +75,45 @@ public final class LatticeTransfer extends PackingClientTransfer<LatticeValue, L
         }
 
         return super.visitMethodInvocation(node, in);
+    }
+
+    @Override
+    protected void processCommonAssignment(TransferInput<LatticeValue, LatticeStore> in, Node lhs, Node rhs, LatticeStore store, LatticeValue rhsValue) {
+        // If the rhs is a literal that is compatible with the lhs's declared type, put that type in the store.
+        boolean compatible = false;
+        AnnotatedTypeMirror lhsDeclType = factory.getAnnotatedTypeLhs(lhs.getTree());
+        if (rhs.getTree() instanceof LiteralTree) {
+            LiteralTree literal = (LiteralTree) rhs.getTree();
+            Lattice lattice = factory.getLattice();
+            PropertyAnnotation pa = lattice.getPropertyAnnotation(lhsDeclType);
+            EvaluatedPropertyAnnotation epa = lattice.getEvaluatedPropertyAnnotation(factory.getAnnotatedTypeLhs(lhs.getTree()));
+
+            if (factory.getAnnotatedType(rhs.getTree()).getUnderlyingType().toString().equals("java.lang.String") && pa.getAnnotationType().isNonNull()) {
+                compatible = true;
+            } else if (epa != null) {
+                PropertyAnnotationType pat = epa.getAnnotationType();
+
+                if (pat.getSubjectType() != null) {
+                    Class<?> literalClass = ClassUtils.literalKindToClass(literal.getKind());
+                    if (literalClass != null && literalClass.equals(pat.getSubjectType())) {
+                        if (epa.checkProperty(literal.getValue())) {
+                            compatible = true;
+                        }
+                    } else if (literal.getKind() == Tree.Kind.NULL_LITERAL && !pat.getSubjectType().isPrimitive()) {
+                        if (epa.checkProperty(null)) {
+                            compatible = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (compatible) {
+            store.insertValue(JavaExpression.fromNode(lhs), new LatticeValue(analysis, lhsDeclType.getAnnotations(), lhsDeclType.getUnderlyingType()));
+            return;
+        }
+
+        super.processCommonAssignment(in, lhs, rhs, store, rhsValue);
     }
 
     @Override

@@ -5,6 +5,7 @@ import com.sun.tools.javac.code.TargetType;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.tree.TreeInfo;
+import edu.kit.kastel.property.checker.qual.Undependable;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.Unique;
@@ -158,7 +159,7 @@ public class PackingVisitor
             AnnotationMirror valAnno) {
         TypeMirror varFrame;
         if (atypeFactory.isInitialized(varAnno)) {
-            // If an object is initalized up to its most specific known subclass and no function with a receiver type
+            // If an object is initialized up to its most specific known subclass and no function with a receiver type
             // @UnderInitialization was called, the object is @Initialized
             if (atypeFactory.getStoreBefore(varTree).isHelperFunctionCalled()) {
                 return false;
@@ -483,8 +484,36 @@ public class PackingVisitor
             ExpressionTree lhs = (ExpressionTree) varTree;
             AnnotatedTypeMirror xType = atypeFactory.getReceiverType(lhs);
             if (atypeFactory.isUnknownInitialization(xType) || atypeFactory.isInitializedForFrame(xType, TreeInfo.symbol((JCTree) varTree).owner.type)) {
-                checker.reportError(varTree, "initialization.write.committed.field", varTree);
-                return false;
+                // An assignment to an undependable field is always allowed if it preserves the field's declared types.
+                boolean fDependable = AnnotationUtils.containsSameByClass(atypeFactory.getDeclAnnotations(TreeUtils.elementFromUse(lhs)), Undependable.class);
+                boolean preservingAssignment = !fDependable;
+
+                if (preservingAssignment) {
+                    for (BaseTypeChecker targetChecker : getChecker().getTargetCheckers()) {
+                        CFAbstractStore<?, ?> store = targetChecker.getTypeFactory().getStoreAfter(getCurrentPath().getLeaf());
+                        if (store == null) {
+                            preservingAssignment = false;
+                            break;
+                        }
+                        List<VariableElement> uninitFields = atypeFactory.getUninitializedFields(
+                                atypeFactory.getStoreAfter(getCurrentPath().getLeaf()),
+                                store,
+                                this.getCurrentPath(),
+                                ElementUtils.isStatic(TreeUtils.elementFromUse(lhs)),
+                                List.of()
+                        );
+
+                        if (uninitFields.contains(TreeUtils.elementFromUse(lhs))) {
+                            preservingAssignment = false;
+                            break;
+                        }
+                    }
+                }
+
+                if (!preservingAssignment) {
+                    checker.reportError(varTree, "initialization.write.committed.field", varTree);
+                    return false;
+                }
             }
         }
         return super.commonAssignmentCheck(varTree, valueExp, errorKey, extraArgs);

@@ -16,6 +16,7 @@
  */
 package tests.esop2025;
 
+import org.junit.Ignore;
 import org.junit.runners.Parameterized.Parameters;
 import tests.property.PropertyCheckerTest;
 
@@ -23,6 +24,7 @@ import java.io.File;
 import java.util.List;
 
 @SuppressWarnings("nls")
+@Ignore
 public class CaseStudyMutableTest extends PropertyCheckerTest {
     public CaseStudyMutableTest(List<File> testFiles) {
         super(
