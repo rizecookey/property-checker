@@ -9,6 +9,7 @@ public class BasicPackingA {
 
     @Unique Object aField;
 
+    @NonMonotonic
     BasicPackingA() {
         this.aField = new Obj();
     }

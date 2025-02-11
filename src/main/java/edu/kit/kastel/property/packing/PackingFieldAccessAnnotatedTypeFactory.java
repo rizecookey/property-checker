@@ -5,6 +5,7 @@ import com.sun.source.tree.NewClassTree;
 import com.sun.source.util.TreePath;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.tree.JCTree;
+import edu.kit.kastel.property.packing.qual.NonMonotonic;
 import org.checkerframework.checker.initialization.InitializationFieldAccessAbstractAnnotatedTypeFactory;
 import org.checkerframework.checker.initialization.InitializationFieldAccessTreeAnnotator;
 import org.checkerframework.checker.initialization.InitializationParentAnnotatedTypeFactory;
@@ -189,6 +190,14 @@ public class PackingFieldAccessAnnotatedTypeFactory
 
             return null;
         }
+    }
+
+    public boolean isMonotonicMethod(MethodTree tree) {
+        return isMonotonicMethod(TreeUtils.elementFromDeclaration(tree));
+    }
+
+    public boolean isMonotonicMethod(Element el) {
+        return !AnnotationUtils.containsSameByClass(getDeclAnnotations(el), NonMonotonic.class);
     }
 
     protected class PackingTypeAnnotator extends CommitmentTypeAnnotator {

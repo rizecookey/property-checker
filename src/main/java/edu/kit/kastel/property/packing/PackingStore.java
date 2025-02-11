@@ -2,10 +2,13 @@ package edu.kit.kastel.property.packing;
 
 import org.checkerframework.checker.initialization.InitializationAbstractStore;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.dataflow.cfg.node.MethodInvocationNode;
 import org.checkerframework.dataflow.expression.*;
 import org.checkerframework.framework.flow.CFValue;
+import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
 
 import javax.lang.model.element.Element;
+import javax.lang.model.element.ExecutableElement;
 
 public class PackingStore extends InitializationAbstractStore<CFValue, PackingStore> {
 
@@ -66,6 +69,20 @@ public class PackingStore extends InitializationAbstractStore<CFValue, PackingSt
 
     public boolean isFieldAssigned(Element f) {
         return super.isFieldInitialized(f);
+    }
+
+    @Override
+    public void updateForMethodCall(MethodInvocationNode methodInvocationNode, GenericAnnotatedTypeFactory<CFValue, PackingStore, ?, ?> atypeFactory, CFValue val) {
+        ExecutableElement method = methodInvocationNode.getTarget().getMethod();
+
+        if (((PackingFieldAccessAnnotatedTypeFactory) atypeFactory).isMonotonicMethod(method)) {
+            // store information about method call if possible, but don't change the store otherwise
+            JavaExpression methodCall = JavaExpression.fromNode(methodInvocationNode);
+            replaceValue(methodCall, val);
+        } else {
+            // change the store normally
+            super.updateForMethodCall(methodInvocationNode, atypeFactory, val);
+        }
     }
 
     /**

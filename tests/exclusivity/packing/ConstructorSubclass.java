@@ -9,17 +9,20 @@ public class ConstructorSubclass extends ConstructorSuperclass {
 
     @Unique Object subField;
 
+    @NonMonotonic
     ConstructorSubclass() {
         super();
         this.isPackedToSuperclass();
         this.subField = new Obj();
     }
 
+    @NonMonotonic
     ConstructorSubclass(int dummy) {
         super(dummy);
         this.isPackedToSuperclass();
         this.subField = new Obj();
     }
 
+    @NonMonotonic
     void isPackedToSuperclass(@UnderInitialization(ConstructorSuperclass.class) @Unique @NullTop ConstructorSubclass this) {}
 }

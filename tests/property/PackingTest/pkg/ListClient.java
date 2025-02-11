@@ -13,6 +13,7 @@ public final class ListClient {
     @MaybeAliased @Length(len="1") List b;
     @Unique @Length(len="a.size") List c;
 
+    @NonMonotonic
     // :: error: initialization.fields.uninitialized
     public ListClient() {
         this.a = new List(42);
@@ -20,6 +21,7 @@ public final class ListClient {
         this.c = new List(42);
     }
 
+    @NonMonotonic
     // :: error: initialization.fields.uninitialized
     public void correctPacking(@Unique ListClient this) {
         // :: error: length.method.invocation.invalid

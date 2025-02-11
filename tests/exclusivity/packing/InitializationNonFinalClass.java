@@ -6,21 +6,23 @@ import org.checkerframework.checker.initialization.qual.*;
 import org.checkerframework.dataflow.qual.*;
 
 public class InitializationNonFinalClass {
+
     @ReadOnly @UnknownInitialization(Object.class) @NullTop Object readOnly;
     @MaybeAliased Object aliased;
     @Unique Object unique;
 
+    @NonMonotonic
     @Initialized InitializationNonFinalClass() {
         this.unique = new Obj();
-        // :: error: nullness.method.invocation.invalid :: error: initialization.fields.uninitialized
+        // :: error: initialization.fields.uninitialized
         this.foo();
     }
 
+    @NonMonotonic
     @Initialized InitializationNonFinalClass(int dummy) {
         this.aliased = new Obj();
         this.unique = new Obj();
 
-        // :: error: nullness.method.invocation.invalid
         this.foo();
     }
 

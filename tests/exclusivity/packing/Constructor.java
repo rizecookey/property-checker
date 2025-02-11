@@ -11,23 +11,29 @@ public final class Constructor {
     @MaybeAliased Object aliased;
     @Unique Object unique;
 
+    @NonMonotonic
     // :: error: initialization.fields.uninitialized
     public Constructor() { }
 
+    @NonMonotonic
     // :: error: initialization.fields.uninitialized
     public @UnknownInitialization(Constructor.class) Constructor(short dummy) {
     }
 
+    @NonMonotonic
     public @UnknownInitialization(Object.class) Constructor(long dummy) {
     }
 
+    @NonMonotonic
     public Constructor(int dummy) {
         this.aliased = new Obj();
         this.unique = new Obj();
     }
 
+    @NonMonotonic
     public void foo(Constructor this) {}
 
+    @NonMonotonic
     public static void main() {
         new Constructor().foo();
         // not invalid because Constructor class is final

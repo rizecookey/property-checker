@@ -7,12 +7,14 @@ import org.checkerframework.dataflow.qual.*;
 
 class Foo {
 
-    int i;
+    @Undependable int i;
 
     @NonNull Foo() {
     }
 
+    @NonMonotonic
     public void mth(@ReadOnly @UnknownInitialization(Object.class) @NullTop Foo this) {}
 
+    @NonMonotonic
     public void mthUnique(@Unique @NullTop Foo this) {}
 }

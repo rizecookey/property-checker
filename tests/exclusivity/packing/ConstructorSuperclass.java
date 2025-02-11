@@ -9,9 +9,11 @@ public class ConstructorSuperclass {
 
     @Unique Object superField;
 
+    @NonMonotonic
     ConstructorSuperclass() {
         this.superField = new Obj();
     }
 
+    @NonMonotonic
     @UnderInitialization(Object.class) ConstructorSuperclass(int dummy) { }
 }

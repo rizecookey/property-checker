@@ -132,7 +132,7 @@ public abstract class PackingClientTransfer<
         }
 
         boolean sideEffectFree;
-        StringToJavaExpression stringToJavaExpr = null;
+        StringToJavaExpression stringToJavaExpr;
         if (invocationNode instanceof MethodInvocationNode) {
             sideEffectFree = analysis.getTypeFactory().isSideEffectFree(((MethodInvocationNode) invocationNode).getTarget().getMethod());
             stringToJavaExpr =

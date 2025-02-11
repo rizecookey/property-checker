@@ -7,9 +7,9 @@ import org.checkerframework.dataflow.qual.*;
 
 class LeakThis {
 
-    @UnknownInitialization(Object.class) @ReadOnly @NullTop LeakThis readOnly;
-    @UnknownInitialization(Object.class) @MaybeAliased LeakThis aliased;
-    @UnknownInitialization(Object.class) @Unique LeakThis unique;
+    @Undependable @UnknownInitialization(Object.class) @ReadOnly @NullTop LeakThis readOnly;
+    @Undependable @UnknownInitialization(Object.class) @MaybeAliased LeakThis aliased;
+    @Undependable @UnknownInitialization(Object.class) @Unique LeakThis unique;
 
     // :: error: initialization.constructor.return.type.incompatible
     @UnknownInitialization(LeakThis.class) @NullTop LeakThis() {

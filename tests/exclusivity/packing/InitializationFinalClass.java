@@ -6,16 +6,19 @@ import org.checkerframework.checker.initialization.qual.*;
 import org.checkerframework.dataflow.qual.*;
 
 public final class InitializationFinalClass {
+
     @ReadOnly @UnknownInitialization(Object.class) @NullTop Object readOnly;
     @MaybeAliased Object aliased;
     @Unique Object unique;
 
+    @NonMonotonic
     InitializationFinalClass() {
         this.unique = new Obj();
         // :: error: initialization.fields.uninitialized
         this.foo();
     }
 
+    @NonMonotonic
     InitializationFinalClass(int dummy) {
         this.aliased = new Obj();
         this.unique = new Obj();

@@ -5,7 +5,6 @@ import com.sun.tools.javac.code.TargetType;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.tree.TreeInfo;
-import edu.kit.kastel.property.checker.qual.Undependable;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.Unique;
@@ -45,6 +44,7 @@ public class PackingVisitor
     private final ExecutableElement equalFieldMethod;
 
     private Set<JavaExpression> paramsInContract = new HashSet<>();
+    private MethodTree enclMethod = null;
 
     public PackingVisitor(BaseTypeChecker checker) {
         super(checker);
@@ -261,6 +261,10 @@ public class PackingVisitor
         } else if (ElementUtils.isMethod(invokedMethod, unchangedFieldMethod, env) || ElementUtils.isMethod(invokedMethod, equalFieldMethod, env)) {
             // TODO!
             return null;
+        } else if (atypeFactory.isMonotonicMethod(enclMethod)
+                && !atypeFactory.isMonotonicMethod(invokedMethod) && !atypeFactory.isSideEffectFree(invokedMethod)) {
+            checker.reportError(node, "initialization.nonmonotonic.method.call");
+            return null;
         } else {
             return super.visitMethodInvocation(node, p);
         }
@@ -360,6 +364,9 @@ public class PackingVisitor
 
     @Override
     public Void visitMethod(MethodTree tree, Void p) {
+        MethodTree prevEnclMethod = enclMethod;
+        enclMethod = tree;
+
         super.visitMethod(tree, p);
 
         // check that params not covered by explicit contract fulfill their input type
@@ -393,6 +400,7 @@ public class PackingVisitor
             }
         }
 
+        enclMethod = prevEnclMethod;
         return p;
     }
 
@@ -476,6 +484,35 @@ public class PackingVisitor
         return null;
     }
 
+    protected boolean isPreservingAssignment(ExpressionTree lhs, ExpressionTree valueExp) {
+        // An assignment to an undependable field is always allowed if it preserves the field's declared types.
+        boolean preservingAssignment = !atypeFactory.isDependableField(lhs);
+
+        if (preservingAssignment) {
+            for (BaseTypeChecker targetChecker : getChecker().getTargetCheckers()) {
+                CFAbstractStore<?, ?> store = targetChecker.getTypeFactory().getStoreAfter(getCurrentPath().getLeaf());
+                if (store == null) {
+                    preservingAssignment = false;
+                    break;
+                }
+                List<VariableElement> uninitFields = atypeFactory.getUninitializedFields(
+                        atypeFactory.getStoreAfter(getCurrentPath().getLeaf()),
+                        store,
+                        this.getCurrentPath(),
+                        ElementUtils.isStatic(TreeUtils.elementFromUse(lhs)),
+                        List.of()
+                );
+
+                if (uninitFields.contains(TreeUtils.elementFromUse(lhs))) {
+                    preservingAssignment = false;
+                    break;
+                }
+            }
+        }
+
+        return preservingAssignment;
+    }
+
     @Override
     protected boolean commonAssignmentCheck(Tree varTree, ExpressionTree valueExp, @CompilerMessageKey String errorKey, Object... extraArgs) {
         // field write of the form x.f = y
@@ -483,37 +520,19 @@ public class PackingVisitor
             // cast is safe: a field access can only be an IdentifierTree or MemberSelectTree
             ExpressionTree lhs = (ExpressionTree) varTree;
             AnnotatedTypeMirror xType = atypeFactory.getReceiverType(lhs);
+
+            if (isPreservingAssignment(lhs, valueExp)) {
+                return true;
+            }
+
+            if (atypeFactory.isMonotonicMethod(enclMethod)) {
+                checker.reportError(varTree, "initialization.nonmonotonic.write");
+                return false;
+            }
+
             if (atypeFactory.isUnknownInitialization(xType) || atypeFactory.isInitializedForFrame(xType, TreeInfo.symbol((JCTree) varTree).owner.type)) {
-                // An assignment to an undependable field is always allowed if it preserves the field's declared types.
-                boolean fDependable = AnnotationUtils.containsSameByClass(atypeFactory.getDeclAnnotations(TreeUtils.elementFromUse(lhs)), Undependable.class);
-                boolean preservingAssignment = !fDependable;
-
-                if (preservingAssignment) {
-                    for (BaseTypeChecker targetChecker : getChecker().getTargetCheckers()) {
-                        CFAbstractStore<?, ?> store = targetChecker.getTypeFactory().getStoreAfter(getCurrentPath().getLeaf());
-                        if (store == null) {
-                            preservingAssignment = false;
-                            break;
-                        }
-                        List<VariableElement> uninitFields = atypeFactory.getUninitializedFields(
-                                atypeFactory.getStoreAfter(getCurrentPath().getLeaf()),
-                                store,
-                                this.getCurrentPath(),
-                                ElementUtils.isStatic(TreeUtils.elementFromUse(lhs)),
-                                List.of()
-                        );
-
-                        if (uninitFields.contains(TreeUtils.elementFromUse(lhs))) {
-                            preservingAssignment = false;
-                            break;
-                        }
-                    }
-                }
-
-                if (!preservingAssignment) {
-                    checker.reportError(varTree, "initialization.write.committed.field", varTree);
-                    return false;
-                }
+                checker.reportError(varTree, "initialization.write.committed.field", varTree);
+                return false;
             }
         }
         return super.commonAssignmentCheck(varTree, valueExp, errorKey, extraArgs);

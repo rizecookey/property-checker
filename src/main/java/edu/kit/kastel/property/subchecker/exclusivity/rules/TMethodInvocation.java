@@ -33,6 +33,7 @@ public class TMethodInvocation extends AbstractTypeRule<MethodInvocationNode> {
         TypeMirror receiverType = node.getTarget().getMethod().getReceiverType();
         AnnotationMirror receiverTypeAnno = null;
         boolean sideEffectFree = factory.isSideEffectFree(node.getTarget().getMethod());
+        boolean monotonicMethod = factory.isMonotonicMethod(node.getTarget().getMethod());
 
         if (!ElementUtils.isStatic(TreeUtils.elementFromUse(node.getTree()))
                 && !node.getTarget().getMethod().getSimpleName().contentEquals("<init>")) {
@@ -73,7 +74,7 @@ public class TMethodInvocation extends AbstractTypeRule<MethodInvocationNode> {
         }*/
 
         // Remove possibly invalidated refinements
-        if (store != null && analysis != null && !sideEffectFree) {
+        if (store != null && analysis != null && !sideEffectFree && !monotonicMethod) {
             boolean thisPassedAsArgument = receiverTypeAnno != null &&
                     receiver instanceof ThisNode &&
                     hierarchy.isSubtypeQualifiersOnly(receiverTypeAnno, factory.MAYBE_ALIASED);

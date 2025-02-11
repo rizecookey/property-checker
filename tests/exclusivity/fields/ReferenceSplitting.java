@@ -17,6 +17,7 @@ class ReferenceSplitting {
 
         x = new Foo();  // x is updated to @Unique
         a = x;          // x is updated to @ReadOnly
+        // :: error: initialization.nonmonotonic.write
         this.field = x; // invalid, x is not @Unique anymore
     }
 }

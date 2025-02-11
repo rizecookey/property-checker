@@ -7,23 +7,28 @@ import org.checkerframework.dataflow.qual.*;
 
 final class MethodCall {
 
-    @ReadOnly @UnknownInitialization(Object.class) @NullTop Foo field;
+    @Undependable @ReadOnly @UnknownInitialization(Object.class) @NullTop Foo field;
 
     @NullTop MethodCall() {
     }
 
+    @NonMonotonic
     void mthRO(@UnknownInitialization @ReadOnly @NullTop MethodCall this) {}
 
+    @NonMonotonic
     void mthUnique(@UnknownInitialization @Unique @NullTop MethodCall this) {}
 
+    @NonMonotonic
     void mthMA(@UnknownInitialization @MaybeAliased @NullTop MethodCall this) {}
 
+    @NonMonotonic
     void mthParam(@UnknownInitialization @MaybeAliased @NullTop MethodCall this, @UnknownInitialization @MaybeAliased @NullTop Foo arg) {}
 
     @Unique Foo mthret(@MaybeAliased @NullTop MethodCall this) {
         return new Foo();
     }
 
+    @NonMonotonic
     @EnsuresUnknownInit(targetValue=Object.class)
     void invoke(@MaybeAliased @NullTop MethodCall this) {
         @ReadOnly Foo x;
@@ -35,12 +40,14 @@ final class MethodCall {
         x.mthUnique();     // invalid, x is not @Unique anymore
     }
 
+    @NonMonotonic
     // :: error: exclusivity.postcondition.not.satisfied
     void invokeAssign(@Unique @NullTop MethodCall this) {
         @Unique Foo b;
         b = this.mthret();
     }
 
+    @NonMonotonic
     void invalidate1(@Unique @NullTop MethodCall this) {
         @Unique Foo a;
         this.field = new Foo(); // field is refined to @Unique
@@ -50,6 +57,7 @@ final class MethodCall {
         this.field.mthUnique(); // invalid, refinement of field has been forgotten
     }
 
+    @NonMonotonic
     void dontInvalidate(@Unique @NullTop MethodCall this) {
         @Unique Foo recv = new Foo();
         @Unique Foo a;

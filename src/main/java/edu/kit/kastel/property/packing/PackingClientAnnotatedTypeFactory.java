@@ -1,6 +1,7 @@
 package edu.kit.kastel.property.packing;
 
 import com.sun.source.tree.*;
+import edu.kit.kastel.property.packing.qual.NonMonotonic;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.dataflow.cfg.node.*;
@@ -14,9 +15,11 @@ import org.checkerframework.framework.type.treeannotator.LiteralTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.PropagationTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
 import org.checkerframework.javacutil.AnnotationMirrorSet;
+import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.TreeUtils;
 
 import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.Element;
 import javax.lang.model.type.TypeKind;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -171,5 +174,13 @@ public abstract class PackingClientAnnotatedTypeFactory<
             } catch (IOException e) { }
         }
         return super.createCFGVisualizer();
+    }
+
+    public boolean isMonotonicMethod(MethodTree tree) {
+        return isMonotonicMethod(TreeUtils.elementFromDeclaration(tree));
+    }
+
+    public boolean isMonotonicMethod(Element el) {
+        return !AnnotationUtils.containsSameByClass(getDeclAnnotations(el), NonMonotonic.class);
     }
 }

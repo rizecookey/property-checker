@@ -1,24 +1,27 @@
 import edu.kit.kastel.property.util.Packing;
 import edu.kit.kastel.property.subchecker.lattice.qual.*;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
+import edu.kit.kastel.property.packing.qual.*;
 import org.checkerframework.checker.initialization.qual.*;
 
 public final class PreservingUpdateTest {
 
-    @Interval(min="1", max="2") int intField = 1;
-    @NonNull Object objField = new Object();
+    @Undependable @Interval(min="1", max="2") int intField = 1;
+    @Undependable @NonNull Object objField = new Object();
 
-
+    @NonMonotonic
     void preservingAliased(@MaybeAliased PreservingUpdateTest this) {
        this.intField = 2;
        this.objField = new Object();
     }
 
+    @NonMonotonic
     void nonPreservingAliased0(@MaybeAliased PreservingUpdateTest this) {
         // :: error: initialization.write.committed.field
         this.intField = 0;
     }
 
+    @NonMonotonic
     void nonPreservingAliased1(@MaybeAliased PreservingUpdateTest this) {
         // :: error: initialization.write.committed.field
         this.objField = null;

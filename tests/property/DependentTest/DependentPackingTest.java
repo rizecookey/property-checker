@@ -13,6 +13,7 @@ public class DependentPackingTest {
     // :: error: initialization.field.uninitialized
     public @Dependable @Interval(min="0", max="this.field0") int field1;
 
+    @NonMonotonic
     // :: error: initialization.fields.uninitialized
     public void foo0(@Unique DependentPackingTest this) {
         this.field0 = 1;

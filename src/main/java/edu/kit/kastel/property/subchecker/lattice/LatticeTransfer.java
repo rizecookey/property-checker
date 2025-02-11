@@ -130,8 +130,9 @@ public final class LatticeTransfer extends PackingClientTransfer<LatticeValue, L
                     thisType.getUnderlyingType());
         } else {
             AnnotatedTypeMirror thisType = factory.getSelfType(methodDeclTree.getBody());
+            boolean isNonNull = factory.getLattice().getPropertyAnnotation(thisType).getAnnotationType().isNonNull();
             return analysis.createSingleAnnotationValue(
-                    factory.getTop(),
+                    isNonNull ? thisType.getAnnotationInHierarchy(factory.getTop()) : factory.getTop(),
                     thisType.getUnderlyingType());
         }
     }

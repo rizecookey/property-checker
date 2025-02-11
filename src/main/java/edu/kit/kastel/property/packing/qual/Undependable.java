@@ -1,4 +1,4 @@
-package edu.kit.kastel.property.checker.qual;
+package edu.kit.kastel.property.packing.qual;
 
 import org.checkerframework.framework.qual.DefaultQualifierInHierarchy;
 import org.checkerframework.framework.qual.SubtypeOf;

@@ -116,6 +116,7 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 		}
 
 		if (!atypeFactory.isSideEffectFree(node.getTarget().getMethod())
+				&& !((LatticeAnnotatedTypeFactory) atypeFactory).isMonotonicMethod(node.getTarget().getMethod())
 				&& thisPassedAsArgument) {
 			PackingFieldAccessAnnotatedTypeFactory packingFactory =
 					atypeFactory.getTypeFactoryOfSubcheckerOrNull(PackingFieldAccessSubchecker.class);
