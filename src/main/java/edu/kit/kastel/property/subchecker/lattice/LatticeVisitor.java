@@ -16,7 +16,6 @@
  */
 package edu.kit.kastel.property.subchecker.lattice;
 
-import com.github.javaparser.ast.expr.BinaryExpr;
 import com.google.common.collect.Streams;
 import com.sun.source.tree.*;
 import com.sun.source.tree.Tree.Kind;
@@ -33,7 +32,6 @@ import edu.kit.kastel.property.packing.PackingClientStore;
 import edu.kit.kastel.property.packing.PackingClientVisitor;
 import edu.kit.kastel.property.smt.JavaToSmtExpression;
 import edu.kit.kastel.property.smt.SmtExpression;
-import edu.kit.kastel.property.smt.SmtType;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
 import edu.kit.kastel.property.util.*;
@@ -49,7 +47,6 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutab
 import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.framework.util.AnnotatedTypes;
 import org.checkerframework.framework.util.JavaExpressionParseUtil;
-import org.checkerframework.framework.util.StringToJavaExpression;
 import org.checkerframework.javacutil.*;
 
 import javax.annotation.processing.ProcessingEnvironment;
@@ -59,6 +56,7 @@ import javax.lang.model.type.TypeMirror;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -188,13 +186,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         if (ElementUtils.isMethod(invokedMethod, packMethod, env) || ElementUtils.isMethod(invokedMethod, unpackMethod, env)) {
             // compute smt context for packing calls and put it in result
             // this can later potentially be used to mend uninitialized field errors
-            TypeElement typeElement = TreeUtils.elementFromDeclaration(enclClass);
-            ThisReference receiver = new ThisReference(typeElement.asType());
-            var fields = ElementUtils.getAllFieldsIn(typeElement, elements)
-                    .stream()
-                    .map(field -> new FieldAccess(receiver, field))
-                    .toList();
-            computeSmtContext(atypeFactory.getStoreBefore(tree), tree, fields);
+            computeSmtContext(atypeFactory.getStoreBefore(tree), tree, List.of());
             // Don't type-check arguments of packing calls.
             return p;
         }
@@ -788,13 +780,19 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
     private SmtExpression computePostconditionSmt(
             Tree treeKey, AnnotationMirror annotation,
             JavaExpression subject, LatticeStore exitStore) {
+
+
         var property = atypeFactory.getLattice().getPropertyAnnotation(annotation);
         var goal = convertGoal(
                 viewpointAdapt(parseOrUnknown(property, getCurrentPath()), List.of(subject)),
                 subject.toString()
         );
-        if (goal != null && exitStore != null) {
-            computeSmtContext(exitStore, treeKey, goal.references());
+
+        if (exitStore != null) {
+            computeSmtContext(exitStore, treeKey, goal != null ? goal.references() : List.of());
+        }
+
+        if (goal != null) {
             return goal.smt();
         }
         return null;
@@ -802,9 +800,8 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
     private void amendSmtResultForValue(AnnotatedTypeMirror varType, Tree valueTree, boolean typeCheckSuccess) {
         JavaToSmtExpression.Result smtGoal = computeSmtGoalForValue(varType, valueTree);
-
+        computeSmtContext(atypeFactory.getStoreBefore(valueTree), valueTree, smtGoal != null ? smtGoal.references() : List.of());
         if (smtGoal != null) {
-            computeSmtContext(atypeFactory.getStoreBefore(valueTree), valueTree, smtGoal.references());
             if (typeCheckSuccess) {
                 // if we already know that the goal is true (expr is well-typed), we add it to the context
                 result.addContext(valueTree, smtGoal.smt());
@@ -884,86 +881,26 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         }
     }
 
-    private void computeSmtContext(LatticeStore store, Tree tree, Collection<? extends JavaExpression> initialRefs) {
-        Set<JavaExpression> visited = new HashSet<>();
-        Queue<JavaExpression> refs = new ArrayDeque<>(initialRefs);
-
-        // collect all locally available refinements (params + vars)
-        Collection<JavaExpression> localRefinements = store.getLocalRefinements();
-
-        while (!refs.isEmpty()) {
-            // reference is always viewpoint-adapted from original context
-            JavaExpression ref = refs.remove();
-            if (visited.contains(ref) || hasCycle(ref)) {
-                continue;
-            }
-
-            // search in local refinements for mentions of the reference
-            for (JavaExpression expr : localRefinements) {
-                if (expr.containsSyntacticEqualJavaExpression(ref)) {
-                    tryConvertToSmt(expr).ifPresent(conversion -> {
-                        result.addContext(tree, conversion.smt());
-                        refs.addAll(conversion.references());
-                    });
+    // TODO: consider unifying contexts for method calls
+    private void computeSmtContext(LatticeStore store, Tree tree, Collection<? extends JavaExpression> goalReferences) {
+        Consumer<Collection<? extends JavaExpression>> additionalContaints = refs -> {
+            for (var ref : refs) {
+                if (ref instanceof MethodCall m) {
+                    constrainMethodCall(tree, m);
                 }
             }
-
-            // Find and add constraints for ref to appropriate context,
-            // get back refs that appeared during the collection
-            Set<JavaExpression> newRefs = switch (ref) {
-                case FieldAccess f -> constrainField(store, tree, visited, f);
-                case MethodCall m -> constrainMethodCall(tree, m);
-                // only other option are LocalVariable refs, which have already been constrained
-                // by the local refinement search at this point
-                default -> Collections.emptySet();
-            };
-
-            refs.addAll(newRefs);
-            visited.add(ref);
-        }
-    }
-
-    // this is basically a shortcut for "add refinement + external references"
-    private Set<JavaExpression> constrainField(LatticeStore store, Tree tree, Set<JavaExpression> visited, FieldAccess fieldAccess) {
-        Set<JavaExpression> references = new HashSet<>();
-        // go through all parent receivers of field access to find references
-        // field could be further constrained by other local refinements, but these aren't handled here
-        for (JavaExpression e = fieldAccess; e instanceof FieldAccess fa; e = fa.getReceiver()) {
-            TypeMirror receiverType = fa.getReceiver().getType();
-            TypeElement typeElement = TypesUtils.getTypeElement(receiverType);
-            for (VariableElement field : ElementUtils.getAllFieldsIn(typeElement, elements)) {
-                JavaExpression localFieldRef = new FieldAccess(new ThisReference(receiverType), field);
-                JavaExpression fieldRefFromRoot = viewpointAdapt(localFieldRef, fa.getReceiver());
-                if (visited.contains(fieldRefFromRoot)) {
-                    // we have already handled this field and all its dependencies
-                    continue;
-                }
-
-                // get the type for the field in the given store.
-                // This is null if the field is not being tracked or no information is known,
-                // in which case we'll use the top type.
-                var storedType = store.getValue(fieldRefFromRoot);
-                PropertyAnnotation property = storedType == null
-                        ? atypeFactory.getLattice().getPropertyAnnotation(atypeFactory.getTop())
-                        : storedType.toPropertyAnnotation();
-                JavaExpression expr = viewpointAdapt(
-                        viewpointAdapt(
-                                parseOrUnknown(property, field),
-                                List.of(localFieldRef)
-                        ),
-                        fa.getReceiver()
-                );
-
-                // if refinement references the original field we're interested in, add it to the result
-                if (expr.containsSyntacticEqualJavaExpression(fieldAccess)) {
-                    tryConvertToSmt(expr).ifPresent(conversion -> {
-                        result.addContext(tree, conversion.smt());
-                        references.addAll(conversion.references());
-                    });
-                }
-            }
-        }
-        return references;
+        };
+        Streams.concat(
+                        store.getFieldValues().entrySet().stream(),
+                        store.getLocalVariableValues().entrySet().stream(),
+                        store.getThisValue().map(val -> Map.entry(new ThisReference(val.getUnderlyingType()), val)).stream()
+                ).flatMap(entry -> entry.getValue().getRefinement(entry.getKey()).stream())
+                .flatMap(expr -> tryConvertToSmt(expr).stream())
+                .forEach(smtResult -> {
+                    result.addContext(tree, smtResult.smt());
+                    additionalContaints.accept(smtResult.references());
+                });
+        additionalContaints.accept(goalReferences);
     }
 
     /**
@@ -1049,6 +986,11 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
         JavaExpression receiver = method.getReceiver();
 
+        if (receiver.getType().getKind() == TypeKind.NULL) {
+            // no constraints on null receivers
+            return null;
+        }
+
         // Function that parses a declaration-level expression, where parameters are referenced by name
         BiFunction<PropertyAnnotation, JavaExpression, JavaExpression> parser = (property, subject) -> {
             // refinement expression with subject as #1
@@ -1122,28 +1064,6 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                 }
             }
         }
-    }
-
-    private boolean hasCycle(JavaExpression expr) {
-        Set<Element> visited = new HashSet<>();
-        Element element;
-        // detect when an element reappears in a chain of method calls/fields
-        do {
-            switch (expr) {
-                case MethodCall m -> {
-                    expr = m.getReceiver();
-                    element = m.getElement();
-                }
-                case FieldAccess f -> {
-                    expr = f.getReceiver();
-                    element = f.getField();
-                }
-                default -> {
-                    return false;
-                }
-            }
-        } while (visited.add(element));
-        return true;
     }
 
 }

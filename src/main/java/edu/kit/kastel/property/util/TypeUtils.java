@@ -28,6 +28,7 @@ import org.checkerframework.javacutil.TreeUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public final class TypeUtils {
 
@@ -64,9 +65,12 @@ public final class TypeUtils {
     }
 
     public static int getArgumentIndex(MethodInvocationTree tree, Tree argument) {
+        if (Objects.equals(tree.getMethodSelect(), argument)) {
+            return 0;
+        }
         for (int i = 0; i < tree.getArguments().size(); i++) {
             if (tree.getArguments().get(i).equals(argument)) {
-                return i;
+                return i + 1;
             }
         }
         return -1;

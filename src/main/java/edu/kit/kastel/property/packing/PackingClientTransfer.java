@@ -148,6 +148,7 @@ public abstract class PackingClientTransfer<
         MethodCall invocation;
         boolean sideEffectFree;
         StringToJavaExpression stringToJavaExpr = null;
+        // TODO: default postconditions could/should be skipped if invoked method is pure / if input types are top
         if (invocationNode instanceof MethodInvocationNode mi) {
             invocation = (MethodCall) JavaExpression.fromTree(mi.getTree());
             sideEffectFree = analysis.getTypeFactory().isSideEffectFree(mi.getTarget().getMethod());
@@ -191,7 +192,7 @@ public abstract class PackingClientTransfer<
             List<AnnotatedTypeMirror> exclParamTypes = exclMethod.executableType.getParameterTypes();
             for (AnnotatedTypeMirror paramType : method.executableType.getParameterTypes()) {
                 boolean paramReadOnly = exclParamTypes.get(i).hasAnnotation(ReadOnly.class);
-                if (!paramReadOnly && ! paramType.getKind().isPrimitive()) {
+                if (!paramReadOnly && !paramType.getKind().isPrimitive()) {
                     V paramDefaultValue = analysis.createAbstractValue(
                             paramType.getAnnotations(),
                             paramType.getUnderlyingType());

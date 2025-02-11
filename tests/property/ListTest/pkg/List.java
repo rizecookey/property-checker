@@ -16,58 +16,52 @@
  */
 package pkg;
 
-import edu.kit.kastel.property.subchecker.lattice.qual.*;
+import edu.kit.kastel.property.util.Packing;
+import edu.kit.kastel.property.checker.qual.*;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
+import edu.kit.kastel.property.subchecker.lattice.qual.*;
+import edu.kit.kastel.property.packing.qual.*;
+import org.checkerframework.checker.initialization.qual.*;
+import org.checkerframework.dataflow.qual.*;
 
-public class List {
+class List {
 
-    private final Object element;
+    final Object element;
 
+    @Nullable
     @Length(len="size - 1")
-    private final List next;
+    final List next;
 
     @Positive
-    public final int size;
+    final int size;
 
+    @Pure
     @Length(len="rest.size + 1")
-    public List(Object element, List rest) {
+    List(Object element, @NonNull List rest) {
         this.element = element;
         this.next = rest;
-        this.size = (rest == null ? 0 : rest.size) + 1;
+        this.size = rest.size + 1;
+        Packing.pack(this, List.class);
     }
 
-    @Length(len="size + 1")
-    public List push(@ReadOnly List this, Object element) {
-        return new List(element, this);
+    @Pure
+    @Length(len="1")
+    List(Object element) {
+        this.element = element;
+        this.next = null;
+        this.size = 1;
+        Packing.pack(this, List.class);
     }
 
-    @Length(len="size - 1")
-    public List pop(@ReadOnly List this) {
-        return next;
+    @Pure
+    Object nth(@LengthAtLeast(len="i + 1") @ReadOnly List this, int i) {
+        return null;
     }
 
-    public Object peekNth(@ReadOnly List this, @Interval(min="0",max="size-1") int index) {
-        List pos = this;
-        for (int i = 0; i < index; i++) {
-            pos = pos.pop();
-        }
-        return pos.element;
-    }
-
-    @Length(len="times")
-    public static List repeat(Object element, @Positive int times) {
-        List result = null;
-        for (int i = 0; i < times; i++) {
-            result = new List(element, result);
-        }
-        return result;
-    }
-}
-
-// FIXME debug test errors
-class ListTest {
-    void foo(@Interval(min="0", max="10000") int input) {
-        @Length(len="input * 2 - 1") List myList = List.repeat("Hi :)", input * 2).pop();
-        Object el = myList.push("new").push("value").peekNth(2);
+    @Pure
+    @NonNull
+    @Length(len="this.size + other.size")
+    List prependAll(@ReadOnly List this, @ReadOnly List other) {
+        return null;
     }
 }

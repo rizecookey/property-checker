@@ -133,14 +133,22 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 	 *
 	 * @return collection of boolean java expressions.
 	 */
-	public Collection<JavaExpression> getLocalRefinements() {
-		var list = localVariableValues.entrySet().stream()
+	public Set<JavaExpression> getLocalRefinements() {
+		var set = localVariableValues.entrySet().stream()
 				.flatMap(entry -> entry.getValue().getRefinement(entry.getKey()).stream())
-				.collect(Collectors.toCollection(ArrayList::new));
+				.collect(Collectors.toCollection(HashSet::new));
 		if (thisValue != null) {
-			thisValue.getRefinement(new ThisReference(thisValue.getUnderlyingType())).ifPresent(list::add);
+			thisValue.getRefinement(new ThisReference(thisValue.getUnderlyingType())).ifPresent(set::add);
 		}
-		return list;
+		return set;
+	}
+
+	public Map<LocalVariable, LatticeValue> getLocalVariableValues() {
+		return Collections.unmodifiableMap(localVariableValues);
+	}
+
+	public Optional<LatticeValue> getThisValue() {
+		return Optional.ofNullable(thisValue);
 	}
 
 	@Override

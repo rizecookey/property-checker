@@ -199,8 +199,15 @@ public final class PropertyVisitor extends PackingVisitor {
         return switch (tree) {
             case MethodTree m -> "postconditions on `this` (" + m.getName() + "(...))";
             case VariableTree v -> "postconditions on `" + v.getName() + "` (" + ((MethodTree) parent).getName() + "(...))";
-            case ExpressionTree e ->
-                    parent instanceof MethodInvocationTree ? "receiver in method call " + parent : "expression " + e;
+            case ExpressionTree e -> {
+                var prefix = switch (parent) {
+                    case MethodInvocationTree m -> TypeUtils.getArgumentIndex(m, e) == 0 ? "receiver" : "argument";
+                    case NewClassTree n -> "argument";
+                    default -> "expression";
+
+                };
+                yield prefix + " " + e;
+            }
             default -> "???";
         };
     }
@@ -283,7 +290,6 @@ public final class PropertyVisitor extends PackingVisitor {
             List<VariableElement> uninitializedFields =
                     atypeFactory.getUninitializedFields(
                             atypeFactory.getStoreBefore(tree),
-                            // FIXME null pointer exception (getStoreBefore can return null)
                             targetFactory.getStoreBefore(tree),
                             getCurrentPath(),
                             false,

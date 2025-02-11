@@ -23,7 +23,6 @@ import org.junit.Ignore;
 import org.junit.runners.Parameterized.Parameters;
 
 @SuppressWarnings("nls")
-@Ignore
 public class ListTest extends PropertyCheckerTest {
     public ListTest(List<File> testFiles) {
         super(
