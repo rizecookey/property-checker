@@ -7,8 +7,8 @@ import org.checkerframework.checker.initialization.qual.*;
 
 public class MonotonicityTest {
 
-    @Undependable @NonNull Object field0;
-    @Undependable @NonNull Object field1;
+    @NonNull Object field0;
+    @NonNull Object field1;
 
     @NonMonotonic
     MonotonicityTest() {

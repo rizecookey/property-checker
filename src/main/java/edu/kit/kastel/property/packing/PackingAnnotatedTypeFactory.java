@@ -3,8 +3,8 @@ package edu.kit.kastel.property.packing;
 import com.sun.source.tree.*;
 import com.sun.source.util.TreePath;
 import com.sun.tools.javac.tree.JCTree;
+import edu.kit.kastel.property.packing.qual.Dependable;
 import edu.kit.kastel.property.packing.qual.NonMonotonic;
-import edu.kit.kastel.property.packing.qual.Undependable;
 import org.checkerframework.checker.initialization.InitializationAbstractAnnotatedTypeFactory;
 import org.checkerframework.checker.initialization.InitializationChecker;
 import org.checkerframework.checker.initialization.InitializationFieldAccessTreeAnnotator;
@@ -295,7 +295,7 @@ public class PackingAnnotatedTypeFactory
     }
 
     public boolean isDependableField(Element el) {
-        return !AnnotationUtils.containsSameByClass(el.asType().getAnnotationMirrors(), Undependable.class);
+        return AnnotationUtils.containsSameByClass(el.asType().getAnnotationMirrors(), Dependable.class);
     }
 
     public boolean isMonotonicMethod(MethodTree tree) {

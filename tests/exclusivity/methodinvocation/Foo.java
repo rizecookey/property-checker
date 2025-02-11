@@ -7,7 +7,7 @@ import org.checkerframework.dataflow.qual.*;
 
 class Foo {
 
-    @Undependable int i;
+    int i;
 
     @NonNull Foo() {
     }

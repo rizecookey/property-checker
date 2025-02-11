@@ -7,7 +7,7 @@ import org.checkerframework.dataflow.qual.*;
 class MutateOtherObjects {
 
     // :: error: initialization.field.uninitialized
-    @Unique Foo foo;
+    @Dependable @Unique Foo foo;
 
     @NonMonotonic
     void mutate(@Unique MutateOtherObjects this, @Unique MutateOtherObjects other) {

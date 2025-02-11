@@ -7,7 +7,7 @@ import org.checkerframework.dataflow.qual.*;
 
 final class MethodCall {
 
-    @Undependable @ReadOnly @UnknownInitialization(Object.class) @NullTop Foo field;
+    @ReadOnly @UnknownInitialization(Object.class) @NullTop Foo field;
 
     @NullTop MethodCall() {
     }

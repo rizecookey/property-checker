@@ -6,8 +6,8 @@ import org.checkerframework.checker.initialization.qual.*;
 
 public final class PreservingUpdateTest {
 
-    @Undependable @Interval(min="1", max="2") int intField = 1;
-    @Undependable @NonNull Object objField = new Object();
+    @Interval(min="1", max="2") int intField = 1;
+    @NonNull Object objField = new Object();
 
     @NonMonotonic
     void preservingAliased(@MaybeAliased PreservingUpdateTest this) {
