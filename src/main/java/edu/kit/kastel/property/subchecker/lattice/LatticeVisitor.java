@@ -926,6 +926,9 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         }
     }
 
+
+    // FIXME: method call clause can only be calculated after the conditions from _all_ lattices are known!
+    //  input => output implication may not be valid for each individual type system, only in conjunction!
     private Set<JavaExpression> constrainMethodCall(Tree tree, MethodCall method) {
         if (!atypeFactory.isSideEffectFree(method.getElement()) || !atypeFactory.isDeterministic(method.getElement())) {
             System.out.printf("Skipping SMT analysis of method call %s: method is not marked @Pure%n", method);

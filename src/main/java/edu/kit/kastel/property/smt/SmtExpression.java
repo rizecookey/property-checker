@@ -9,6 +9,7 @@ import org.checkerframework.dataflow.expression.LocalVariable;
 import org.checkerframework.dataflow.expression.ThisReference;
 import org.checkerframework.javacutil.ElementUtils;
 
+import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import java.util.List;
 import java.util.Objects;
@@ -39,9 +40,19 @@ public sealed interface SmtExpression {
 
         @Override
         public String toString() {
-            return ElementUtils.getQualifiedName(underlyingMethod.getEnclosingElement())
-                    + "." + underlyingMethod.getSimpleName()
-                    + "(" + arguments.stream().map(Object::toString).collect(Collectors.joining(", ")) + ")";
+            String prefix;
+            List<SmtExpression> args = arguments;
+            if (ElementUtils.isStatic(underlyingMethod)) {
+                prefix = ElementUtils.getQualifiedName(underlyingMethod.getEnclosingElement())
+                        + "." + underlyingMethod.getSimpleName();
+            } else if (underlyingMethod.getKind() == ElementKind.CONSTRUCTOR) {
+                prefix = "new " + ElementUtils.getQualifiedName(underlyingMethod.getEnclosingElement());
+            } else {
+                prefix = arguments.getFirst() + "." + underlyingMethod.getSimpleName();
+                args = args.subList(1, args.size());
+            }
+
+            return prefix + args.stream().map(Object::toString).collect(Collectors.joining(", ", "(", ")"));
         }
     }
 

@@ -46,6 +46,8 @@ public final class LatticeTransfer extends PackingClientTransfer<LatticeValue, L
         this.factory = analysis.getTypeFactory();
     }
 
+    // FIXME: currently unsound because RHS types are not viewpoint adapted (e.g. method return types).
+    //  This could be fixed with a custom dependent types helper implementation
     @Override
     public TransferResult<LatticeValue, LatticeStore> visitAssignment(AssignmentNode n, TransferInput<LatticeValue, LatticeStore> in) {
         ((LatticeAnalysis) analysis).setPosition(n.getTree());

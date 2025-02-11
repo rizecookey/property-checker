@@ -20,6 +20,9 @@ import org.checkerframework.framework.util.dependenttypes.DependentTypesHelper;
 
 public final class LatticeDependentTypesHelper extends DependentTypesHelper {
 
+    // TODO implement this to handle our custom notion of dependent types (adjustment in checker framework necessary)
+    //  and remove any ad-hoc viewpoint adaptation done in store, transfer or visitor (should all happen implicitly)
+
     public LatticeDependentTypesHelper(LatticeAnnotatedTypeFactory factory) {
         super(factory);
     }

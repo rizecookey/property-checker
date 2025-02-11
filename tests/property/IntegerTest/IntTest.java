@@ -14,6 +14,7 @@ public class IntTest {
         @Interval(min="1", max="2") int l2 = arg1;
 
         // can be verified using SMT
+        // :: error: interval.assignment.type.incompatible
         @Interval(min="4", max="7") int l3 = arg0 + arg1;
         
         // :: error: interval.assignment.type.incompatible
