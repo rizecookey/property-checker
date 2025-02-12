@@ -4,10 +4,38 @@
   <component name="GradleSettings">
     <option name="linkedExternalProjectsSettings">
       <GradleProjectSettings>
+        <compositeConfiguration>
+          <compositeBuild compositeDefinitionSource="SCRIPT">
+            <builds>
+              <build path="$PROJECT_DIR$/checker-framework" name="checker-framework">
+                <projects>
+                  <project path="$PROJECT_DIR$/checker-framework" />
+                  <project path="$PROJECT_DIR$/checker-framework/checker" />
+                  <project path="$PROJECT_DIR$/checker-framework/checker-qual" />
+                  <project path="$PROJECT_DIR$/checker-framework/checker-qual-android" />
+                  <project path="$PROJECT_DIR$/checker-framework/checker-util" />
+                  <project path="$PROJECT_DIR$/checker-framework/dataflow" />
+                  <project path="$PROJECT_DIR$/checker-framework/framework" />
+                  <project path="$PROJECT_DIR$/checker-framework/framework-test" />
+                  <project path="$PROJECT_DIR$/checker-framework/javacutil" />
+                </projects>
+              </build>
+            </builds>
+          </compositeBuild>
+        </compositeConfiguration>
         <option name="externalProjectPath" value="$PROJECT_DIR$" />
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
+            <option value="$PROJECT_DIR$/checker-framework" />
+            <option value="$PROJECT_DIR$/checker-framework/checker" />
+            <option value="$PROJECT_DIR$/checker-framework/checker-qual" />
+            <option value="$PROJECT_DIR$/checker-framework/checker-qual-android" />
+            <option value="$PROJECT_DIR$/checker-framework/checker-util" />
+            <option value="$PROJECT_DIR$/checker-framework/dataflow" />
+            <option value="$PROJECT_DIR$/checker-framework/framework" />
+            <option value="$PROJECT_DIR$/checker-framework/framework-test" />
+            <option value="$PROJECT_DIR$/checker-framework/javacutil" />
             <option value="$PROJECT_DIR$/property-checker-qual" />
           </set>
         </option>

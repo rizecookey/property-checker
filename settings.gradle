@@ -9,4 +9,13 @@
 
 rootProject.name = 'property-checker'
 include 'property-checker-qual'
+includeBuild('checker-framework') {
+    dependencySubstitution {
+        substitute module('org.checkerframework:checker') using project(':checker')
+        substitute module('org.checkerframework:framework') using project(':framework')
+        substitute module('org.checkerframework:dataflow') using project(':dataflow')
+        substitute module('org.checkerframework:checker-qual') using project(':checker-qual')
+        substitute module('org.checkerframework:framework-test') using project(':framework-test')
+    }
+}
 
