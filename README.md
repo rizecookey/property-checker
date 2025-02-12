@@ -20,6 +20,8 @@ See the existing test cases for examples.
 
 # Building and running
 
+After the first clone, the checker framework submodule must be initialized via `git submodule init && git submodule update`.
+
 To build the Property Checker, run `./gradlew assemble`. The file `property-checker.jar` will be generated in the main directory. To be able to run the Property Checker, the files `property-checker.jar`, `checker-qual.jar`, and `javac` (not the regular Java compiler, but the one included here!) must be kept in the same directory.
 
 To run the checker, use the following command:
