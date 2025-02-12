@@ -1,0 +1,4 @@
+[submodule "checker-framework"]
+	path = checker-framework
+	url = https://github.com/flo2702/checker-framework.git
+	branch = initializationExtentable
