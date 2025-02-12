@@ -2,7 +2,7 @@ package edu.kit.kastel.property.smt;
 
 import com.github.javaparser.ast.expr.BinaryExpr;
 import com.github.javaparser.ast.expr.UnaryExpr;
-import org.checkerframework.com.google.common.base.Verify;
+import com.google.common.base.Verify;
 import org.checkerframework.dataflow.expression.FieldAccess;
 import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.dataflow.expression.LocalVariable;
