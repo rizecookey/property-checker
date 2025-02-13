@@ -69,6 +69,12 @@ public final class LatticeTransfer extends PackingClientTransfer<LatticeValue, L
     }
 
     @Override
+    public TransferResult<LatticeValue, LatticeStore> visitObjectCreation(ObjectCreationNode n, TransferInput<LatticeValue, LatticeStore> p) {
+        // FIXME: constructor calls can mutate parameters like method calls (should be treated the same as method calls)
+        return super.visitObjectCreation(n, p);
+    }
+
+    @Override
     public TransferResult<LatticeValue, LatticeStore> visitMethodInvocation(MethodInvocationNode node, TransferInput<LatticeValue, LatticeStore> in) {
         // TODO: insert method return value into store if pure
         ((LatticeAnalysis) analysis).setPosition(node.getTree());

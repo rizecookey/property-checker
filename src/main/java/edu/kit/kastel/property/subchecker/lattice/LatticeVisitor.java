@@ -16,7 +16,6 @@
  */
 package edu.kit.kastel.property.subchecker.lattice;
 
-import com.google.common.collect.Streams;
 import com.sun.source.tree.*;
 import com.sun.source.tree.Tree.Kind;
 import com.sun.source.util.TreePath;
@@ -363,7 +362,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
         commonAssignmentCheckEndDiagnostic(success, null, varType, valueType, valueTree);
 
-        amendSmtResultForValue(varType, valueTree, success);
+        amendSmtResultForValue(varType, valueType, valueTree, success);
 
         if (!success) {
             return super.commonAssignmentCheck(varType, valueType, valueTree, errorKey, extraArgs);
@@ -382,7 +381,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             call(() -> {
                 this.commonAssignmentCheckStartDiagnostic(methodReceiver, treeReceiver, node);
                 boolean success = this.typeHierarchy.isSubtype(treeReceiver, methodReceiver);
-                amendSmtResultForValue(methodReceiver, node.getMethodSelect(), success);
+                amendSmtResultForReceiver(methodReceiver, rcv, node, success);
                 this.commonAssignmentCheckEndDiagnostic(success, null, methodReceiver, treeReceiver, node);
                 if (!success) {
                     this.reportMethodInvocabilityError(node, treeReceiver, methodReceiver);
@@ -771,33 +770,66 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         return null;
     }
 
-    private void amendSmtResultForValue(AnnotatedTypeMirror varType, Tree valueTree, boolean typeCheckSuccess) {
-        JavaToSmtExpression.Result smtGoal = computeSmtGoalForValue(varType, valueTree);
-        computeSmtContext(atypeFactory.getStoreBefore(valueTree), valueTree);
+    private void amendSmtResultForReceiver(AnnotatedTypeMirror expectedType, AnnotatedTypeMirror valueType,
+                                           MethodInvocationTree invocation, boolean typeCheckSuccess) {
+        ExpressionTree receiverTree = TreeUtils.getReceiverTree(invocation);
+        JavaExpression subject = receiverTree != null
+                ? expressionFromTree(receiverTree)
+                : JavaExpression.getImplicitReceiver(TreeUtils.elementFromUse(invocation));
+        amendSmtResult(expectedType, valueType, invocation.getMethodSelect(),
+                subject, typeCheckSuccess);
+    }
+
+    private void amendSmtResultForValue(AnnotatedTypeMirror varType, AnnotatedTypeMirror valueType,
+                                        Tree valueTree, boolean typeCheckSuccess) {
+        amendSmtResult(varType, valueType, valueTree,
+                expressionFromTree((ExpressionTree) valueTree), typeCheckSuccess);
+    }
+
+    private void amendSmtResult(
+            AnnotatedTypeMirror goalType,
+            AnnotatedTypeMirror knownType,
+            Tree contextKey,
+            JavaExpression subject,
+            boolean typeCheckSuccess
+    ) {
+        var property = atypeFactory.getLattice().getPropertyAnnotation(goalType);
+
+        JavaExpression toProve = viewpointAdapt(
+                parseOrUnknown(property, getCurrentPath()),
+                List.of(subject)
+        );
+
+        JavaToSmtExpression.Result smtGoal = convertGoal(toProve, subject.toString());
+
+        computeSmtContext(atypeFactory.getStoreBefore(contextKey), contextKey);
+        var valueProperty = atypeFactory.getLattice().getPropertyAnnotation(knownType);
+        var valueRefinement = viewpointAdapt(
+                parseOrUnknown(valueProperty, getCurrentPath()),
+                List.of(subject)
+        );
+        tryConvertToSmt(valueRefinement).ifPresent(res -> result.addContext(contextKey, res.smt()));
+
         if (smtGoal != null) {
             if (typeCheckSuccess) {
                 // if we already know that the goal is true (expr is well-typed), we add it to the context
-                result.addContext(valueTree, smtGoal.smt());
+                result.addContext(contextKey, smtGoal.smt());
             } else {
                 // if expr is ill-typed, we add the proof goal to the mending conditions
-                result.mendingConditions.put(valueTree, smtGoal.smt());
+                result.mendingConditions.put(contextKey, smtGoal.smt());
             }
         }
     }
 
-    private JavaToSmtExpression.Result computeSmtGoalForValue(AnnotatedTypeMirror targetType, Tree valueExpTree) {
-        var property = atypeFactory.getLattice().getPropertyAnnotation(targetType);
+    private JavaExpression expressionFromTree(ExpressionTree tree) {
         // the checker framework expression parser does not support constructor calls yet.
         // but we want to support (pure) constructor calls in property subjects anyway, so we represent them as a
         // special method call. Currently, this only works for top level constructor calls, and not if they're nested
         // in a deeper expression.
         // TODO: allow nested constructor calls as well (need to implement own version of JavaExpression.fromTree for that)
-        var subject = valueExpTree instanceof NewClassTree nc
+        return tree instanceof NewClassTree nc
                 ? JavaExpressionUtil.constructorCall(nc)
-                : JavaExpression.fromTree((ExpressionTree) valueExpTree);
-        JavaExpression toProve = viewpointAdapt(parseOrUnknown(property, getCurrentPath()), List.of(subject));
-
-        return convertGoal(toProve, valueExpTree.toString());
+                : JavaExpression.fromTree(tree);
     }
 
     private JavaToSmtExpression.Result convertGoal(JavaExpression goal, String subject) {
@@ -844,11 +876,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
     // TODO: consider unifying contexts for method calls
     private void computeSmtContext(LatticeStore store, Tree tree) {
-        Streams.concat(
-                        store.getFieldValues().entrySet().stream(),
-                        store.getLocalVariableValues().entrySet().stream(),
-                        store.getThisValue().map(val -> Map.entry(new ThisReference(val.getUnderlyingType()), val)).stream()
-                ).flatMap(entry -> entry.getValue().getRefinement(entry.getKey()).stream())
+        store.allRefinements()
                 .flatMap(expr -> tryConvertToSmt(expr).stream())
                 .forEach(smtResult -> result.addContext(tree, smtResult.smt()));
     }

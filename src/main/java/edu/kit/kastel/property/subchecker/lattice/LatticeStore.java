@@ -16,6 +16,7 @@
  */
 package edu.kit.kastel.property.subchecker.lattice;
 
+import com.google.common.collect.Streams;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 import edu.kit.kastel.property.packing.PackingClientStore;
@@ -47,6 +48,7 @@ import javax.lang.model.type.TypeMirror;
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public final class LatticeStore extends PackingClientStore<LatticeValue, LatticeStore> {
 
@@ -143,8 +145,12 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 		return set;
 	}
 
-	public Map<LocalVariable, LatticeValue> getLocalVariableValues() {
-		return Collections.unmodifiableMap(localVariableValues);
+	public Stream<JavaExpression> allRefinements() {
+		return Streams.concat(
+				fieldValues.entrySet().stream(),
+				localVariableValues.entrySet().stream(),
+				getThisValue().map(val -> Map.entry(new ThisReference(val.getUnderlyingType()), val)).stream()
+		).flatMap(entry -> entry.getValue().getRefinement(entry.getKey()).stream());
 	}
 
 	public Optional<LatticeValue> getThisValue() {
@@ -158,6 +164,7 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 			LatticeValue val) {
 
 		if (atypeFactory.isSideEffectFree(node.getTarget().getMethod())) {
+			insertValue(JavaExpression.fromNode(node), val);
 			return;
 		}
 

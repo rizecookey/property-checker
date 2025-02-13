@@ -197,17 +197,17 @@ public final class PropertyVisitor extends PackingVisitor {
         var path = atypeFactory.getPath(tree);
         final Tree parent = path.getParentPath().getLeaf();
         return switch (tree) {
-            case MethodTree m -> "postconditions on `this` (" + m.getName() + "(...))";
-            case VariableTree v -> "postconditions on `" + v.getName() + "` (" + ((MethodTree) parent).getName() + "(...))";
-            case ExpressionTree e -> {
-                var prefix = switch (parent) {
-                    case MethodInvocationTree m -> TypeUtils.getArgumentIndex(m, e) == 0 ? "receiver" : "argument";
-                    case NewClassTree n -> "argument";
-                    default -> "expression";
-
-                };
-                yield prefix + " " + e;
-            }
+            case MethodTree m -> "postconditions on `this` (%s(...))".formatted(m.getName());
+            case VariableTree v ->
+                    "postconditions on `%s` (%s(...))".formatted(v.getName(), ((MethodTree) parent).getName());
+            case ExpressionTree e -> switch (parent) {
+                case MethodInvocationTree m -> "%s in method call `%s`".formatted(TypeUtils.getArgumentIndex(m, e) == 0
+                        ? "receiver `%s`".formatted(JavaExpression.getReceiver(m))
+                        : "argument `%s`".formatted(e), m);
+                case NewClassTree n -> "argument `%s` in constructor call `%s`".formatted(e, n);
+                case AssignmentTree a -> "assignment `%s` ".formatted(a);
+                default -> "`%s`".formatted(e);
+            };
             default -> "???";
         };
     }
