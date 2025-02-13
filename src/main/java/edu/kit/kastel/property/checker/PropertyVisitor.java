@@ -205,6 +205,7 @@ public final class PropertyVisitor extends PackingVisitor {
                         ? "receiver"
                         : "argument `%s`".formatted(e), m);
                 case NewClassTree n -> "argument `%s` in constructor call `%s`".formatted(e, n);
+                case VariableTree a -> "assignment `%s = %s` ".formatted(a.getName(), e);
                 case AssignmentTree a -> "assignment `%s` ".formatted(a);
                 default -> "`%s`".formatted(e);
             };

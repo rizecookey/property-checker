@@ -23,6 +23,7 @@ ext.versions = [
 
 sourceCompatibility = 21
 
+// TODO: use annotated JDK for artifact/tests
 dependencies {
     implementation "org.checkerframework:dataflow"
     implementation "org.checkerframework:checker"

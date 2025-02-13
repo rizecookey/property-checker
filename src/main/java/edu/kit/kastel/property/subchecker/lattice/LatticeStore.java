@@ -51,6 +51,8 @@ import java.util.stream.Stream;
 
 public final class LatticeStore extends PackingClientStore<LatticeValue, LatticeStore> {
 
+	private final TypeMirror stringType = ElementUtils.getTypeElement(analysis.getEnv(), String.class).asType();
+
     public LatticeStore(CFAbstractAnalysis<LatticeValue, LatticeStore, ?> analysis, boolean sequentialSemantics) {
 		super(analysis, sequentialSemantics);
 	}
@@ -211,8 +213,6 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 					packingStoreAfter);
 		}
 
-		TypeMirror stringType = ElementUtils.getTypeElement(atypeFactory.getProcessingEnv(), String.class).asType();
-
 		// go through all the passed arguments, see which ones could have been modified
 		List<Node> arguments = switch (node) {
 			case MethodInvocationNode mi -> mi.getArguments();
@@ -221,18 +221,12 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 		};
 
 		for (int i = 0; i < arguments.size(); ++i) {
+			// arguments of method/constructor calls could be modified by the implementation
 			Node arg = arguments.get(i);
 			AnnotatedTypeMirror declaredExclType = exclType.getParameterTypes().get(i);
 			AnnotatedTypeMirror inputPackingType = packingType.getParameterTypes().get(i);
-			TypeMirror underlyingType = declaredExclType.getUnderlyingType();
-			// skip primitive and string types - they can't be modified
-			// the reason we handle strings explicitly here is that they can also be literals,
-			// and this store can't deal with literal values.
-			if (underlyingType.getKind().isPrimitive()
-					|| analysis.getTypes().isSameType(underlyingType, stringType)) {
-				continue;
-			}
-			updateForPassedReference(atypeFactory, arg,
+
+            updateForPassedReference(atypeFactory, arg,
 					declaredExclType, inputPackingType,
 					packingStoreAfter);
 		}
@@ -251,7 +245,15 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 			return;
 		}
 
-		TypeMirror underlyingType = declaredExclType.getUnderlyingType();
+		if (reference.getType().getKind().isPrimitive()
+				|| analysis.getTypes().isSameType(reference.getType(), stringType)) {
+			// skip primitive and string types - they can't be modified
+			// the reason we handle strings explicitly here is that they can also be literals,
+			// and this store can't deal with literal values.
+			return;
+		}
+
+		TypeMirror declaredType = declaredExclType.getUnderlyingType();
 		PackingFieldAccessAnnotatedTypeFactory packingFactory =
 				atypeFactory.getTypeFactoryOfSubcheckerOrNull(PackingFieldAccessSubchecker.class);
 		ExclusivityAnnotatedTypeFactory exclFactory = atypeFactory.getTypeFactoryOfSubchecker(ExclusivityChecker.class);
@@ -266,7 +268,7 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 
 		JavaExpression owner = JavaExpression.fromNode(reference);
 		CFValue outputPackingValue = storeAfter.getValue(owner);
-		AnnotatedTypeMirror outputPackingType = AnnotatedTypeMirror.createType(underlyingType,
+		AnnotatedTypeMirror outputPackingType = AnnotatedTypeMirror.createType(declaredType,
 				packingFactory, false);
 		if (outputPackingValue != null) {
 			outputPackingType.addAnnotations(outputPackingValue.getAnnotations());
@@ -274,7 +276,7 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 
 		// Clear field values and their dependents if they were possibly changed
 		List<VariableElement> fields = ElementUtils.getAllFieldsIn(
-				TypesUtils.getTypeElement(underlyingType), atypeFactory.getElementUtils());
+				TypesUtils.getTypeElement(declaredType), atypeFactory.getElementUtils());
 		for (VariableElement field : fields) {
 			TypeMirror fieldOwnerType = field.getEnclosingElement().asType();
 
