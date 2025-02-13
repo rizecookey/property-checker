@@ -42,11 +42,9 @@ public sealed interface SmtExpression {
         public String toString() {
             String prefix;
             List<SmtExpression> args = arguments;
-            if (ElementUtils.isStatic(underlyingMethod)) {
+            if (ElementUtils.isStatic(underlyingMethod) || underlyingMethod.getKind() == ElementKind.CONSTRUCTOR) {
                 prefix = ElementUtils.getQualifiedName(underlyingMethod.getEnclosingElement())
                         + "." + underlyingMethod.getSimpleName();
-            } else if (underlyingMethod.getKind() == ElementKind.CONSTRUCTOR) {
-                prefix = "new " + ElementUtils.getQualifiedName(underlyingMethod.getEnclosingElement());
             } else {
                 prefix = arguments.getFirst() + "." + underlyingMethod.getSimpleName();
                 args = args.subList(1, args.size());

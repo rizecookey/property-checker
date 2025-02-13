@@ -86,6 +86,8 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 		}
 
 		if (dependency instanceof FieldAccess fieldAccess) {
+			// FIXME: this analysis is not sufficient. We should clear all types that potentially contain an alias of
+			//  *any* field that is reachable from dependency
 			var exclFactory = (ExclusivityAnnotatedTypeFactory) analysis.getTypeFactory()
 					.getTypeFactoryOfSubchecker(ExclusivityChecker.class);
 			// dependency on fields may be expressed through aliases of the field owner object.
@@ -112,10 +114,6 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 				.filter(val -> !val.toPropertyAnnotation().getAnnotationType().isNonNull())
 				.filter(val -> isDependent.test(Map.entry(new ThisReference(val.getUnderlyingType()), val)))
 				.ifPresent(val -> thisValue = createTopValue(val.getUnderlyingType()));
-	}
-
-	private static boolean isDependent(Predicate<JavaExpression> exprAnalyzer) {
-		return false;
 	}
 
 	protected LatticeValue createTopValue(TypeMirror underlyingType) {
@@ -186,7 +184,8 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 	) {
 		ExecutableElement method = invocation.getElement();
 
-		if (method.getKind() != ElementKind.CONSTRUCTOR && atypeFactory.isSideEffectFree(method)) {
+		if ((method.getKind() != ElementKind.CONSTRUCTOR || invocation.getReceiver() instanceof ClassName)
+				&& atypeFactory.isSideEffectFree(method)) {
 			// insert return value into store if method is pure and not a constructor call (like this(...) or super(...))
 			insertValue(invocation, val);
 			return;
