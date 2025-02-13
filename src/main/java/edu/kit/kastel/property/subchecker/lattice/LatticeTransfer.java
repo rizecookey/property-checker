@@ -17,6 +17,7 @@
 package edu.kit.kastel.property.subchecker.lattice;
 
 import com.sun.source.tree.MethodTree;
+import com.sun.source.tree.NewClassTree;
 import edu.kit.kastel.property.packing.PackingClientTransfer;
 import edu.kit.kastel.property.packing.PackingFieldAccessAnnotatedTypeFactory;
 import edu.kit.kastel.property.packing.PackingFieldAccessSubchecker;
@@ -25,6 +26,7 @@ import org.checkerframework.dataflow.analysis.RegularTransferResult;
 import org.checkerframework.dataflow.analysis.TransferInput;
 import org.checkerframework.dataflow.analysis.TransferResult;
 import org.checkerframework.dataflow.cfg.node.*;
+import org.checkerframework.framework.flow.CFAbstractStore;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.javacutil.*;
 
@@ -69,14 +71,20 @@ public final class LatticeTransfer extends PackingClientTransfer<LatticeValue, L
     }
 
     @Override
-    public TransferResult<LatticeValue, LatticeStore> visitObjectCreation(ObjectCreationNode n, TransferInput<LatticeValue, LatticeStore> p) {
-        // FIXME: constructor calls can mutate parameters like method calls (should be treated the same as method calls)
-        return super.visitObjectCreation(n, p);
+    public TransferResult<LatticeValue, LatticeStore> visitObjectCreation(ObjectCreationNode node, TransferInput<LatticeValue, LatticeStore> in) {
+        // constructors can change their arguments like method calls
+        NewClassTree newClassTree = node.getTree();
+        ExecutableElement constructorElt = TreeUtils.getSuperConstructor(newClassTree);
+        var store = in.getRegularStore();
+        ((LatticeAnalysis) analysis).setPosition(newClassTree);
+        LatticeValue val = getValueFromFactory(newClassTree, node);
+        store.updateForObjectCreation(node, analysis.getTypeFactory(), val);
+        this.processPostconditions(node, store, constructorElt, newClassTree);
+        return super.visitObjectCreation(node, in);
     }
 
     @Override
     public TransferResult<LatticeValue, LatticeStore> visitMethodInvocation(MethodInvocationNode node, TransferInput<LatticeValue, LatticeStore> in) {
-        // TODO: insert method return value into store if pure
         ((LatticeAnalysis) analysis).setPosition(node.getTree());
         TypeMirror receiverType;
         LatticeStore store = in.getRegularStore();

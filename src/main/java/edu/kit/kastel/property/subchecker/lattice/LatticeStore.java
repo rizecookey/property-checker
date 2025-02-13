@@ -47,7 +47,6 @@ import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
 import java.util.*;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public final class LatticeStore extends PackingClientStore<LatticeValue, LatticeStore> {
@@ -122,12 +121,15 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 		return analysis.createSingleAnnotationValue(factory.getTop(), underlyingType);
 	}
 
+
 	/**
-	 * Returns the collection of "local refinements" that are currently in this store.
+	 * Returns a stream of all the refinements that are currently in this store.
 	 * They include
 	 * <ul>
 	 *     <li>local variable refinements</li>
 	 *     <li>parameter refinements</li>
+	 *     <li>field refinements</li>
+	 *     <li>method return value refinements</li>
 	 *     <li>refinement for the receiver ("this")</li>
 	 * </ul>
 	 *
@@ -135,20 +137,11 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 	 *
 	 * @return collection of boolean java expressions.
 	 */
-	public Set<JavaExpression> getLocalRefinements() {
-		var set = localVariableValues.entrySet().stream()
-				.flatMap(entry -> entry.getValue().getRefinement(entry.getKey()).stream())
-				.collect(Collectors.toCollection(HashSet::new));
-		if (thisValue != null) {
-			thisValue.getRefinement(new ThisReference(thisValue.getUnderlyingType())).ifPresent(set::add);
-		}
-		return set;
-	}
-
 	public Stream<JavaExpression> allRefinements() {
 		return Streams.concat(
 				fieldValues.entrySet().stream(),
 				localVariableValues.entrySet().stream(),
+				methodValues.entrySet().stream(),
 				getThisValue().map(val -> Map.entry(new ThisReference(val.getUnderlyingType()), val)).stream()
 		).flatMap(entry -> entry.getValue().getRefinement(entry.getKey()).stream());
 	}
@@ -161,10 +154,36 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 	public void updateForMethodCall(
 			MethodInvocationNode node,
 			GenericAnnotatedTypeFactory<LatticeValue, LatticeStore, ?, ?> atypeFactory,
-			LatticeValue val) {
+			LatticeValue val
+	) {
+		updateForInvocation((MethodCall) JavaExpression.fromNode(node), node, atypeFactory, val);
+	}
 
-		if (atypeFactory.isSideEffectFree(node.getTarget().getMethod())) {
-			insertValue(JavaExpression.fromNode(node), val);
+	/**
+	 * Same as {@link #updateForMethodCall(MethodInvocationNode, GenericAnnotatedTypeFactory, LatticeValue)},
+	 * but for constructor ("new") calls. The rules for type invalidation are the same for constructors as they are
+	 * for methods (we look for fields in references passed arguments that could have been changed).
+	 *
+	 * @param node ObjectCreationNode
+	 * @param atypeFactory type factory
+	 * @param val inferred return value of the constructor call
+	 */
+	public void updateForObjectCreation(
+			ObjectCreationNode node,
+			GenericAnnotatedTypeFactory<LatticeValue, LatticeStore, ?, ?> atypeFactory,
+			LatticeValue val
+	) {
+		updateForInvocation(JavaExpressionUtil.constructorCall(node.getTree()), node, atypeFactory, val);
+	}
+
+	private void updateForInvocation(
+			MethodCall invocation,
+			Node node, // either a ObjectCreationNode or MethodInvocationNode
+			GenericAnnotatedTypeFactory<LatticeValue, LatticeStore, ?, ?> atypeFactory,
+			LatticeValue val
+	) {
+		if (atypeFactory.isSideEffectFree(invocation.getElement())) {
+			insertValue(invocation, val);
 			return;
 		}
 
@@ -172,12 +191,14 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 		PackingFieldAccessAnnotatedTypeFactory packingFactory =
 				atypeFactory.getTypeFactoryOfSubcheckerOrNull(PackingFieldAccessSubchecker.class);
 		PackingStore packingStoreAfter = packingFactory.getStoreAfter(node);
-		ExecutableElement method = node.getTarget().getMethod();
+		ExecutableElement method = invocation.getElement();
 		AnnotatedTypeMirror.AnnotatedExecutableType exclType = exclFactory.getAnnotatedType(method);
 		AnnotatedTypeMirror.AnnotatedExecutableType packingType = packingFactory.getAnnotatedType(method);
-		Node receiver = node.getTarget().getReceiver();
+
+
 
 		if (!ElementUtils.isStatic(method) && method.getKind() != ElementKind.CONSTRUCTOR) {
+			Node receiver = ((MethodInvocationNode) node).getTarget().getReceiver();
 			// receivers of instance method calls could be modified by the method
 			var exclReceiver = exclType.getReceiverType();
 			var packingReceiver = packingType.getReceiverType();
@@ -190,8 +211,14 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 		TypeMirror stringType = ElementUtils.getTypeElement(atypeFactory.getProcessingEnv(), String.class).asType();
 
 		// go through all the passed arguments, see which ones could have been modified
-		for (int i = 0; i < node.getArguments().size(); ++i) {
-			Node arg = node.getArgument(i);
+		List<Node> arguments = switch (node) {
+			case MethodInvocationNode mi -> mi.getArguments();
+			case ObjectCreationNode oc -> oc.getArguments();
+			default -> throw new AssertionError();
+		};
+
+		for (int i = 0; i < arguments.size(); ++i) {
+			Node arg = arguments.get(i);
 			AnnotatedTypeMirror declaredExclType = exclType.getParameterTypes().get(i);
 			AnnotatedTypeMirror inputPackingType = packingType.getParameterTypes().get(i);
 			TypeMirror underlyingType = declaredExclType.getUnderlyingType();
