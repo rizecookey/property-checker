@@ -55,10 +55,7 @@ import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static org.checkerframework.dataflow.expression.ViewpointAdaptJavaExpression.viewpointAdapt;
 
@@ -71,16 +68,6 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
     private Result result;
 
-    /**
-     * If this is set, we're type checking a method invocation expression, and this object contains the appropriately
-     * refinements for the arguments, receiver and return types, viewpoint-adapted to the callsite.
-     */
-    private MethodCallRefinements invocationContext = null;
-    /**
-     * When {@link #invocationContext} is not null (i.e. we're checking a method call), paramIndex indicates
-     * the index of the parameter whose type we are currently checking against.
-     */
-    private int paramIndex = -1;
     private ClassTree enclClass = null;
     private MethodTree enclMethod = null;
     private boolean enclStaticInitBlock = false;
@@ -168,29 +155,16 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
     }
 
     @Override
-    public Void visitNewClass(NewClassTree tree, Void p) {
-        // Construct a pseudo method call. We're "pretending" that the constructor is actually a method so that
-        // we can reuse the logic for getting the parameter refinements.
-        var methodCall = JavaExpressionUtil.constructorCall(tree);
-        // The resulting invocation context doesn't have a return or receiver refinement.
-        // receiver refinements don't make sense for constructors, and return refinements are not supported because
-        // the checker framework does not support "new" expressions
-        invocationContext = methodCallRefinements(methodCall);
-        return super.visitNewClass(tree, p);
-    }
-
-    @Override
     public Void visitMethodInvocation(MethodInvocationTree tree, Void p) {
         ExecutableElement invokedMethod = TreeUtils.elementFromUse(tree);
         ProcessingEnvironment env = atypeFactory.getProcessingEnv();
         if (ElementUtils.isMethod(invokedMethod, packMethod, env) || ElementUtils.isMethod(invokedMethod, unpackMethod, env)) {
             // compute smt context for packing calls and put it in result
             // this can later potentially be used to mend uninitialized field errors
-            computeSmtContext(atypeFactory.getStoreBefore(tree), tree, List.of());
+            computeSmtContext(atypeFactory.getStoreBefore(tree), tree);
             // Don't type-check arguments of packing calls.
             return p;
         }
-        invocationContext = methodCallRefinements((MethodCall) JavaExpression.fromTree(tree));
         return super.visitMethodInvocation(tree, p);
     }
 
@@ -336,7 +310,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             CharSequence executableName,
             List<?> paramNames) {
         for (int i = 0; i < requiredArgs.size(); ++i) {
-            paramIndex = i;
+            int paramIndex = i;
             call(
                     () -> commonAssignmentCheck(
                             requiredArgs.get(paramIndex),
@@ -408,7 +382,6 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             call(() -> {
                 this.commonAssignmentCheckStartDiagnostic(methodReceiver, treeReceiver, node);
                 boolean success = this.typeHierarchy.isSubtype(treeReceiver, methodReceiver);
-                paramIndex = -1;
                 amendSmtResultForValue(methodReceiver, node.getMethodSelect(), success);
                 this.commonAssignmentCheckEndDiagnostic(success, null, methodReceiver, treeReceiver, node);
                 if (!success) {
@@ -789,7 +762,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         );
 
         if (exitStore != null) {
-            computeSmtContext(exitStore, treeKey, goal != null ? goal.references() : List.of());
+            computeSmtContext(exitStore, treeKey);
         }
 
         if (goal != null) {
@@ -800,7 +773,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
     private void amendSmtResultForValue(AnnotatedTypeMirror varType, Tree valueTree, boolean typeCheckSuccess) {
         JavaToSmtExpression.Result smtGoal = computeSmtGoalForValue(varType, valueTree);
-        computeSmtContext(atypeFactory.getStoreBefore(valueTree), valueTree, smtGoal != null ? smtGoal.references() : List.of());
+        computeSmtContext(atypeFactory.getStoreBefore(valueTree), valueTree);
         if (smtGoal != null) {
             if (typeCheckSuccess) {
                 // if we already know that the goal is true (expr is well-typed), we add it to the context
@@ -813,28 +786,16 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
     }
 
     private JavaToSmtExpression.Result computeSmtGoalForValue(AnnotatedTypeMirror targetType, Tree valueExpTree) {
-        JavaExpression toProve;
-        Tree parentExpr = TreePath.getPath(getCurrentPath(), valueExpTree).getParentPath().getLeaf();
-        if (parentExpr instanceof MethodInvocationTree || parentExpr instanceof NewClassTree) {
-            if (invocationContext == null) {
-                // no invocation context means no refinements are available for this argument
-                return null;
-            }
-            toProve = paramIndex == -1
-                    ? invocationContext.receiverRefinement
-                    : invocationContext.argRefinements.get(paramIndex);
-        } else {
-            var property = atypeFactory.getLattice().getPropertyAnnotation(targetType);
-            // the checker framework expression parser does not support constructor calls yet.
-            // but we want to support (pure) constructor calls in property subjects anyway, so we represent them as a
-            // special method call. Currently, this only works for top level constructor calls, and not if they're nested
-            // in a deeper expression.
-            // TODO: allow nested constructor calls as well (need to implement own version of JavaExpression.fromTree for that)
-            var subject = valueExpTree instanceof NewClassTree nc
-                    ? JavaExpressionUtil.constructorCall(nc)
-                    : JavaExpression.fromTree((ExpressionTree) valueExpTree);
-            toProve = viewpointAdapt(parseOrUnknown(property, getCurrentPath()), List.of(subject));
-        }
+        var property = atypeFactory.getLattice().getPropertyAnnotation(targetType);
+        // the checker framework expression parser does not support constructor calls yet.
+        // but we want to support (pure) constructor calls in property subjects anyway, so we represent them as a
+        // special method call. Currently, this only works for top level constructor calls, and not if they're nested
+        // in a deeper expression.
+        // TODO: allow nested constructor calls as well (need to implement own version of JavaExpression.fromTree for that)
+        var subject = valueExpTree instanceof NewClassTree nc
+                ? JavaExpressionUtil.constructorCall(nc)
+                : JavaExpression.fromTree((ExpressionTree) valueExpTree);
+        JavaExpression toProve = viewpointAdapt(parseOrUnknown(property, getCurrentPath()), List.of(subject));
 
         return convertGoal(toProve, valueExpTree.toString());
     }
@@ -882,25 +843,14 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
     }
 
     // TODO: consider unifying contexts for method calls
-    private void computeSmtContext(LatticeStore store, Tree tree, Collection<? extends JavaExpression> goalReferences) {
-        Consumer<Collection<? extends JavaExpression>> additionalContaints = refs -> {
-            for (var ref : refs) {
-                if (ref instanceof MethodCall m) {
-                    constrainMethodCall(tree, m);
-                }
-            }
-        };
+    private void computeSmtContext(LatticeStore store, Tree tree) {
         Streams.concat(
                         store.getFieldValues().entrySet().stream(),
                         store.getLocalVariableValues().entrySet().stream(),
                         store.getThisValue().map(val -> Map.entry(new ThisReference(val.getUnderlyingType()), val)).stream()
                 ).flatMap(entry -> entry.getValue().getRefinement(entry.getKey()).stream())
                 .flatMap(expr -> tryConvertToSmt(expr).stream())
-                .forEach(smtResult -> {
-                    result.addContext(tree, smtResult.smt());
-                    additionalContaints.accept(smtResult.references());
-                });
-        additionalContaints.accept(goalReferences);
+                .forEach(smtResult -> result.addContext(tree, smtResult.smt()));
     }
 
     /**
@@ -927,39 +877,6 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
     }
 
 
-    // FIXME: method call clause can only be calculated after the conditions from _all_ lattices are known!
-    //  input => output implication may not be valid for each individual type system, only in conjunction!
-    private Set<JavaExpression> constrainMethodCall(Tree tree, MethodCall method) {
-        if (!atypeFactory.isSideEffectFree(method.getElement()) || !atypeFactory.isDeterministic(method.getElement())) {
-            System.out.printf("Skipping SMT analysis of method call %s: method is not marked @Pure%n", method);
-            return Collections.emptySet();
-        }
-
-        var refinements = methodCallRefinements(method);
-        if (refinements == null || refinements.returnRefinement().containsUnknown()) {
-            // either method source code is not available or the refinement for the return value could not be parsed
-            // => no dependent type analysis possible
-            return Collections.emptySet();
-        }
-
-        // construct the formula arg (including receiver) refinements => return refinement
-        JavaExpression argumentConjunction = Stream.concat(
-                        Stream.of(viewpointAdapt(refinements.receiverRefinement(), List.of(method))),
-                        Streams.zip(refinements.argRefinements().stream(), method.getArguments().stream(),
-                                        (ref, arg) -> viewpointAdapt(ref, List.of(arg))
-                ))
-                .filter(expr -> !expr.containsUnknown())
-                .reduce(new ValueLiteral(bool, true), (l, r) -> new BinaryOperation(bool, Tree.Kind.AND, l, r));
-        var clause = new BinaryOperation(
-                bool, Tree.Kind.OR,
-                new UnaryOperation(bool, Tree.Kind.LOGICAL_COMPLEMENT, argumentConjunction), refinements.returnRefinement()
-        );
-        return tryConvertToSmt(clause).map(conversion -> {
-            result.addContext(tree, conversion.smt());
-            return conversion.references();
-        }).orElse(Collections.emptySet());
-    }
-
     private record MethodCallRefinements(
             JavaExpression returnRefinement,
             JavaExpression receiverRefinement,
@@ -973,74 +890,6 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         } catch (UnsupportedOperationException e) {
             return Optional.empty();
         }
-    }
-
-    // Given a method call expression, returns the callsite-adapted refinements for the return and argument values as JavaExpressions.
-    private MethodCallRefinements methodCallRefinements(MethodCall method) {
-        AnnotatedTypeMirror.AnnotatedExecutableType type = atypeFactory.getAnnotatedType(method.getElement());
-        TreePath methodPath = trees.getPath(method.getElement());
-
-        if (methodPath == null) {
-            // method source is not available; no context available
-            return null;
-        }
-
-        boolean constructorCall = method.getElement().getKind() == ElementKind.CONSTRUCTOR;
-
-        JavaExpression receiver = method.getReceiver();
-
-        if (receiver.getType().getKind() == TypeKind.NULL) {
-            // no constraints on null receivers
-            return null;
-        }
-
-        // Function that parses a declaration-level expression, where parameters are referenced by name
-        BiFunction<PropertyAnnotation, JavaExpression, JavaExpression> parser = (property, subject) -> {
-            // refinement expression with subject as #1
-            JavaExpression refinement = parseOrUnknown(property, methodPath);
-            // refinement expression with subject inserted
-            refinement = viewpointAdapt(refinement, List.of(subject));
-            // refinement expression with all named params converted to enumerated
-            refinement = JavaExpressionUtil.convertParams(refinement, method.getElement());
-            // refinement expression, adapted to callsite
-            return viewpointAdapt(refinement, method.getReceiver(), method.getArguments());
-        };
-
-        List<JavaExpression> argRefinements = new ArrayList<>();
-        for (VariableElement parameter : method.getElement().getParameters()) {
-            var property = atypeFactory.getLattice().getPropertyAnnotation(atypeFactory.getAnnotatedType(parameter));
-            argRefinements.add(parser.apply(property, new LocalVariable(parameter)));
-        }
-
-        // Receiver parameter `this` may have refinements too
-        // If there is no receiver or it's a constructor, it's just "true" (method can always be called)
-        JavaExpression receiverRefinement;
-        if (type.getReceiverType() == null || constructorCall) {
-            receiverRefinement = new ValueLiteral(bool, true);
-        } else {
-            var property = atypeFactory.getLattice().getPropertyAnnotation(type.getReceiverType());
-            receiverRefinement = parser.apply(property, new ThisReference(type.getReceiverType().getUnderlyingType()));
-        }
-
-        // return value refinement, unless the method returns void (equivalent to top type)
-        // or it's a constructor (expression syntax doesn't support constructor calls)
-        JavaExpression returnRefinement;
-        if (type.getReturnType().getKind() == TypeKind.VOID) {
-            returnRefinement = new ValueLiteral(bool, true);
-        } else {
-            PropertyAnnotation property = atypeFactory.getLattice().getPropertyAnnotation(type.getReturnType());
-            // the input method call with parameters and receiver simplified
-            var simpleMethod = new MethodCall(
-                    method.getType(),
-                    method.getElement(),
-                    receiver instanceof ClassName ? receiver : new ThisReference(receiver.getType()),
-                    method.getElement().getParameters().stream()
-                            .<JavaExpression>map(LocalVariable::new)
-                            .toList()
-            );
-            returnRefinement = parser.apply(property, simpleMethod);
-        }
-        return new MethodCallRefinements(returnRefinement, receiverRefinement, argRefinements);
     }
 
     private void addFieldRefinements(ClassTree classTree) {

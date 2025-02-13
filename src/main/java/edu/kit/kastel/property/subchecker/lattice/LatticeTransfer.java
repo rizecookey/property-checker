@@ -20,15 +20,12 @@ import com.sun.source.tree.MethodTree;
 import edu.kit.kastel.property.packing.PackingClientTransfer;
 import edu.kit.kastel.property.packing.PackingFieldAccessAnnotatedTypeFactory;
 import edu.kit.kastel.property.packing.PackingFieldAccessSubchecker;
-import edu.kit.kastel.property.util.JavaExpressionUtil;
 import edu.kit.kastel.property.util.Packing;
 import org.checkerframework.dataflow.analysis.RegularTransferResult;
 import org.checkerframework.dataflow.analysis.TransferInput;
 import org.checkerframework.dataflow.analysis.TransferResult;
 import org.checkerframework.dataflow.cfg.node.*;
-import org.checkerframework.dataflow.expression.MethodCall;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
-import org.checkerframework.framework.util.JavaExpressionParseUtil;
 import org.checkerframework.javacutil.*;
 
 import javax.lang.model.element.AnnotationMirror;
@@ -46,8 +43,6 @@ public final class LatticeTransfer extends PackingClientTransfer<LatticeValue, L
         this.factory = analysis.getTypeFactory();
     }
 
-    // FIXME: currently unsound because RHS types are not viewpoint adapted (e.g. method return types).
-    //  This could be fixed with a custom dependent types helper implementation
     @Override
     public TransferResult<LatticeValue, LatticeStore> visitAssignment(AssignmentNode n, TransferInput<LatticeValue, LatticeStore> in) {
         ((LatticeAnalysis) analysis).setPosition(n.getTree());
@@ -75,6 +70,7 @@ public final class LatticeTransfer extends PackingClientTransfer<LatticeValue, L
 
     @Override
     public TransferResult<LatticeValue, LatticeStore> visitMethodInvocation(MethodInvocationNode node, TransferInput<LatticeValue, LatticeStore> in) {
+        // TODO: insert method return value into store if pure
         ((LatticeAnalysis) analysis).setPosition(node.getTree());
         TypeMirror receiverType;
         LatticeStore store = in.getRegularStore();
@@ -143,34 +139,5 @@ public final class LatticeTransfer extends PackingClientTransfer<LatticeValue, L
                     factory.getTop(),
                     thisType.getUnderlyingType());
         }
-    }
-
-    @Override
-    protected LatticeValue createPostconditionValue(
-            AnnotationMirror annotation,
-            TypeMirror subjectType,
-            String subject,
-            MethodCall invocation
-    ) {
-        if (factory.declarationFromElement(invocation.getElement()) == null) {
-            // method source not available
-            return null;
-        }
-        var builder = new AnnotationBuilder(analysis.getEnv(), annotation);
-        // viewpoint-adapt each field of the annotation to the invocation site
-        annotation.getElementValues().forEach((element, val) -> {
-            if (val.getValue() instanceof String expr) {
-                String newValue;
-                try {
-                    newValue = JavaExpressionUtil.parseAtCallsite(expr, invocation, factory.getChecker()).toString();
-                } catch (JavaExpressionParseUtil.JavaExpressionParseException e) {
-                    // expression can't be parsed; new value should be something that will also
-                    // prevent parsing of final refinement for consistency
-                    newValue = "< " + e.getMessage() + " >";
-                }
-                builder.setValue(element.getSimpleName(), newValue);
-            }
-        });
-        return analysis.createSingleAnnotationValue(builder.build(), subjectType);
     }
 }

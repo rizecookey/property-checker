@@ -7,6 +7,7 @@ import javax.lang.model.type.TypeMirror;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Array;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -16,8 +17,8 @@ import java.util.Set;
  * {@code JavaExpression} abstraction must be backed by a "real" variable from the program. Since there is no "real"
  * subject variable in code, we synthesise our own.
  */
-public class SubjectVariableElement implements VariableElement {
-    private static final String NAME = "subject";
+public final class SubjectVariableElement implements VariableElement {
+    private static final String NAME = "§subject§";
 
     private final TypeMirror type;
 
@@ -100,5 +101,18 @@ public class SubjectVariableElement implements VariableElement {
     @Override
     public <R, P> R accept(ElementVisitor<R, P> v, P p) {
         return v.visitVariable(this, p);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        SubjectVariableElement that = (SubjectVariableElement) o;
+        return Objects.equals(type, that.type);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(type);
     }
 }

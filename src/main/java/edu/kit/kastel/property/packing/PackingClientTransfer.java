@@ -5,13 +5,10 @@ import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFa
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityTransfer;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.ReadOnly;
-import edu.kit.kastel.property.util.JavaExpressionUtil;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.cfg.UnderlyingAST;
 import org.checkerframework.dataflow.cfg.node.*;
 import org.checkerframework.dataflow.expression.FieldAccess;
 import org.checkerframework.dataflow.expression.JavaExpression;
-import org.checkerframework.dataflow.expression.MethodCall;
 import org.checkerframework.dataflow.expression.ThisReference;
 import org.checkerframework.framework.flow.CFAbstractAnalysis;
 import org.checkerframework.framework.flow.CFAbstractTransfer;
@@ -144,13 +141,10 @@ public abstract class PackingClientTransfer<
             exclFactory = analysis.getTypeFactory().getTypeFactoryOfSubchecker(ExclusivityChecker.class);
         }
 
-        AnnotationMirror top = analysis.getTypeFactory().getQualifierHierarchy().getTopAnnotations().first();
-        MethodCall invocation;
         boolean sideEffectFree;
-        StringToJavaExpression stringToJavaExpr = null;
+        StringToJavaExpression stringToJavaExpr;
         // TODO: default postconditions could/should be skipped if invoked method is pure / if input types are top
         if (invocationNode instanceof MethodInvocationNode mi) {
-            invocation = (MethodCall) JavaExpression.fromTree(mi.getTree());
             sideEffectFree = analysis.getTypeFactory().isSideEffectFree(mi.getTarget().getMethod());
             stringToJavaExpr =
                     stringExpr ->
@@ -171,16 +165,12 @@ public abstract class PackingClientTransfer<
 
 
             if (receiverType != null && !exclReceiverType.hasAnnotation(ReadOnly.class)) {
-                AnnotationMirror anno = receiverType.getAnnotationInHierarchy(top);
-                V receiverValue = createPostconditionValue(anno, receiver.getType(), "this", invocation);
                 V receiverDefaultValue = analysis.createAbstractValue(
                         receiverType.getAnnotations(),
                         receiverType.getUnderlyingType());
 
                 JavaExpression receiverExpr = JavaExpression.fromNode(receiver);
-                if (receiverValue != null) {
-                    store.insertValue(receiverExpr, receiverValue);
-                } else if (sideEffectFree) {
+                if (sideEffectFree) {
                     store.insertOrRefine(receiverExpr, receiverDefaultValue.getAnnotations().first());
                 } else {
                     store.insertValue(receiverExpr, receiverDefaultValue);
@@ -196,15 +186,8 @@ public abstract class PackingClientTransfer<
                     V paramDefaultValue = analysis.createAbstractValue(
                             paramType.getAnnotations(),
                             paramType.getUnderlyingType());
-                    V paramValue = createPostconditionValue(
-                            paramType.getAnnotationInHierarchy(top), paramType.getUnderlyingType(),
-                            method.executableType.getElement().getParameters().get(i).getSimpleName().toString(),
-                            invocation
-                    );
                     JavaExpression argument = JavaExpression.fromNode(mi.getArgument(i));
-                    if (paramValue != null) {
-                        store.insertValue(argument, paramValue);
-                    } else if (sideEffectFree) {
+                    if (sideEffectFree) {
                         store.insertOrRefine(argument, paramDefaultValue.getAnnotations().first());
                     } else {
                         store.insertValue(argument, paramDefaultValue);
@@ -214,7 +197,6 @@ public abstract class PackingClientTransfer<
                 ++i;
             }
         } else if (invocationNode instanceof ObjectCreationNode oc) {
-            invocation = JavaExpressionUtil.constructorCall(oc.getTree());
             sideEffectFree = false;
             stringToJavaExpr =
                     stringExpr ->
@@ -235,16 +217,7 @@ public abstract class PackingClientTransfer<
                             paramType.getAnnotations(),
                             paramType.getUnderlyingType());
                     JavaExpression argument = JavaExpression.fromNode(oc.getArgument(i));
-                    V paramValue = createPostconditionValue(
-                            paramType.getAnnotationInHierarchy(top), paramType.getUnderlyingType(),
-                            method.executableType.getElement().getParameters().get(i).getSimpleName().toString(),
-                            invocation
-                    );
-                    if (paramValue != null) {
-                        store.insertValue(argument, paramValue);
-                    } else {
-                        store.insertValue(argument, paramDefaultValue);
-                    }
+                    store.insertValue(argument, paramDefaultValue);
                 }
 
                 ++i;
@@ -258,11 +231,10 @@ public abstract class PackingClientTransfer<
         }
 
         for (Contract p : postconditions) {
-            AnnotationMirror anno = p.annotation;
+            AnnotationMirror anno = p.viewpointAdaptDependentTypeAnnotation(analysis.getTypeFactory(), stringToJavaExpr, null);
 
             String expressionString = p.expressionString;
             try {
-                // TODO: parse with params as locals (StringToJavaExpression.atPath)
                 JavaExpression je = stringToJavaExpr.toJavaExpression(expressionString);
 
                 // Unlike the superclass implementation, this calls
@@ -270,7 +242,7 @@ public abstract class PackingClientTransfer<
                 // This is done because we use postconditions to implement output types for the parameters, which may
                 // be incompatible with the input types. If a parameter has no explicit output type, we use its input
                 // type as default, which is implemented above.
-                V newValue = createPostconditionValue(anno, je.getType(), expressionString, invocation);
+                V newValue = analysis.createSingleAnnotationValue(anno, je.getType());
                 if (newValue != null) {
                     store.insertValue(je, newValue);
                 } else if (sideEffectFree) {
@@ -293,25 +265,5 @@ public abstract class PackingClientTransfer<
                 }
             }
         }
-    }
-
-    /**
-     * Optional method to compute a custom post condition type value. If this method returns {@code null}, the default
-     * behaviour is chosen instead, which is to either insert the annotation into the store or use the annotation to
-     * refine the existing value for the subject if the method in question is side-effect free.
-     *
-     * @param annotation type annotation the post condition refers to
-     * @param subjectType subject base type.
-     * @param subject subject expression (not viewpoint-adapted)
-     * @param invocation method/constructor invocation
-     * @return a value or {@code null}
-     */
-    protected @Nullable V createPostconditionValue(
-            AnnotationMirror annotation,
-            TypeMirror subjectType,
-            String subject,
-            MethodCall invocation
-    ) {
-        return null;
     }
 }
