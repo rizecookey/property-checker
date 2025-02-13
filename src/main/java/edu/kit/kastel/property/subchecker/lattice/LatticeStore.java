@@ -182,7 +182,10 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 			GenericAnnotatedTypeFactory<LatticeValue, LatticeStore, ?, ?> atypeFactory,
 			LatticeValue val
 	) {
-		if (atypeFactory.isSideEffectFree(invocation.getElement())) {
+		ExecutableElement method = invocation.getElement();
+
+		if (method.getKind() != ElementKind.CONSTRUCTOR && atypeFactory.isSideEffectFree(method)) {
+			// insert return value into store if method is pure and not a constructor call (like this(...) or super(...))
 			insertValue(invocation, val);
 			return;
 		}
@@ -191,7 +194,7 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 		PackingFieldAccessAnnotatedTypeFactory packingFactory =
 				atypeFactory.getTypeFactoryOfSubcheckerOrNull(PackingFieldAccessSubchecker.class);
 		PackingStore packingStoreAfter = packingFactory.getStoreAfter(node);
-		ExecutableElement method = invocation.getElement();
+
 		AnnotatedTypeMirror.AnnotatedExecutableType exclType = exclFactory.getAnnotatedType(method);
 		AnnotatedTypeMirror.AnnotatedExecutableType packingType = packingFactory.getAnnotatedType(method);
 

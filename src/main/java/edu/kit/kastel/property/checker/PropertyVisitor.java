@@ -202,7 +202,7 @@ public final class PropertyVisitor extends PackingVisitor {
                     "postconditions on `%s` (%s(...))".formatted(v.getName(), ((MethodTree) parent).getName());
             case ExpressionTree e -> switch (parent) {
                 case MethodInvocationTree m -> "%s in method call `%s`".formatted(TypeUtils.getArgumentIndex(m, e) == 0
-                        ? "receiver `%s`".formatted(JavaExpression.getReceiver(m))
+                        ? "receiver"
                         : "argument `%s`".formatted(e), m);
                 case NewClassTree n -> "argument `%s` in constructor call `%s`".formatted(e, n);
                 case AssignmentTree a -> "assignment `%s` ".formatted(a);
