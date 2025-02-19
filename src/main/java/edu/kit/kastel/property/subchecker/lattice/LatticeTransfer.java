@@ -86,12 +86,10 @@ public final class LatticeTransfer extends PackingClientTransfer<LatticeValue, L
     @Override
     public TransferResult<LatticeValue, LatticeStore> visitMethodInvocation(MethodInvocationNode node, TransferInput<LatticeValue, LatticeStore> in) {
         ((LatticeAnalysis) analysis).setPosition(node.getTree());
-        TypeMirror receiverType;
         LatticeStore store = in.getRegularStore();
         MethodAccessNode target = node.getTarget();
         ExecutableElement method = target.getMethod();
         Node receiver = target.getReceiver();
-        receiverType = method.getReceiverType();
 
         var packingClass = ElementUtils.getTypeElement(factory.getProcessingEnv(), Packing.class);
         if (receiver instanceof ClassNameNode name && name.getElement() == packingClass) {
@@ -115,16 +113,6 @@ public final class LatticeTransfer extends PackingClientTransfer<LatticeValue, L
                 );
             }
             return new RegularTransferResult<>(null, store, isPackingCall);
-        }
-
-        if (!ElementUtils.isStatic(TreeUtils.elementFromUse(node.getTree()))
-                && node.getTarget().getMethod().getKind() != ElementKind.CONSTRUCTOR) {
-            if (receiverType == null || receiverType.getKind().equals(TypeKind.NONE)) {
-                //TODO in LatticeStore::updateForMethodCall. See also TMethodInvocation
-                System.err.printf("warning: ignoring call to method without explicit 'this' parameter declaration: %s\n", node.getTarget());
-                // FIXME: we can't just "ignore" calls like this, since they might still result in changes
-                return new RegularTransferResult<>(null, store, true);
-            }
         }
 
         return super.visitMethodInvocation(node, in);

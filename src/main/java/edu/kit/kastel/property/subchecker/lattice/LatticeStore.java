@@ -86,8 +86,6 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 		}
 
 		if (dependency instanceof FieldAccess fieldAccess) {
-			// FIXME: this analysis is not sufficient. We should clear all types that potentially contain an alias of
-			//  *any* field that is reachable from dependency
 			var exclFactory = (ExclusivityAnnotatedTypeFactory) analysis.getTypeFactory()
 					.getTypeFactoryOfSubchecker(ExclusivityChecker.class);
 			// dependency on fields may be expressed through aliases of the field owner object.
@@ -126,7 +124,7 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 
 
 	/**
-	 * Returns a stream of all the refinements that are currently in this store.
+	 * Returns a stream of all the refinements that are currently in this store (the "local refinement context).
 	 * They include
 	 * <ul>
 	 *     <li>local variable refinements</li>
@@ -210,10 +208,13 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 			// receivers of instance method calls could be modified by the method
 			var exclReceiver = exclType.getReceiverType();
 			var packingReceiver = packingType.getReceiverType();
-			// TODO: before, we passed the local receiver packing type, not the declared one. is this important? why?
-			updateForPassedReference(atypeFactory, receiver,
-					exclReceiver, packingReceiver,
-					packingStoreAfter);
+			// TODO: can a method without an explicit receiver parameter change the receiver's fields?
+			//  if so, we must still call updateForPassedReference here with the default exclusivity and packing types
+			if (exclReceiver != null) {
+				updateForPassedReference(atypeFactory, receiver,
+						exclReceiver, packingReceiver,
+						packingStoreAfter);
+			}
 		}
 
 		// go through all the passed arguments, see which ones could have been modified
@@ -273,6 +274,8 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 
 		var exclStore = exclFactory.getStoreBefore(reference);
 
+		// TODO: what about static fields? any non-final static field could have changed,
+		//  so anything depending on a static non-final field should be invalidated
 		// (field owner, packing type of field owner)
 		Deque<Pair<JavaExpression, AnnotatedTypeMirror>> contexts = new ArrayDeque<>();
 		contexts.push(Pair.of(JavaExpression.fromNode(reference), inputPackingType));
