@@ -26,6 +26,7 @@ import edu.kit.kastel.property.packing.PackingStore;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
 import edu.kit.kastel.property.util.JavaExpressionUtil;
+import org.apache.commons.lang3.tuple.Pair;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.cfg.node.MethodInvocationNode;
 import org.checkerframework.dataflow.cfg.node.Node;
@@ -37,13 +38,12 @@ import org.checkerframework.framework.flow.CFValue;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
 import org.checkerframework.framework.type.QualifierHierarchy;
+import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TypesUtils;
 
-import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
 import java.util.*;
 import java.util.function.Predicate;
@@ -109,6 +109,7 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 				.filter(isDependent)
 				.forEach(entry -> entry.setValue(createTopValue(entry.getKey().getElement().asType())));
 		fieldValues.entrySet().removeIf(isDependent);
+		// TODO: also have to remove methodValues that could depend on dependency
 		Optional.ofNullable(thisValue)
 				// special case for non null annotations on `this` - they can never be invalidated
 				.filter(val -> !val.toPropertyAnnotation().getAnnotationType().isNonNull())
@@ -184,10 +185,11 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 	) {
 		ExecutableElement method = invocation.getElement();
 
-		if ((method.getKind() != ElementKind.CONSTRUCTOR || invocation.getReceiver() instanceof ClassName)
-				&& atypeFactory.isSideEffectFree(method)) {
+		if (atypeFactory.isSideEffectFree(method) && atypeFactory.isDeterministic(method)) {
 			// insert return value into store if method is pure and not a constructor call (like this(...) or super(...))
-			insertValue(invocation, val);
+			if (method.getKind() != ElementKind.CONSTRUCTOR || invocation.getReceiver() instanceof ClassName) {
+				insertValue(invocation, val);
+			}
 			return;
 		}
 
@@ -257,67 +259,83 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 				atypeFactory.getTypeFactoryOfSubcheckerOrNull(PackingFieldAccessSubchecker.class);
 		ExclusivityAnnotatedTypeFactory exclFactory = atypeFactory.getTypeFactoryOfSubchecker(ExclusivityChecker.class);
 
-
 		QualifierHierarchy exclHierarchy = exclFactory.getQualifierHierarchy();
-		AnnotationMirror exclAnno = exclFactory.getExclusivityAnnotation(declaredExclType);
-		if (!exclHierarchy.isSubtypeQualifiersOnly(exclAnno, exclFactory.MAYBE_ALIASED)) {
-			// readonly references can't be modified
-			return;
-		}
 
-		JavaExpression owner = JavaExpression.fromNode(reference);
-		CFValue outputPackingValue = storeAfter.getValue(owner);
+		JavaExpression referenceExpr = JavaExpression.fromNode(reference);
+		CFValue outputPackingValue = storeAfter.getValue(referenceExpr);
 		AnnotatedTypeMirror outputPackingType = AnnotatedTypeMirror.createType(declaredType,
 				packingFactory, false);
 		if (outputPackingValue != null) {
 			outputPackingType.addAnnotations(outputPackingValue.getAnnotations());
 		}
 
-		// Clear field values and their dependents if they were possibly changed
-		List<VariableElement> fields = ElementUtils.getAllFieldsIn(
-				TypesUtils.getTypeElement(declaredType), atypeFactory.getElementUtils());
-		for (VariableElement field : fields) {
-			TypeMirror fieldOwnerType = field.getEnclosingElement().asType();
+		var exclStore = exclFactory.getStoreBefore(reference);
 
-			// Don't clear fields in frame of UnknownInit input type // TODO: why not? (because packed state is unknown?)
-//			if (inputPackingType.hasAnnotation(UnknownInitialization.class) &&
-//					packingFactory.isInitializedForFrame(inputPackingType, fieldOwnerType)) {
-//				continue;
-//			}
-
-			if (ElementUtils.isFinal(field) && ElementUtils.getType(field).getKind().isPrimitive()) {
-				// final primitive fields cannot be reassigned, and they also have no fields that can be reassigned
-				// so whatever their type and dependents' types were before, they stay the same.
+		// (field owner, packing type of field owner)
+		Deque<Pair<JavaExpression, AnnotatedTypeMirror>> contexts = new ArrayDeque<>();
+		contexts.push(Pair.of(JavaExpression.fromNode(reference), inputPackingType));
+		while (!contexts.isEmpty()) {
+			var context = contexts.pop();
+			var fieldOwner = context.getLeft();
+			var packingType = context.getRight();
+			var exclAnno = exclStore.deriveExclusivityValue(fieldOwner);
+			if (!exclHierarchy.isSubtypeQualifiersOnly(exclAnno, exclFactory.MAYBE_ALIASED)) {
+				// context is @ReadOnly, so none of its fields could have been modified
 				continue;
 			}
 
-            FieldAccess fieldAccess = new FieldAccess(owner, field);
-			clearValue(fieldAccess);
+			// compute all fields (including nested fields) that could have been modified,
+			// based on the uniqueness and packing information
 
-			if (exclHierarchy.isSubtypeQualifiersOnly(exclAnno, exclFactory.UNIQUE)
-					|| (exclHierarchy.isSubtypeQualifiersOnly(exclAnno, exclFactory.MAYBE_ALIASED)
-					&& packingFactory.isInitializedForFrame(inputPackingType, fieldOwnerType))) {
-				// two options to get here:
-				// a) field is behind a unique reference -> can be changed
-				// b) field is below packing frame of a maybe aliased reference -> can be changed
-				clearDependents(fieldAccess);
+			var modifiedFields = ElementUtils.getAllFieldsIn(
+					TypesUtils.getTypeElement(fieldOwner.getType()), atypeFactory.getElementUtils())
+					.stream()
+					// final primitive fields cannot be reassigned, and they also have no fields that can be reassigned
+					// so whatever their type and dependents' types were before, they stay the same.
+					.filter(field -> ElementUtils.isFinal(field) && ElementUtils.getType(field).getKind().isPrimitive());
+
+			if (AnnotationUtils.areSame(exclFactory.MAYBE_ALIASED, exclAnno)) {
+				// for @MaybeAliased contexts, only the uncommitted fields could have been modified
+				modifiedFields = modifiedFields.filter(field ->
+						packingFactory.isInitializedForFrame(packingType, field.getEnclosingElement().asType()));
 			}
 
-			// add declared type of field to store if
-			// - field is part of `this` (we currently only track such fields)
-			// - `this` has packed state after method
-			// - field is committed after method
-			if (reference instanceof ThisNode
-					&& outputPackingValue != null
-					&& packingFactory.isInitializedForFrame(outputPackingType, fieldOwnerType)) {
+			// Clear field values and their dependents if they were possibly changed (and if there is no cycle)
+			modifiedFields.map(field -> new FieldAccess(fieldOwner, field))
+					.filter(this::acyclic)
+					.forEach(fieldAccess -> {
+						contexts.push(Pair.of(fieldAccess, packingFactory.getAnnotatedType(fieldAccess.getField())));
+						clearValue(fieldAccess);
+						clearDependents(fieldAccess);
+					});
+		}
+
+		// if the reference is `this`, add the declared types of all committed fields after the method call to store
+		// (the method packing posttype guarantees that they have the declared property type)
+		if (reference instanceof ThisNode && outputPackingValue != null) {
+			var packingAnno = outputPackingType.getAnnotationInHierarchy(packingFactory.getUnknownInitialization());
+			var frame = packingFactory.getTypeFrameFromAnnotation(packingAnno);
+			var initializedFields = ElementUtils.getAllFieldsIn(TypesUtils.getTypeElement(frame), atypeFactory.getElementUtils());
+			for (var field : initializedFields) {
 				AnnotatedTypeMirror adaptedType = atypeFactory.getAnnotatedType(field);
 				var invocationTree = ((LatticeAnalysis) analysis).getLocalTree();
 				// temporarily set analysis position to field so its refinement can be parsed at its declaration
 				((LatticeAnalysis) analysis).setPosition(field);
 				LatticeValue val = analysis.createAbstractValue(adaptedType);
 				((LatticeAnalysis) analysis).setPosition(invocationTree);
-				insertValue(fieldAccess, val);
-            }
+				insertValue(new FieldAccess(referenceExpr, field), val);
+			}
+
 		}
+	}
+
+	private boolean acyclic(FieldAccess expr) {
+		var accessedFields = Stream.iterate(expr,
+						fa -> fa.getReceiver() instanceof FieldAccess,
+						fa -> (FieldAccess) fa.getReceiver()
+				)
+				.map(FieldAccess::getField)
+				.toList();
+		return accessedFields.size() == Set.copyOf(accessedFields).size();
 	}
 }

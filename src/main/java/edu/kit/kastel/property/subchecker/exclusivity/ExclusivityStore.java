@@ -41,14 +41,19 @@ public class ExclusivityStore extends PackingClientStore<ExclusivityValue, Exclu
     }
 
     @Nullable
-    public AnnotationMirror deriveExclusivityValue(FieldAccess fieldAccess) {
+    public AnnotationMirror deriveExclusivityValue(JavaExpression expression) {
         var factory = ((ExclusivityAnnotatedTypeFactory) analysis.getTypeFactory());
-        // a.b, a.b.c, ...
-        List<? extends JavaExpression> fieldPath = Stream.iterate((JavaExpression) fieldAccess,
+        // a.b, a.b.c, ..., expression (or empty if expression is not a field access)
+        List<? extends JavaExpression> fieldPath = Stream.iterate(expression,
                         e -> e instanceof FieldAccess,
                         e -> ((FieldAccess) e).getReceiver())
                 .toList()
                 .reversed();
+
+        if (fieldPath.isEmpty()) {
+            // expression is not a field access
+            return exclAnnotation(expression);
+        }
 
         // first component of field path. based on that, we derive the exclusivity type of the complete field access.
         JavaExpression root = ((FieldAccess) fieldPath.getFirst()).getReceiver();
@@ -58,8 +63,9 @@ public class ExclusivityStore extends PackingClientStore<ExclusivityValue, Exclu
             return null;
         }
         exclType.addAnnotation(rootAnno);
+        // fieldPath only contains FieldAccesses but can't be declared as List<FieldAccess> due to generics limitations
         //noinspection unchecked
-        for (FieldAccess component : (List<FieldAccess>) fieldPath.subList(0, fieldPath.size() - 1)) {
+        for (FieldAccess component : (List<FieldAccess>) fieldPath) {
             var field = component.getField();
             var declaredType = factory.getAnnotatedType(field);
             viewpointAdapter.viewpointAdaptMember(exclType, field, declaredType);
