@@ -109,12 +109,14 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 				.filter(isDependent)
 				.forEach(entry -> entry.setValue(createTopValue(entry.getKey().getElement().asType())));
 		fieldValues.entrySet().removeIf(isDependent);
-		// TODO: also have to remove methodValues that could depend on dependency
+		methodValues.entrySet().removeIf(isDependent);
 		Optional.ofNullable(thisValue)
 				// special case for non null annotations on `this` - they can never be invalidated
 				.filter(val -> !val.toPropertyAnnotation().getAnnotationType().isNonNull())
 				.filter(val -> isDependent.test(Map.entry(new ThisReference(val.getUnderlyingType()), val)))
 				.ifPresent(val -> thisValue = createTopValue(val.getUnderlyingType()));
+
+
 	}
 
 	protected LatticeValue createTopValue(TypeMirror underlyingType) {
