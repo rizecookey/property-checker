@@ -874,7 +874,6 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         }
     }
 
-    // TODO: consider unifying contexts for method calls
     private void computeSmtContext(LatticeStore store, Tree tree) {
         store.allRefinements()
                 .flatMap(expr -> tryConvertToSmt(expr).stream())

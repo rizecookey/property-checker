@@ -1,6 +1,5 @@
 package edu.kit.kastel.property.util;
 
-// TODO: how is this used? in
 public final class Assert {
 
     private Assert() { }
