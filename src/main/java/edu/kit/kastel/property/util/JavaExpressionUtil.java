@@ -93,7 +93,7 @@ public class JavaExpressionUtil {
             this.reference = reference;
             this.exclFactory = exclFactory;
             this.exclHierarchy = exclFactory.getQualifierHierarchy();
-            this.ownerAnno = store.deriveExclusivityValue(reference);
+            this.ownerAnno = store.deriveExclusivityValue(reference.getReceiver());
         }
 
         @Override
@@ -126,7 +126,7 @@ public class JavaExpressionUtil {
             }
 
 
-            var anno = store.deriveExclusivityValue(expr);
+            var anno = store.deriveExclusivityValue(expr.getReceiver());
             if (AnnotationUtils.areSame(ownerAnno, exclFactory.UNIQUE)) {
                 return exclHierarchy.isSubtypeQualifiersOnly(exclFactory.READ_ONLY, anno);
             } else {
