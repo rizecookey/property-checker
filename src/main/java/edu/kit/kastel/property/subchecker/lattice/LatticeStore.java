@@ -100,7 +100,8 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 		// this predicate is a conservative _approximation_ for "does a given type depend on `dependency`"?
 		// it will always return true if the refinement information is missing.
 		Predicate<Map.Entry<? extends JavaExpression, LatticeValue>> isDependent =
-				entry -> entry.getValue().getRefinement(entry.getKey()).map(exprAnalyzer::test).orElse(true);
+				entry -> !entry.getKey().equals(dependency) // dependents don't include the value itself
+						&& entry.getValue().getRefinement(entry.getKey()).map(exprAnalyzer::test).orElse(true);
 
 		// TODO: why do we set local variables to top type, but remove field values?
 		localVariableValues.entrySet().stream()
