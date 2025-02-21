@@ -283,6 +283,12 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 			var context = contexts.pop();
 			var fieldOwner = context.getLeft();
 			var packingType = context.getRight();
+
+			if (fieldOwner.getType().getKind().isPrimitive()) {
+				// primitive types have no fields
+				continue;
+			}
+
 			var exclAnno = exclStore.deriveExclusivityValue(fieldOwner);
 			if (!exclHierarchy.isSubtypeQualifiersOnly(exclAnno, exclFactory.MAYBE_ALIASED)) {
 				// context is @ReadOnly, so none of its fields could have been modified
