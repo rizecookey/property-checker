@@ -53,7 +53,7 @@ public class JavaExpressionUtil {
 
 
     /**
-     * Tests whether a given {@code JavaExpression} could depend on the value of a specific field.
+     * Tests whether a given {@code JavaExpression} could depend on the value of a specific field access.
      * "Could depend" means that the JavaExpression either references the exact same field or references the same field
      * on a different expression that could be an alias of the dependency. Whether two expressions can be
      * aliases is determined by the exclusivity type system.
@@ -127,8 +127,11 @@ public class JavaExpressionUtil {
 
 
             var anno = store.deriveExclusivityValue(expr.getReceiver());
+            // references must be unique and read-only, or maybealiased and maybealiased/read-only to be aliases
             if (AnnotationUtils.areSame(ownerAnno, exclFactory.UNIQUE)) {
                 return exclHierarchy.isSubtypeQualifiersOnly(exclFactory.READ_ONLY, anno);
+            } else if (AnnotationUtils.areSame(ownerAnno, exclFactory.READ_ONLY)) {
+                return exclHierarchy.isSubtypeQualifiersOnly(anno, exclFactory.UNIQUE);
             } else {
                 return exclHierarchy.isSubtypeQualifiersOnly(anno, ownerAnno);
             }
