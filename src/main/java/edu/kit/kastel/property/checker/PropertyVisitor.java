@@ -34,7 +34,6 @@ import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
 import org.checkerframework.javacutil.ElementUtils;
-import org.checkerframework.javacutil.TreePathUtil;
 import org.checkerframework.javacutil.TreeUtils;
 import org.checkerframework.javacutil.TypesUtils;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -113,61 +112,68 @@ public final class PropertyVisitor extends PackingVisitor {
                     .forEach((tree, context) -> contexts.computeIfAbsent(tree, v -> new HashSet<>()).addAll(context));
         }
 
-        try (var solverContext = SolverContextFactory.createSolverContext(SolverContextFactory.Solvers.SMTINTERPOL)) {
-            // go through all expression trees that caused type errors
-            results.stream()
-                    .map(LatticeVisitor.Result::getMendingConditions)
-                    .map(Map::keySet)
-                    .flatMap(Set::stream)
-                    .distinct()
-                    .forEach(tree -> processMendableExpression(solverContext, results, contexts.getOrDefault(tree, Set.of()), tree));
-            // go through all packing calls with uninitialized fields left
-            results.stream()
-                    .map(LatticeVisitor.Result::getUninitializedFields)
-                    .map(Map::keySet)
-                    .flatMap(Set::stream)
-                    .distinct()
-                    .forEach(tree -> processMendablePackingCall(solverContext, results, contexts.getOrDefault(tree, Set.of()), tree));
-        } catch (InvalidConfigurationException e) {
-            throw new RuntimeException(e);
-        }
+        // go through all expression trees that caused type errors
+        results.stream()
+                .map(LatticeVisitor.Result::getMendingConditions)
+                .map(Map::keySet)
+                .flatMap(Set::stream)
+                .distinct()
+                .forEach(tree -> processMendableExpression(results, contexts.getOrDefault(tree, Set.of()), tree));
+        // go through all packing calls with uninitialized fields left
+        results.stream()
+                .map(LatticeVisitor.Result::getUninitializedFields)
+                .map(Map::keySet)
+                .flatMap(Set::stream)
+                .distinct()
+                .forEach(tree -> processMendablePackingCall(results, contexts.getOrDefault(tree, Set.of()), tree));
+
     }
 
     private void processMendableExpression(
-            SolverContext solverContext,
             List<LatticeVisitor.Result> results,
             Set<SmtExpression> context,
             Tree expression
     ) {
-        SmtCompiler compiler = new SmtCompiler(solverContext);
-        var conjunction = contextConjunction(compiler, expression, context);
-        for (LatticeVisitor.Result result : results) {
-            var condition = result.getMendingConditions().get(expression);
-            if (condition == null) {
-                continue;
-            }
-            if (universallyValid(solverContext, compiler, conjunction, condition)) {
-                result.removeTypeError(TreePath.getPath(checker.getPathToCompilationUnit(), expression));
+        try (var solverContext = createSolverContext()) {
+            SmtCompiler compiler = new SmtCompiler(solverContext);
+            var conjunction = contextConjunction(compiler, expression, context);
+            for (LatticeVisitor.Result result : results) {
+                var condition = result.getMendingConditions().get(expression);
+                if (condition == null) {
+                    continue;
+                }
+                if (universallyValid(solverContext, compiler, conjunction, condition)) {
+                    result.removeTypeError(TreePath.getPath(checker.getPathToCompilationUnit(), expression));
+                }
             }
         }
     }
 
     private void processMendablePackingCall(
-            SolverContext solverContext,
             List<LatticeVisitor.Result> results,
             Set<SmtExpression> context,
             Tree packingCall
     ) {
-        SmtCompiler compiler = new SmtCompiler(solverContext);
-        var conjunction = contextConjunction(compiler, packingCall, context);
-        for (LatticeVisitor.Result result : results) {
-            var fields = result.getUninitializedFields().getOrDefault(packingCall, Collections.emptyList()).iterator();
-            while (fields.hasNext()) {
-                var condition = result.getFieldRefinement(fields.next());
-                if (condition != null && universallyValid(solverContext, compiler, conjunction, condition)) {
-                    fields.remove();
+        try (var solverContext = createSolverContext()) {
+            SmtCompiler compiler = new SmtCompiler(solverContext);
+            var conjunction = contextConjunction(compiler, packingCall, context);
+            for (LatticeVisitor.Result result : results) {
+                var fields = result.getUninitializedFields().getOrDefault(packingCall, Collections.emptyList()).iterator();
+                while (fields.hasNext()) {
+                    var condition = result.getFieldRefinement(fields.next());
+                    if (condition != null && universallyValid(solverContext, compiler, conjunction, condition)) {
+                        fields.remove();
+                    }
                 }
             }
+        }
+    }
+
+    private SolverContext createSolverContext() {
+        try {
+            return SolverContextFactory.createSolverContext(SolverContextFactory.Solvers.SMTINTERPOL);
+        } catch (InvalidConfigurationException e) {
+            throw new RuntimeException(e);
         }
     }
 

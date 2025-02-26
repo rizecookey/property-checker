@@ -57,7 +57,7 @@ public sealed interface SmtExpression {
     record Literal(SmtType type, Object value) implements SmtExpression {
         @Override
         public String toString() {
-            return Objects.toString(value);
+            return value instanceof String s ? '"' + s + '"' : Objects.toString(value);
         }
     }
 
