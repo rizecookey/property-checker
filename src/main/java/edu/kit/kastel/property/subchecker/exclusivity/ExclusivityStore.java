@@ -42,6 +42,7 @@ public class ExclusivityStore extends PackingClientStore<ExclusivityValue, Exclu
 
     @Nullable
     public AnnotationMirror deriveExclusivityValue(JavaExpression expression) {
+        // TODO deduplicate: implement this in terms of derivation method in factory
         var factory = ((ExclusivityAnnotatedTypeFactory) analysis.getTypeFactory());
         // a.b, a.b.c, ..., expression (or empty if expression is not a field access)
         List<? extends JavaExpression> fieldPath = Stream.iterate(expression,

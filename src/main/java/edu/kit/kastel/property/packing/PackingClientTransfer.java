@@ -4,7 +4,9 @@ import com.sun.source.tree.*;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityTransfer;
+import edu.kit.kastel.property.subchecker.exclusivity.qual.MaybeAliased;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.ReadOnly;
+import org.checkerframework.checker.initialization.qual.Initialized;
 import org.checkerframework.dataflow.cfg.UnderlyingAST;
 import org.checkerframework.dataflow.cfg.node.*;
 import org.checkerframework.dataflow.expression.FieldAccess;
@@ -12,7 +14,6 @@ import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.dataflow.expression.ThisReference;
 import org.checkerframework.framework.flow.CFAbstractAnalysis;
 import org.checkerframework.framework.flow.CFAbstractTransfer;
-import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.util.*;
 import org.checkerframework.javacutil.*;
@@ -141,6 +142,10 @@ public abstract class PackingClientTransfer<
             exclFactory = analysis.getTypeFactory().getTypeFactoryOfSubchecker(ExclusivityChecker.class);
         }
 
+        var packingFactory =
+                analysis.getTypeFactory().getChecker().getTypeFactoryOfSubcheckerOrNull(PackingFieldAccessSubchecker.class);
+
+
         boolean sideEffectFree;
         StringToJavaExpression stringToJavaExpr;
         // TODO: default postconditions could/should be skipped if invoked method is pure / if input types are top
@@ -156,15 +161,15 @@ public abstract class PackingClientTransfer<
             // Set receiver output type to input type by default (unless receiver is @ReadOnly).
             Node receiver = mi.getTarget().getReceiver();
 
-            AnnotatedTypeFactory.ParameterizedExecutableType method =
-                    analysis.getTypeFactory().methodFromUse(mi.getTree());
-            AnnotatedTypeFactory.ParameterizedExecutableType exclMethod =
-                    exclFactory.methodFromUse(mi.getTree());
+            var method = analysis.getTypeFactory().methodFromUse(mi.getTree());
+            var exclMethod = exclFactory.methodFromUse(mi.getTree());
+            var packingMethod = packingFactory.methodFromUse(mi.getTree());
+
             AnnotatedTypeMirror receiverType = method.executableType.getReceiverType();
             AnnotatedTypeMirror exclReceiverType = exclMethod.executableType.getReceiverType();
+            AnnotatedTypeMirror packingReceiverType = packingMethod.executableType.getReceiverType();
 
-
-            if (receiverType != null && !exclReceiverType.hasAnnotation(ReadOnly.class)) {
+            if (receiverType != null && modifiableParameter(exclReceiverType, packingReceiverType)) {
                 V receiverDefaultValue = analysis.createAbstractValue(
                         receiverType.getAnnotations(),
                         receiverType.getUnderlyingType());
@@ -180,9 +185,9 @@ public abstract class PackingClientTransfer<
             // Set parameter output types to input type by default (unless param is @ReadOnly or primitive).
             int i = 0;
             List<AnnotatedTypeMirror> exclParamTypes = exclMethod.executableType.getParameterTypes();
+            List<AnnotatedTypeMirror> packingParamTypes = packingMethod.executableType.getParameterTypes();
             for (AnnotatedTypeMirror paramType : method.executableType.getParameterTypes()) {
-                boolean paramReadOnly = exclParamTypes.get(i).hasAnnotation(ReadOnly.class);
-                if (!paramReadOnly && !paramType.getKind().isPrimitive()) {
+                if (modifiableParameter(exclParamTypes.get(i), packingParamTypes.get(i))) {
                     V paramDefaultValue = analysis.createAbstractValue(
                             paramType.getAnnotations(),
                             paramType.getUnderlyingType());
@@ -192,6 +197,9 @@ public abstract class PackingClientTransfer<
                     } else {
                         store.insertValue(argument, paramDefaultValue);
                     }
+                } else {
+                    // TODO: insert default value anyway if there is no value in store/current value is top
+                    //  this could happen if a dependent type gets invalidated by the method call before processing postconditions
                 }
 
                 ++i;
@@ -204,15 +212,14 @@ public abstract class PackingClientTransfer<
                                     stringExpr, (NewClassTree) invocationTree, analysis.getTypeFactory().getChecker());
 
             // Set parameter output types to input type by default.
-            AnnotatedTypeFactory.ParameterizedExecutableType method =
-                    analysis.getTypeFactory().constructorFromUse((NewClassTree) invocationNode.getTree());
-            AnnotatedTypeFactory.ParameterizedExecutableType exclMethod =
-                    exclFactory.constructorFromUse((NewClassTree) invocationNode.getTree());
+            var method = analysis.getTypeFactory().constructorFromUse(oc.getTree());
+            var exclMethod = exclFactory.constructorFromUse(oc.getTree());
+            var packingMethod = packingFactory.constructorFromUse(oc.getTree());
             int i = 0;
             List<AnnotatedTypeMirror> exclParamTypes = exclMethod.executableType.getParameterTypes();
+            List<AnnotatedTypeMirror> packingParamTypes = packingMethod.executableType.getParameterTypes();
             for (AnnotatedTypeMirror paramType : method.executableType.getParameterTypes()) {
-                boolean paramReadOnly = exclParamTypes.get(i).hasAnnotation(ReadOnly.class);
-                if (!paramReadOnly) {
+                if (modifiableParameter(exclParamTypes.get(i), packingParamTypes.get(i))) {
                     V paramDefaultValue = analysis.createAbstractValue(
                             paramType.getAnnotations(),
                             paramType.getUnderlyingType());
@@ -265,5 +272,20 @@ public abstract class PackingClientTransfer<
                 }
             }
         }
+    }
+
+    /**
+     * Determine whether a parameter with the uniqueness type {@code exclType} and packing type {@code packingType}
+     * can be modified by the method.
+     *
+     * @param exclType declared uniqueness type
+     * @param packingType declared packing type
+     * @return {@code true} if the parameter can be modified according to the packing and uniqueness type system.
+     */
+    private boolean modifiableParameter(AnnotatedTypeMirror exclType, AnnotatedTypeMirror packingType) {
+        return !exclType.getKind().isPrimitive()
+                && !exclType.hasAnnotation(ReadOnly.class)
+                // TODO: is this correct? what about nested fields?
+                && !(exclType.hasAnnotation(MaybeAliased.class) && packingType.hasAnnotation(Initialized.class));
     }
 }
