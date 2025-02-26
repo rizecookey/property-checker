@@ -185,7 +185,6 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 			LatticeValue val
 	) {
 		ExecutableElement method = invocation.getElement();
-
 		if (atypeFactory.isSideEffectFree(method) && atypeFactory.isDeterministic(method)) {
 			// insert return value into store if method is pure and not a constructor call (like this(...) or super(...))
 			if (method.getKind() != ElementKind.CONSTRUCTOR || invocation.getReceiver() instanceof ClassName) {
@@ -194,27 +193,48 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 			return;
 		}
 
-		ExclusivityAnnotatedTypeFactory exclFactory = atypeFactory.getTypeFactoryOfSubchecker(ExclusivityChecker.class);
+		for (var fieldAccess : changedFields(invocation, node, atypeFactory)) {
+			clearValue(fieldAccess);
+			clearDependents(fieldAccess);
+		}
+
 		PackingFieldAccessAnnotatedTypeFactory packingFactory =
 				atypeFactory.getTypeFactoryOfSubcheckerOrNull(PackingFieldAccessSubchecker.class);
 		PackingStore packingStoreAfter = packingFactory.getStoreAfter(node);
 
-		AnnotatedTypeMirror.AnnotatedExecutableType exclType = exclFactory.getAnnotatedType(method);
+		updateCommittedFields(invocation, packingStoreAfter, packingFactory);
+	}
+
+	public List<FieldAccess> changedFields(
+			MethodCall invocation,
+			Node node,
+			GenericAnnotatedTypeFactory<LatticeValue, LatticeStore, ?, ?> atypeFactory
+	) {
+		ExecutableElement method = invocation.getElement();
+
+		if (atypeFactory.isSideEffectFree(method)) {
+			// no field can be modified if method is side effect free
+			return List.of();
+		}
+
+		List<FieldAccess> result = new ArrayList<>();
+
+		ExclusivityAnnotatedTypeFactory exclFactory = atypeFactory.getTypeFactoryOfSubchecker(ExclusivityChecker.class);
+		PackingFieldAccessAnnotatedTypeFactory packingFactory =
+				atypeFactory.getTypeFactoryOfSubcheckerOrNull(PackingFieldAccessSubchecker.class);
+
+        AnnotatedTypeMirror.AnnotatedExecutableType exclType = exclFactory.getAnnotatedType(method);
 		AnnotatedTypeMirror.AnnotatedExecutableType packingType = packingFactory.getAnnotatedType(method);
-
-
 
 		if (!ElementUtils.isStatic(method) && method.getKind() != ElementKind.CONSTRUCTOR) {
 			Node receiver = ((MethodInvocationNode) node).getTarget().getReceiver();
 			// receivers of instance method calls could be modified by the method
+            var packingReceiver = packingType.getReceiverType();
 			var exclReceiver = exclType.getReceiverType();
-			var packingReceiver = packingType.getReceiverType();
 			// TODO: can a method without an explicit receiver parameter change the receiver's fields?
 			//  if so, we must still call updateForPassedReference here with the default exclusivity and packing types
-			if (exclReceiver != null) {
-				updateForPassedReference(atypeFactory, receiver,
-						exclReceiver, packingReceiver,
-						packingStoreAfter);
+			if (packingReceiver != null) {
+				result.addAll(changedFields(atypeFactory, receiver, exclReceiver, packingReceiver));
 			}
 		}
 
@@ -228,58 +248,46 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 		for (int i = 0; i < arguments.size(); ++i) {
 			// arguments of method/constructor calls could be modified by the implementation
 			Node arg = arguments.get(i);
-			AnnotatedTypeMirror declaredExclType = exclType.getParameterTypes().get(i);
-			AnnotatedTypeMirror inputPackingType = packingType.getParameterTypes().get(i);
-
-            updateForPassedReference(atypeFactory, arg,
-					declaredExclType, inputPackingType,
-					packingStoreAfter);
+            var inputPackingType = packingType.getParameterTypes().get(i);
+			var inputExclType = exclType.getParameterTypes().get(i);
+			result.addAll(changedFields(atypeFactory, arg, inputExclType, inputPackingType));
 		}
+
+		return result;
 	}
 
-	private void updateForPassedReference(
+	private List<FieldAccess> changedFields(
 			GenericAnnotatedTypeFactory<LatticeValue, LatticeStore, ?, ?> atypeFactory,
-			Node reference,
-			AnnotatedTypeMirror declaredExclType,
-			AnnotatedTypeMirror inputPackingType,
-			PackingStore storeAfter
+			Node passedValue,
+			AnnotatedTypeMirror inputExclType,
+			AnnotatedTypeMirror inputPackingType
 	) {
-		if (reference instanceof ObjectCreationNode) {
-			// reference is a constructor call. There can be no dependents on a value like new Foo().field
-			// because every invocation of "new" causes the creation of an independent field.
-			return;
+		if (passedValue instanceof ObjectCreationNode) {
+			// reference is a constructor call. Changes to fields like new Foo().field
+			// are irrelevant because they are not visible to the caller
+			return List.of();
 		}
 
-		if (reference.getType().getKind().isPrimitive()
-				|| analysis.getTypes().isSameType(reference.getType(), stringType)) {
+		if (passedValue.getType().getKind().isPrimitive()
+				|| analysis.getTypes().isSameType(passedValue.getType(), stringType)) {
 			// skip primitive and string types - they can't be modified
 			// the reason we handle strings explicitly here is that they can also be literals,
 			// and this store can't deal with literal values.
-			return;
+			return List.of();
 		}
 
-		TypeMirror declaredType = declaredExclType.getUnderlyingType();
-		PackingFieldAccessAnnotatedTypeFactory packingFactory =
+		List<FieldAccess> result = new ArrayList<>();
+        PackingFieldAccessAnnotatedTypeFactory packingFactory =
 				atypeFactory.getTypeFactoryOfSubcheckerOrNull(PackingFieldAccessSubchecker.class);
 		ExclusivityAnnotatedTypeFactory exclFactory = atypeFactory.getTypeFactoryOfSubchecker(ExclusivityChecker.class);
-
 		QualifierHierarchy exclHierarchy = exclFactory.getQualifierHierarchy();
-
-		JavaExpression referenceExpr = JavaExpression.fromNode(reference);
-		CFValue outputPackingValue = storeAfter.getValue(referenceExpr);
-		AnnotatedTypeMirror outputPackingType = AnnotatedTypeMirror.createType(declaredType,
-				packingFactory, false);
-		if (outputPackingValue != null) {
-			outputPackingType.addAnnotations(outputPackingValue.getAnnotations());
-		}
-
-		var exclStore = exclFactory.getStoreBefore(reference);
 
 		// TODO: what about static fields? any non-final static field could have changed,
 		//  so anything depending on a static non-final field should be invalidated
 		// (field owner, packing type of field owner)
 		Deque<Pair<JavaExpression, AnnotatedTypeMirror>> contexts = new ArrayDeque<>();
-		contexts.push(Pair.of(JavaExpression.fromNode(reference), inputPackingType));
+		// pseudo this reference as "root" of field accesses based on passed reference
+		contexts.push(Pair.of(new ThisReference(inputExclType.getUnderlyingType()), inputPackingType));
 		while (!contexts.isEmpty()) {
 			var context = contexts.pop();
 			var fieldOwner = context.getLeft();
@@ -290,7 +298,7 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 				continue;
 			}
 
-			var exclAnno = exclStore.deriveExclusivityValue(fieldOwner);
+			var exclAnno = exclFactory.deriveExclusivityValue(inputExclType, fieldOwner);
 			if (!exclHierarchy.isSubtypeQualifiersOnly(exclAnno, exclFactory.MAYBE_ALIASED)) {
 				// context is @ReadOnly, so none of its fields could have been modified
 				continue;
@@ -300,11 +308,8 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 			// based on the uniqueness and packing information
 
 			var modifiedFields = ElementUtils.getAllFieldsIn(
-					TypesUtils.getTypeElement(fieldOwner.getType()), atypeFactory.getElementUtils())
-					.stream()
-					// final primitive fields cannot be reassigned, and they also have no fields that can be reassigned
-					// so whatever their type and dependents' types were before, they stay the same.
-					.filter(field -> ElementUtils.isFinal(field) && ElementUtils.getType(field).getKind().isPrimitive());
+							TypesUtils.getTypeElement(fieldOwner.getType()), atypeFactory.getElementUtils())
+					.stream();
 
 			if (AnnotationUtils.areSame(exclFactory.MAYBE_ALIASED, exclAnno)) {
 				// for @MaybeAliased contexts, only the uncommitted fields could have been modified
@@ -317,27 +322,45 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 					.filter(this::acyclic)
 					.forEach(fieldAccess -> {
 						contexts.push(Pair.of(fieldAccess, packingFactory.getAnnotatedType(fieldAccess.getField())));
-						clearValue(fieldAccess);
-						clearDependents(fieldAccess);
+						if (!ElementUtils.isFinal(fieldAccess.getField())) {
+							result.add(fieldAccess);
+						}
 					});
 		}
+		return result;
+	}
 
-		// if the reference is `this`, add the declared types of all committed fields after the method call to store
-		// (the method packing posttype guarantees that they have the declared property type)
-		if (reference instanceof ThisNode && outputPackingValue != null) {
+	private void updateCommittedFields(
+			MethodCall invocation,
+			PackingStore storeAfter,
+			PackingFieldAccessAnnotatedTypeFactory packingFactory
+	) {
+		// update the type of the fields in `this` after a method or constructor call,
+		// based on the packing type of `this` after the method call
+		boolean thisPassed = Stream.concat(Stream.of(invocation.getReceiver()), invocation.getArguments().stream())
+				.anyMatch(val -> val instanceof ThisReference);
+		if (!thisPassed) {
+			return;
+		}
+
+		CFValue outputPackingValue = storeAfter.getValue((ThisNode) null);
+		TypeMirror thisType = getThisValue().orElseThrow().getUnderlyingType();
+		AnnotatedTypeMirror outputPackingType = AnnotatedTypeMirror.createType(thisType,
+				packingFactory, false);
+		if (outputPackingValue != null) {
+			outputPackingType.addAnnotations(outputPackingValue.getAnnotations());
 			var packingAnno = outputPackingType.getAnnotationInHierarchy(packingFactory.getUnknownInitialization());
 			var frame = packingFactory.getTypeFrameFromAnnotation(packingAnno);
-			var initializedFields = ElementUtils.getAllFieldsIn(TypesUtils.getTypeElement(frame), atypeFactory.getElementUtils());
+			var initializedFields = ElementUtils.getAllFieldsIn(TypesUtils.getTypeElement(frame), packingFactory.getElementUtils());
 			for (var field : initializedFields) {
-				AnnotatedTypeMirror adaptedType = atypeFactory.getAnnotatedType(field);
+				AnnotatedTypeMirror adaptedType = analysis.getTypeFactory().getAnnotatedType(field);
 				var invocationTree = ((LatticeAnalysis) analysis).getLocalTree();
 				// temporarily set analysis position to field so its refinement can be parsed at its declaration
 				((LatticeAnalysis) analysis).setPosition(field);
 				LatticeValue val = analysis.createAbstractValue(adaptedType);
 				((LatticeAnalysis) analysis).setPosition(invocationTree);
-				insertValue(new FieldAccess(referenceExpr, field), val);
+				insertValue(new FieldAccess(new ThisReference(thisType), field), val);
 			}
-
 		}
 	}
 

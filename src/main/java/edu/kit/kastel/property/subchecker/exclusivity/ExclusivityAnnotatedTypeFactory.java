@@ -12,6 +12,7 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.dataflow.cfg.node.*;
+import org.checkerframework.dataflow.expression.FieldAccess;
 import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.dataflow.expression.Unknown;
 import org.checkerframework.framework.flow.CFAbstractAnalysis;
@@ -24,6 +25,7 @@ import org.checkerframework.javacutil.AnnotationUtils;
 
 import javax.lang.model.element.AnnotationMirror;
 import java.util.*;
+import java.util.stream.Stream;
 
 public final class ExclusivityAnnotatedTypeFactory
         extends PackingClientAnnotatedTypeFactory<ExclusivityValue, ExclusivityStore, ExclusivityTransfer, ExclusivityAnalysis> {
@@ -166,5 +168,43 @@ public final class ExclusivityAnnotatedTypeFactory
     @Override
     protected ExclusivityViewpointAdapter createViewpointAdapter() {
         return new ExclusivityViewpointAdapter(this);
+    }
+
+    /**
+     * Given a field access like `a.b.c.d`, determine the associated uniqueness type.
+     *
+     * @param exclType The uniqueness type of `a`, i.e. the root of the expression
+     * @param expression The Java expression for which to determine the uniqueness type.
+     *                   This is treated as a field access expression chain, whose root has the type {@code exclType}.
+     * @return the viewpoint-adapted uniqueness type, or {@code exclType} if {@code expression} is not a field access.
+     */
+    @Nullable
+    public AnnotationMirror deriveExclusivityValue(AnnotatedTypeMirror exclType, JavaExpression expression) {
+        var factory = ((ExclusivityAnnotatedTypeFactory) analysis.getTypeFactory());
+        // a.b, a.b.c, ..., expression (or empty if expression is not a field access)
+        List<? extends JavaExpression> fieldPath = Stream.iterate(expression,
+                        e -> e instanceof FieldAccess,
+                        e -> ((FieldAccess) e).getReceiver())
+                .toList()
+                .reversed();
+
+        if (fieldPath.isEmpty()) {
+            // expression isn't a field access
+            return factory.getExclusivityAnnotation(exclType);
+        }
+
+        // first component of field path. based on that, we derive the exclusivity type of the complete field access.=
+        var adaptedExclType = AnnotatedTypeMirror.createType(exclType.getUnderlyingType(), factory, false);
+        adaptedExclType.addAnnotations(exclType.getAnnotations());
+        // fieldPath only contains FieldAccesses but can't be declared as List<FieldAccess> due to generics limitations
+        //noinspection unchecked
+        for (FieldAccess component : (List<FieldAccess>) fieldPath) {
+            var field = component.getField();
+            var declaredType = factory.getAnnotatedType(field);
+            viewpointAdapter.viewpointAdaptMember(adaptedExclType, field, declaredType);
+            adaptedExclType = declaredType;
+        }
+
+        return factory.getExclusivityAnnotation(adaptedExclType);
     }
 }
