@@ -93,6 +93,7 @@ public class JavaExpressionUtil {
             this.reference = reference;
             this.exclFactory = exclFactory;
             this.exclHierarchy = exclFactory.getQualifierHierarchy();
+            // TODO: don't derive exclusivity value from context here, but from declared type of root expression in method header (pass to maybeDependent)
             this.ownerAnno = store.deriveExclusivityValue(reference.getReceiver());
         }
 
@@ -127,14 +128,11 @@ public class JavaExpressionUtil {
 
 
             var anno = store.deriveExclusivityValue(expr.getReceiver());
-            // references must be unique and read-only, or maybealiased and maybealiased/read-only to be aliases
-            if (AnnotationUtils.areSame(ownerAnno, exclFactory.UNIQUE)) {
-                return exclHierarchy.isSubtypeQualifiersOnly(exclFactory.READ_ONLY, anno);
-            } else if (AnnotationUtils.areSame(ownerAnno, exclFactory.READ_ONLY)) {
-                return exclHierarchy.isSubtypeQualifiersOnly(anno, exclFactory.UNIQUE);
-            } else {
-                return exclHierarchy.isSubtypeQualifiersOnly(anno, ownerAnno);
-            }
+            // references can't be aliases if both are unique, or one is unique and one is maybealiased
+            boolean noAlias = (AnnotationUtils.areSame(ownerAnno, exclFactory.UNIQUE) && AnnotationUtils.areSame(anno, exclFactory.UNIQUE))
+                    || (AnnotationUtils.areSame(ownerAnno, exclFactory.MAYBE_ALIASED) && AnnotationUtils.areSame(anno, exclFactory.UNIQUE))
+                    || (AnnotationUtils.areSame(ownerAnno, exclFactory.UNIQUE) && AnnotationUtils.areSame(anno, exclFactory.MAYBE_ALIASED));
+            return !noAlias;
         }
     }
 }
