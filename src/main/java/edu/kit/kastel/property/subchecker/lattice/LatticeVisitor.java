@@ -904,13 +904,6 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
     }
 
 
-    private record MethodCallRefinements(
-            JavaExpression returnRefinement,
-            JavaExpression receiverRefinement,
-            List<JavaExpression> argRefinements
-    ) {
-    }
-
     private Optional<JavaToSmtExpression.Result> tryConvertToSmt(JavaExpression expr) {
         try {
             return Optional.of(JavaToSmtExpression.convert(expr));
