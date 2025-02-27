@@ -1,18 +1,13 @@
 package edu.kit.kastel.property.packing;
 
 import com.sun.source.tree.*;
-import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
-import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
-import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityTransfer;
-import edu.kit.kastel.property.subchecker.exclusivity.qual.MaybeAliased;
-import edu.kit.kastel.property.subchecker.exclusivity.qual.ReadOnly;
-import org.checkerframework.checker.initialization.qual.Initialized;
 import org.checkerframework.dataflow.cfg.UnderlyingAST;
 import org.checkerframework.dataflow.cfg.node.*;
 import org.checkerframework.dataflow.expression.FieldAccess;
 import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.dataflow.expression.ThisReference;
 import org.checkerframework.framework.flow.CFAbstractAnalysis;
+import org.checkerframework.framework.flow.CFAbstractStore;
 import org.checkerframework.framework.flow.CFAbstractTransfer;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.util.*;
@@ -135,22 +130,10 @@ public abstract class PackingClientTransfer<
     protected void processPostconditions(Node invocationNode, S store, ExecutableElement executableElement, ExpressionTree invocationTree) {
         ContractsFromMethod contractsUtils = analysis.getTypeFactory().getContractsFromMethod();
         Set<Contract.Postcondition> postconditions = contractsUtils.getPostconditions(executableElement);
-        ExclusivityAnnotatedTypeFactory exclFactory;
-        if (this instanceof ExclusivityTransfer) {
-            exclFactory = (ExclusivityAnnotatedTypeFactory) analysis.getTypeFactory();
-        } else {
-            exclFactory = analysis.getTypeFactory().getTypeFactoryOfSubchecker(ExclusivityChecker.class);
-        }
 
-        var packingFactory =
-                analysis.getTypeFactory().getChecker().getTypeFactoryOfSubcheckerOrNull(PackingFieldAccessSubchecker.class);
-
-
-        boolean sideEffectFree;
         StringToJavaExpression stringToJavaExpr;
-        // TODO: default postconditions could/should be skipped if invoked method is pure / if input types are top
+
         if (invocationNode instanceof MethodInvocationNode mi) {
-            sideEffectFree = analysis.getTypeFactory().isSideEffectFree(mi.getTarget().getMethod());
             stringToJavaExpr =
                     stringExpr ->
                             StringToJavaExpression.atMethodInvocation(
@@ -158,75 +141,32 @@ public abstract class PackingClientTransfer<
                                     mi,
                                     analysis.getTypeFactory().getChecker());
 
-            // Set receiver output type to input type by default (unless receiver is @ReadOnly).
+            // Set receiver output type to input type by default.
             Node receiver = mi.getTarget().getReceiver();
-
             var method = analysis.getTypeFactory().methodFromUse(mi.getTree());
-            var exclMethod = exclFactory.methodFromUse(mi.getTree());
-            var packingMethod = packingFactory.methodFromUse(mi.getTree());
-
             AnnotatedTypeMirror receiverType = method.executableType.getReceiverType();
-            AnnotatedTypeMirror exclReceiverType = exclMethod.executableType.getReceiverType();
-            AnnotatedTypeMirror packingReceiverType = packingMethod.executableType.getReceiverType();
 
-            if (receiverType != null && modifiableParameter(exclReceiverType, packingReceiverType)) {
-                V receiverDefaultValue = analysis.createAbstractValue(
-                        receiverType.getAnnotations(),
-                        receiverType.getUnderlyingType());
-
-                JavaExpression receiverExpr = JavaExpression.fromNode(receiver);
-                if (sideEffectFree) {
-                    store.insertOrRefine(receiverExpr, receiverDefaultValue.getAnnotations().first());
-                } else {
-                    store.insertValue(receiverExpr, receiverDefaultValue);
-                }
+            if (receiverType != null) {
+                insertIfNotPresent(store, receiver, receiverType);
             }
 
-            // Set parameter output types to input type by default (unless param is @ReadOnly or primitive).
+            // Set parameter output types to input type by default.
             int i = 0;
-            List<AnnotatedTypeMirror> exclParamTypes = exclMethod.executableType.getParameterTypes();
-            List<AnnotatedTypeMirror> packingParamTypes = packingMethod.executableType.getParameterTypes();
             for (AnnotatedTypeMirror paramType : method.executableType.getParameterTypes()) {
-                if (modifiableParameter(exclParamTypes.get(i), packingParamTypes.get(i))) {
-                    V paramDefaultValue = analysis.createAbstractValue(
-                            paramType.getAnnotations(),
-                            paramType.getUnderlyingType());
-                    JavaExpression argument = JavaExpression.fromNode(mi.getArgument(i));
-                    if (sideEffectFree) {
-                        store.insertOrRefine(argument, paramDefaultValue.getAnnotations().first());
-                    } else {
-                        store.insertValue(argument, paramDefaultValue);
-                    }
-                } else {
-                    // TODO: insert default value anyway if there is no value in store/current value is top
-                    //  this could happen if a dependent type gets invalidated by the method call before processing postconditions
-                }
-
+                insertIfNotPresent(store, mi.getArgument(i), paramType);
                 ++i;
             }
         } else if (invocationNode instanceof ObjectCreationNode oc) {
-            sideEffectFree = false;
             stringToJavaExpr =
                     stringExpr ->
                             StringToJavaExpression.atConstructorInvocation(
-                                    stringExpr, (NewClassTree) invocationTree, analysis.getTypeFactory().getChecker());
+                                    stringExpr, oc.getTree(), analysis.getTypeFactory().getChecker());
 
             // Set parameter output types to input type by default.
             var method = analysis.getTypeFactory().constructorFromUse(oc.getTree());
-            var exclMethod = exclFactory.constructorFromUse(oc.getTree());
-            var packingMethod = packingFactory.constructorFromUse(oc.getTree());
             int i = 0;
-            List<AnnotatedTypeMirror> exclParamTypes = exclMethod.executableType.getParameterTypes();
-            List<AnnotatedTypeMirror> packingParamTypes = packingMethod.executableType.getParameterTypes();
             for (AnnotatedTypeMirror paramType : method.executableType.getParameterTypes()) {
-                if (modifiableParameter(exclParamTypes.get(i), packingParamTypes.get(i))) {
-                    V paramDefaultValue = analysis.createAbstractValue(
-                            paramType.getAnnotations(),
-                            paramType.getUnderlyingType());
-                    JavaExpression argument = JavaExpression.fromNode(oc.getArgument(i));
-                    store.insertValue(argument, paramDefaultValue);
-                }
-
+                insertIfNotPresent(store, oc.getArgument(i), paramType);
                 ++i;
             }
         } else {
@@ -243,20 +183,12 @@ public abstract class PackingClientTransfer<
             String expressionString = p.expressionString;
             try {
                 JavaExpression je = stringToJavaExpr.toJavaExpression(expressionString);
-
                 // Unlike the superclass implementation, this calls
                 // "insertValue" which for our type system replaces existing information instead of adding to it.
                 // This is done because we use postconditions to implement output types for the parameters, which may
                 // be incompatible with the input types. If a parameter has no explicit output type, we use its input
                 // type as default, which is implemented above.
-                V newValue = analysis.createSingleAnnotationValue(anno, je.getType());
-                if (newValue != null) {
-                    store.insertValue(je, newValue);
-                } else if (sideEffectFree) {
-                    store.insertOrRefine(je, anno);
-                } else {
-                    store.insertValue(je, anno);
-                }
+                store.insertValue(je, anno);
             } catch (JavaExpressionParseUtil.JavaExpressionParseException e) {
                 // report errors here
                 if (e.isFlowParseError()) {
@@ -275,17 +207,30 @@ public abstract class PackingClientTransfer<
     }
 
     /**
-     * Determine whether a parameter with the uniqueness type {@code exclType} and packing type {@code packingType}
-     * can be modified by the method.
+     * Inserts the given {@code type} for the {@code argument} expression if there isn't already a value
+     * for that expression in the {@code store} that is more specific than a top type.
      *
-     * @param exclType declared uniqueness type
-     * @param packingType declared packing type
-     * @return {@code true} if the parameter can be modified according to the packing and uniqueness type system.
+     * @param store    store
+     * @param argument expression node
+     * @param type     type to insert
      */
-    private boolean modifiableParameter(AnnotatedTypeMirror exclType, AnnotatedTypeMirror packingType) {
-        return !exclType.getKind().isPrimitive()
-                && !exclType.hasAnnotation(ReadOnly.class)
-                // TODO: is this correct? what about nested fields?
-                && !(exclType.hasAnnotation(MaybeAliased.class) && packingType.hasAnnotation(Initialized.class));
+    private void insertIfNotPresent(PackingClientStore<V, S> store, Node argument, AnnotatedTypeMirror type) {
+        var expr = JavaExpression.fromNode(argument);
+        if (!CFAbstractStore.canInsertJavaExpression(expr)) {
+            return;
+        }
+
+        var hierarchy = analysis.getTypeFactory().getQualifierHierarchy();
+        var top = hierarchy.getTopAnnotations().first();
+
+        V existingVal = store.getValue(expr);
+
+        if (existingVal == null
+                || hierarchy.isSubtypeQualifiersOnly(top,
+                hierarchy.findAnnotationInHierarchy(existingVal.getAnnotations(), top))) {
+            V newVal = analysis.createAbstractValue(type);
+            store.insertValue(expr, newVal);
+        }
+
     }
 }
