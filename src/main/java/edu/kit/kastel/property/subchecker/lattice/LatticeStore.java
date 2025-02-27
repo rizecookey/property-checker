@@ -205,6 +205,7 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 		updateCommittedFields(invocation, packingStoreAfter, packingFactory);
 	}
 
+	// TODO: also return the exclusivity value of the owners
 	public List<FieldAccess> changedFields(
 			MethodCall invocation,
 			Node node,
@@ -276,6 +277,8 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 			return List.of();
 		}
 
+		JavaExpression passedExpr = JavaExpression.fromNode(passedValue);
+
 		List<FieldAccess> result = new ArrayList<>();
         PackingFieldAccessAnnotatedTypeFactory packingFactory =
 				atypeFactory.getTypeFactoryOfSubcheckerOrNull(PackingFieldAccessSubchecker.class);
@@ -287,7 +290,7 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 		// (field owner, packing type of field owner)
 		Deque<Pair<JavaExpression, AnnotatedTypeMirror>> contexts = new ArrayDeque<>();
 		// pseudo this reference as "root" of field accesses based on passed reference
-		contexts.push(Pair.of(new ThisReference(inputExclType.getUnderlyingType()), inputPackingType));
+		contexts.push(Pair.of(new ThisReference(passedValue.getType()), inputPackingType));
 		while (!contexts.isEmpty()) {
 			var context = contexts.pop();
 			var fieldOwner = context.getLeft();
@@ -317,8 +320,11 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 						packingFactory.isInitializedForFrame(packingType, field.getEnclosingElement().asType()));
 			}
 
-			// Clear field values and their dependents if they were possibly changed (and if there is no cycle)
-			modifiedFields.map(field -> new FieldAccess(fieldOwner, field))
+			// fieldOwner starts with `this`, which must be substituted by the actual expression that was passed
+			JavaExpression fullReceiver = fieldOwner.atFieldAccess(passedExpr);
+
+			// Add acyclic fields that aren't final to result, continue with field traversal
+			modifiedFields.map(field -> new FieldAccess(fullReceiver, field))
 					.filter(this::acyclic)
 					.forEach(fieldAccess -> {
 						contexts.push(Pair.of(fieldAccess, packingFactory.getAnnotatedType(fieldAccess.getField())));
