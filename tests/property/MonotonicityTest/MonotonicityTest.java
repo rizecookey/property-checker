@@ -1,5 +1,6 @@
 import edu.kit.kastel.property.util.Packing;
 import edu.kit.kastel.property.subchecker.lattice.qual.*;
+import org.checkerframework.checker.nullness.qual.*;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
 import edu.kit.kastel.property.packing.qual.*;
 import edu.kit.kastel.property.checker.qual.*;
@@ -10,7 +11,6 @@ public class MonotonicityTest {
     @NonNull Object field0;
     @NonNull Object field1;
 
-    @NonMonotonic
     MonotonicityTest() {
         this.field0 = new Object();
         this.monotonic();

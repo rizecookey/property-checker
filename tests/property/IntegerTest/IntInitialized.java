@@ -1,4 +1,5 @@
 import edu.kit.kastel.property.subchecker.lattice.qual.*;
+import org.checkerframework.checker.nullness.qual.*;
 
 public class IntInitialized {
 

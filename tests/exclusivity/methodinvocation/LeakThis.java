@@ -1,46 +1,47 @@
 import edu.kit.kastel.property.util.Packing;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
 import edu.kit.kastel.property.subchecker.lattice.qual.*;
+import org.checkerframework.checker.nullness.qual.*;
 import edu.kit.kastel.property.packing.qual.*;
 import org.checkerframework.checker.initialization.qual.*;
 import org.checkerframework.dataflow.qual.*;
 
 class LeakThis {
 
-    @UnknownInitialization(Object.class) @ReadOnly @NullTop LeakThis readOnly;
+    @UnknownInitialization(Object.class) @ReadOnly @Nullable LeakThis readOnly;
     @UnknownInitialization(Object.class) @MaybeAliased LeakThis aliased;
     @UnknownInitialization(Object.class) @Unique LeakThis unique;
 
     // :: error: initialization.constructor.return.type.incompatible
-    @UnknownInitialization(LeakThis.class) @NullTop LeakThis() {
+    @UnknownInitialization(LeakThis.class) LeakThis() {
         this.readOnly = this;
         this.mthReadOnly();
     }
 
     // :: error: initialization.constructor.return.type.incompatible
-    @UnknownInitialization(LeakThis.class) @NullTop LeakThis(boolean dummy) {
+    @UnknownInitialization(LeakThis.class) LeakThis(boolean dummy) {
         this.unique = this;
         // :: error: exclusivity.type.invalidated
         this.mthUnique();
     }
 
     // :: error: initialization.constructor.return.type.incompatible
-    @UnknownInitialization(LeakThis.class) @MaybeAliased @NullTop LeakThis(int dummy) {
+    @UnknownInitialization(LeakThis.class) @MaybeAliased LeakThis(int dummy) {
         this.aliased = this;
         this.mthAliased();
     }
 
-    void mthReadOnly(@UnknownInitialization(Object.class) @ReadOnly @NullTop LeakThis this) {
+    void mthReadOnly(@UnknownInitialization(Object.class) @ReadOnly LeakThis this) {
         // :: error: assignment.this-not-writable
         this.readOnly = this;
     }
 
-    void mthAliased(@UnknownInitialization(Object.class) @MaybeAliased @NullTop LeakThis this) {
+    void mthAliased(@UnknownInitialization(Object.class) @MaybeAliased LeakThis this) {
         this.aliased = this;
     }
 
     // :: error: exclusivity.postcondition.not.satisfied
-    void mthUnique(@UnknownInitialization(Object.class) @Unique @NullTop LeakThis this) {
+    void mthUnique(@UnknownInitialization(Object.class) @Unique LeakThis this) {
         this.unique = this;
     }
     

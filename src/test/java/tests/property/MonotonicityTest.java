@@ -9,7 +9,7 @@ public class MonotonicityTest extends PropertyCheckerTest {
     public MonotonicityTest(List<File> testFiles) {
         super(
                 testFiles,
-                "tests/property/lattice_nullness",
+                "",
                 "tests/property/MonotonicityTest/");
     }
 

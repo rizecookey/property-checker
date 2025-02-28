@@ -16,26 +16,25 @@
  */
 package edu.kit.kastel.property.lattice;
 
+import edu.kit.kastel.property.lattice.PropertyAnnotationType.Parameter;
+import edu.kit.kastel.property.util.UnorderedPair;
+import org.checkerframework.framework.type.AnnotatedTypeMirror;
+import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
+import org.checkerframework.javacutil.AnnotationUtils;
+import org.checkerframework.javacutil.Pair;
+import org.checkerframework.javacutil.TypesUtils;
+
+import javax.lang.model.element.AnnotationMirror;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import javax.lang.model.element.AnnotationMirror;
-
-import org.checkerframework.framework.type.AnnotatedTypeMirror;
-import org.checkerframework.javacutil.AnnotationUtils;
-import org.checkerframework.javacutil.Pair;
-
-import edu.kit.kastel.property.lattice.PropertyAnnotationType.Parameter;
-import edu.kit.kastel.property.subchecker.lattice.LatticeAnnotatedTypeFactory;
-import edu.kit.kastel.property.util.UnorderedPair;
-
 public class Lattice {
 
     private String ident;
 
-    private LatticeAnnotatedTypeFactory factory;
+    private GenericAnnotatedTypeFactory<?,?,?,?> factory;
 
     private Map<String, PropertyAnnotationType> annotationTypes;
     private Map<Pair<String, String>, SubAnnotationRelation> relations;
@@ -43,7 +42,7 @@ public class Lattice {
     private Map<UnorderedPair<String>, List<Bound>> joins;
 
     public Lattice(
-            LatticeAnnotatedTypeFactory factory,
+            GenericAnnotatedTypeFactory<?,?,?,?> factory,
             String ident,
             Map<String, PropertyAnnotationType> annotationTypes,
             Map<Pair<String, String>, SubAnnotationRelation> relations,
@@ -68,6 +67,10 @@ public class Lattice {
         return ident;
     }
 
+    public AnnotationMirror getTop() {
+        return factory.getQualifierHierarchy().getTopAnnotations().first();
+    }
+
     public Map<String, PropertyAnnotationType> getAnnotationTypes() {
         return Collections.unmodifiableMap(annotationTypes);
     }
@@ -84,9 +87,15 @@ public class Lattice {
         return Collections.unmodifiableMap(meets);
     }
 
-
     public PropertyAnnotation getPropertyAnnotation(AnnotatedTypeMirror mirror) {
-        return getPropertyAnnotation(mirror.getAnnotationInHierarchy(factory.getTop()));
+        PropertyAnnotation result = getPropertyAnnotation(mirror.getAnnotationInHierarchy(getTop()));
+
+        // Replace @NonNull on primitives by @Nullable to avoid type error in JML translation
+        if (TypesUtils.isPrimitive(mirror.getUnderlyingType()) && result.getAnnotationType().isNonNull()) {
+            result = new PropertyAnnotation(this.annotationTypes.get("Nullable"), List.of());
+        }
+
+        return result;
     }
 
     public PropertyAnnotation getPropertyAnnotation(AnnotationMirror mirror) {
@@ -103,7 +112,7 @@ public class Lattice {
     }
 
     public EvaluatedPropertyAnnotation getEvaluatedPropertyAnnotation(AnnotatedTypeMirror mirror) {
-        return getEvaluatedPropertyAnnotation(mirror.getAnnotationInHierarchy(factory.getTop()));
+        return getEvaluatedPropertyAnnotation(mirror.getAnnotationInHierarchy(getTop()));
     }
 
     public EvaluatedPropertyAnnotation getEvaluatedPropertyAnnotation(AnnotationMirror mirror) {

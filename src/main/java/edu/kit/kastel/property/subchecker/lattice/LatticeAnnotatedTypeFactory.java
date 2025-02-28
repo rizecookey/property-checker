@@ -19,12 +19,10 @@ package edu.kit.kastel.property.subchecker.lattice;
 import com.sun.source.tree.IdentifierTree;
 import edu.kit.kastel.property.config.Config;
 import edu.kit.kastel.property.lattice.*;
-import edu.kit.kastel.property.lattice.compiler.ClassBuilder;
 import edu.kit.kastel.property.lattice.parser.LatticeParser;
 import edu.kit.kastel.property.lattice.parser.ParseException;
 import edu.kit.kastel.property.packing.PackingClientAnnotatedTypeFactory;
 import edu.kit.kastel.property.packing.PackingFieldAccessTreeAnnotator;
-import edu.kit.kastel.property.util.ClassUtils;
 import edu.kit.kastel.property.util.UnorderedPair;
 import org.apache.commons.lang3.StringUtils;
 import org.checkerframework.common.basetype.BaseTypeChecker;
@@ -48,11 +46,11 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public final class LatticeAnnotatedTypeFactory
-        extends PackingClientAnnotatedTypeFactory<LatticeValue, LatticeStore, LatticeTransfer, LatticeAnalysis> {
+        extends PackingClientAnnotatedTypeFactory<LatticeValue, LatticeStore, LatticeTransfer, LatticeAnalysis>
+        implements CooperativeAnnotatedTypeFactory {
 
     private Lattice lattice;
     private LatticeSubchecker latticeChecker;
@@ -109,63 +107,6 @@ public final class LatticeAnnotatedTypeFactory
         postInit();
     }
 
-    private <T extends Checkable> void setCheckerMethods(List<T> checkables, String className, Function<T, String> methodName) {
-        ClassBuilder compiler = new ClassBuilder(className + getChecker().getIdent());
-
-        for (T chk : checkables) {
-            Class<?>[] paramTypes = chk.getParameterTypes();
-
-            if (paramTypes.length > 0 && paramTypes[0] == null) {
-                // null represents the any type, so we add a method for Object and all primitives.
-
-                paramTypes[0] = Object.class;
-                compiler.addMethod(
-                        methodName.apply(chk),
-                        chk.getCondition(),
-                        Arrays.stream(paramTypes).map(Class::getCanonicalName).toArray(String[]::new),
-                        chk.getParameterNames(),
-                        chk.toString());
-
-                for (Class<?> primitive : ClassUtils.PRIMITIVES) {
-                    paramTypes[0] = primitive;
-                    compiler.addMethod(
-                            methodName.apply(chk),
-                            chk.getCondition(),
-                            Arrays.stream(paramTypes).map(Class::getCanonicalName).toArray(String[]::new),
-                            chk.getParameterNames(),
-                            chk.toString());
-                }
-            } else {
-                compiler.addMethod(
-                        methodName.apply(chk),
-                        chk.getCondition(),
-                        Arrays.stream(paramTypes).map(Class::getCanonicalName).toArray(String[]::new),
-                        chk.getParameterNames(),
-                        chk.toString());
-            }
-        }
-        
-        Class<?> cls = compiler.compile(latticeChecker.getProjectClassLoader());
-
-        if (cls == null) {
-            return;
-        }
-
-        for (T chk : checkables) {
-            try {
-                Class<?>[] paramTypes = chk.getParameterTypes();
-
-                if (paramTypes.length > 0 && paramTypes[0] == null) {
-                    paramTypes[0] = Object.class;
-                }
-
-                chk.setCheckerMethod(cls.getMethod(methodName.apply(chk), paramTypes));
-            } catch (NoSuchMethodException | SecurityException e) {
-                e.printStackTrace();
-                System.exit(1);
-            }
-        }
-    }
 
     @Override
     protected TreeAnnotator createTreeAnnotator() {

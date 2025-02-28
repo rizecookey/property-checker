@@ -26,7 +26,7 @@ public class PreservingUpdateTest extends PropertyCheckerTest {
     public PreservingUpdateTest(List<File> testFiles) {
         super(
                 testFiles,
-                "tests/property/lattice_nullness,tests/property/lattice_interval",
+                "tests/property/lattice_interval",
                 "tests/property/PreservingUpdateTest/");
     }
 

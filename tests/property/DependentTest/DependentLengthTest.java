@@ -2,6 +2,7 @@ import edu.kit.kastel.property.util.Packing;
 import edu.kit.kastel.property.checker.qual.*;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
 import edu.kit.kastel.property.subchecker.lattice.qual.*;
+import org.checkerframework.checker.nullness.qual.*;
 import edu.kit.kastel.property.packing.qual.*;
 import org.checkerframework.checker.initialization.qual.*;
 import org.checkerframework.dataflow.qual.*;
@@ -19,7 +20,7 @@ public class DependentLengthTest {
             int a, int b, int c, int d,
             @Length(len="a") List l0,
             @Length(len="b") List l1) {
-        // :: error: length.return.type.incompatible
+        // :: error: length.return.type.incompatible :: error: nullness.return.type.incompatible
         return null;
     }
 

@@ -5,6 +5,8 @@ import com.sun.source.util.TreePath;
 import com.sun.tools.javac.tree.JCTree;
 import edu.kit.kastel.property.packing.qual.Dependable;
 import edu.kit.kastel.property.packing.qual.NonMonotonic;
+import edu.kit.kastel.property.subchecker.nullness.NullnessLatticeAnnotatedTypeFactory;
+import edu.kit.kastel.property.subchecker.nullness.NullnessLatticeSubchecker;
 import org.checkerframework.checker.initialization.InitializationAbstractAnnotatedTypeFactory;
 import org.checkerframework.checker.initialization.InitializationChecker;
 import org.checkerframework.checker.initialization.InitializationFieldAccessTreeAnnotator;
@@ -89,7 +91,13 @@ public class PackingAnnotatedTypeFactory
                 getUninitializedFields(initStore, path, isStatic, receiverAnnotations);
         ClassTree currentClass = TreePathUtil.enclosingClass(path);
 
-        PackingClientAnnotatedTypeFactory factory = ((PackingClientStore) targetStore).getFactory();
+        GenericAnnotatedTypeFactory<?,?,?,?> factory;
+        if (targetStore instanceof PackingClientStore) {
+            factory = ((PackingClientStore) targetStore).getFactory();
+        } else {
+            // Must be NullnessNoInitStore
+            factory = getTypeFactoryOfSubchecker(NullnessLatticeSubchecker.class);
+        }
 
         if (factory == null) {
             throw new BugInCF(
@@ -98,7 +106,7 @@ public class PackingAnnotatedTypeFactory
         }
 
         // Remove primitives
-        if (!((InitializationChecker) checker).checkPrimitives()) {
+        if (!((InitializationChecker) checker).checkPrimitives() || factory instanceof NullnessLatticeAnnotatedTypeFactory) {
             uninitializedFields.removeIf(var -> getAnnotatedType(var).getKind().isPrimitive());
         }
 

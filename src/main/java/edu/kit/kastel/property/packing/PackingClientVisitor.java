@@ -86,7 +86,6 @@ public abstract class PackingClientVisitor<
             checkDefaultContract(param, tree, atypeFactory.getRegularExitStore(tree));
         }
 
-
         if (TreeUtils.isConstructor(tree) && ! TreeUtils.isSynthetic(tree)) {
             checkExplicitConstructorResult(tree);
         }

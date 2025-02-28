@@ -1,7 +1,5 @@
 package tests.exclusivity;
 
-import edu.kit.kastel.property.checker.PropertyChecker;
-import org.checkerframework.framework.test.CheckerFrameworkPerDirectoryTest;
 import org.junit.runners.Parameterized.Parameters;
 import tests.property.PropertyCheckerTest;
 
@@ -21,7 +19,7 @@ public class PackingTest extends PropertyCheckerTest {
     public PackingTest(List<File> testFiles) {
         super(
                 testFiles,
-                "tests/exclusivity/lattice_nullness",
+                "",
                 "tests/exclusivity/packing");
     }
 

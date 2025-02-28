@@ -16,17 +16,17 @@
  */
 package tests.property;
 
+import org.junit.runners.Parameterized.Parameters;
+
 import java.io.File;
 import java.util.List;
-
-import org.junit.runners.Parameterized.Parameters;
 
 @SuppressWarnings("nls")
 public class NullnessTest extends PropertyCheckerTest {
     public NullnessTest(List<File> testFiles) {
         super(
                 testFiles,
-                "tests/property/lattice_nullness",
+                "",
                 "tests/property/NullnessTest/");
     }
 

@@ -107,7 +107,7 @@ public class ClassBuilder {
     		task.call();
 
     		return classLoader.loadClass(Config.CHECKERS_PACKAGE + "." + className);
-    	} catch (RuntimeException | IOException | ClassNotFoundException e) {
+    	} catch (Exception e) {
 			return null;
     	}
     }

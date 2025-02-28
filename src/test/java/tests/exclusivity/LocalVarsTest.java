@@ -1,10 +1,6 @@
 package tests.exclusivity;
 
-import edu.kit.kastel.property.checker.PropertyChecker;
-import org.checkerframework.framework.test.CheckerFrameworkPerDirectoryTest;
 import org.junit.runners.Parameterized.Parameters;
-
-import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
 import tests.property.PropertyCheckerTest;
 
 import java.io.File;
@@ -23,7 +19,7 @@ public class LocalVarsTest extends PropertyCheckerTest {
     public LocalVarsTest(List<File> testFiles) {
         super(
                 testFiles,
-                "tests/exclusivity/lattice_nullness",
+                "",
                 "tests/exclusivity/localvars");
     }
 

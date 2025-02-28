@@ -1,0 +1,9 @@
+Manifest-Version: 1.0
+Main-Class: org.checkerframework.framework.util.CheckerMain
+Implementation-Version: 3.42.0-eisop3-SNAPSHOT
+Implementation-URL: https://eisop.github.io/
+Automatic-Module-Name: org.checkerframework.checker
+Bundle-License: (GPL-2.0-only WITH Classpath-exception-2.0)
+Class-Path: checker-util-3.42.0-eisop3-SNAPSHOT.jar checker-qual-3.42.0-
+ eisop3-SNAPSHOT.jar
+

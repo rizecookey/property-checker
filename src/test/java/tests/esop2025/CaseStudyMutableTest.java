@@ -29,8 +29,7 @@ public class CaseStudyMutableTest extends PropertyCheckerTest {
     public CaseStudyMutableTest(List<File> testFiles) {
         super(
                 testFiles,
-                "tests/esop2025/_case_study_mutable/lattice_nullness"
-                        + ",tests/esop2025/_case_study_mutable/lattice_agedover"
+                        ",tests/esop2025/_case_study_mutable/lattice_agedover"
                 		+ ",tests/esop2025/_case_study_mutable/lattice_allowedfor"
                         + ",tests/esop2025/_case_study_mutable/lattice_interval"
                         + ",tests/esop2025/_case_study_mutable/lattice_empty"

@@ -1,36 +1,37 @@
 import edu.kit.kastel.property.util.Packing;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
 import edu.kit.kastel.property.subchecker.lattice.qual.*;
+import org.checkerframework.checker.nullness.qual.*;
 import edu.kit.kastel.property.packing.qual.*;
 import org.checkerframework.checker.initialization.qual.*;
 import org.checkerframework.dataflow.qual.*;
 
 final class MethodCall {
 
-    @ReadOnly @UnknownInitialization(Object.class) @NullTop Foo field;
+    @ReadOnly @UnknownInitialization(Object.class) @Nullable Foo field;
 
-    @NullTop MethodCall() {
+    MethodCall() {
     }
 
     @NonMonotonic
-    void mthRO(@UnknownInitialization @ReadOnly @NullTop MethodCall this) {}
+    void mthRO(@UnknownInitialization @ReadOnly MethodCall this) {}
 
     @NonMonotonic
-    void mthUnique(@UnknownInitialization @Unique @NullTop MethodCall this) {}
+    void mthUnique(@UnknownInitialization @Unique MethodCall this) {}
 
     @NonMonotonic
-    void mthMA(@UnknownInitialization @MaybeAliased @NullTop MethodCall this) {}
+    void mthMA(@UnknownInitialization @MaybeAliased MethodCall this) {}
 
     @NonMonotonic
-    void mthParam(@UnknownInitialization @MaybeAliased @NullTop MethodCall this, @UnknownInitialization @MaybeAliased @NullTop Foo arg) {}
+    void mthParam(@UnknownInitialization @MaybeAliased MethodCall this, @UnknownInitialization @MaybeAliased @Nullable Foo arg) {}
 
-    @Unique Foo mthret(@MaybeAliased @NullTop MethodCall this) {
+    @Unique Foo mthret(@MaybeAliased MethodCall this) {
         return new Foo();
     }
 
     @NonMonotonic
     @EnsuresUnknownInit(targetValue=Object.class)
-    void invoke(@MaybeAliased @NullTop MethodCall this) {
+    void invoke(@MaybeAliased MethodCall this) {
         @ReadOnly Foo x;
         @Unique Foo a;
         x = new Foo();   // x is refined to @Unique
@@ -42,23 +43,23 @@ final class MethodCall {
 
     @NonMonotonic
     // :: error: exclusivity.postcondition.not.satisfied
-    void invokeAssign(@Unique @NullTop MethodCall this) {
+    void invokeAssign(@Unique MethodCall this) {
         @Unique Foo b;
         b = this.mthret();
     }
 
     @NonMonotonic
-    void invalidate1(@Unique @NullTop MethodCall this) {
+    void invalidate1(@Unique MethodCall this) {
         @Unique Foo a;
         this.field = new Foo(); // field is refined to @Unique
         this.field.mthUnique();
         this.mthUnique();
-        // :: error: exclusivity.type.invalidated :: error: packing.method.invocation.invalid
+        // :: error: exclusivity.type.invalidated :: error: packing.method.invocation.invalid :: error: nullness.dereference.of.nullable
         this.field.mthUnique(); // invalid, refinement of field has been forgotten
     }
 
     @NonMonotonic
-    void dontInvalidate(@Unique @NullTop MethodCall this) {
+    void dontInvalidate(@Unique MethodCall this) {
         @Unique Foo recv = new Foo();
         @Unique Foo a;
         this.field = new Foo(); // field is refined to @Unique

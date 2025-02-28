@@ -253,7 +253,7 @@ public class PackingVisitor
                     checker.reportError(node, "initialization.already.packed");
                 }
 
-                //All fields in new frame must be initialized.
+                // All fields in new frame must be initialized.
                 checkFieldsInitializedUpToFrame(node, newTypeFrame);
             }
 

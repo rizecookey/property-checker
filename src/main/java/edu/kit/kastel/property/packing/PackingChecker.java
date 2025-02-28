@@ -58,7 +58,7 @@ public abstract class PackingChecker extends InitializationChecker {
     }
 
     public String getInputDir() {
-        return getOption(Config.INPUT_DIR_OPTION);
+        return getOptionsNoSubcheckers().get(Config.INPUT_DIR_OPTION);
     }
 
     @SuppressWarnings("nls")

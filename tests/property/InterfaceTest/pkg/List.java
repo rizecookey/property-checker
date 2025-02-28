@@ -17,6 +17,7 @@
 package pkg;
 
 import edu.kit.kastel.property.subchecker.lattice.qual.*;
+import org.checkerframework.checker.nullness.qual.*;
 
 public interface List {
 

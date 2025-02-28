@@ -18,6 +18,7 @@ package edu.kit.kastel.property.subchecker.lattice;
 
 import com.sun.source.tree.*;
 import com.sun.source.tree.Tree.Kind;
+import com.sun.source.util.SourcePositions;
 import com.sun.source.util.TreePath;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.tree.JCTree;
@@ -32,7 +33,10 @@ import edu.kit.kastel.property.packing.PackingClientStore;
 import edu.kit.kastel.property.packing.PackingClientVisitor;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
-import edu.kit.kastel.property.util.*;
+import edu.kit.kastel.property.util.ClassUtils;
+import edu.kit.kastel.property.util.Packing;
+import edu.kit.kastel.property.util.TypeUtils;
+import edu.kit.kastel.property.util.Union;
 import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.TypeValidator;
@@ -48,18 +52,22 @@ import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
 
 import javax.annotation.processing.ProcessingEnvironment;
-import javax.lang.model.element.*;
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.Modifier;
+import javax.lang.model.element.Name;
 import javax.lang.model.type.TypeKind;
-import java.nio.file.Paths;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
-public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedTypeFactory> {
+public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedTypeFactory> implements CooperativeVisitor {
 
     private final ExecutableElement packMethod;
     private final ExecutableElement unpackMethod;
 
-    private Result result;
+    private CooperativeVisitor.Result result;
 
     private ClassTree enclClass = null;
     private MethodTree enclMethod = null;
@@ -71,7 +79,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         packMethod = TreeUtils.getMethod(Packing.class, "pack", 2, atypeFactory.getProcessingEnv());
         unpackMethod = TreeUtils.getMethod(Packing.class, "unpack", 2, atypeFactory.getProcessingEnv());
 
-        result = new Result(getLatticeSubchecker());
+        result = new CooperativeVisitor.Result(getLatticeSubchecker());
     }
 
     public LatticeVisitor(BaseTypeChecker checker) {
@@ -162,7 +170,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             if (node.getModifiers().getFlags().contains(Modifier.STATIC)) {
                 result.addStaticInvariant(
                         getEnclClassName().toString(),
-                        new Invariant(node.getName().toString(), varType));
+                        new CooperativeVisitor.Invariant(node.getName().toString(), varType));
 
                 if (node.getInitializer() != null) {
                     result.addStaticInitializer(getEnclClassName().toString(), Union.left(node));
@@ -170,7 +178,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             } else {   
             	result.addInstanceInvariant(
             			getEnclClassName().toString(),
-            			new Invariant(node.getName().toString(), varType));
+            			new CooperativeVisitor.Invariant(node.getName().toString(), varType));
 
             	if (node.getInitializer() != null) {
                     result.addInstanceInitializer(getEnclClassName().toString(), Union.left(node));
@@ -253,6 +261,26 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
     public LatticeSubchecker getLatticeSubchecker() {
         return (LatticeSubchecker) checker;
+    }
+
+    @Override
+    public CooperativeChecker getChecker() {
+        return (LatticeSubchecker) checker;
+    }
+
+    @Override
+    public Result getResult() {
+        return result;
+    }
+
+    @Override
+    public CompilationUnitTree getRoot() {
+        return root;
+    }
+
+    @Override
+    public SourcePositions getPositions() {
+        return positions;
     }
 
     protected LatticeTypeValidator getTypeValidator() {
@@ -392,213 +420,6 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                     constructorElement, "inconsistent.constructor.type", constructorAnno, top);
 
             result.illTypedConstructors.add(enclMethod);
-        }
-    }
-
-    protected void call(Runnable callee, Runnable onError) {
-        int startErrorCount = getLatticeSubchecker().getErrorCount();
-        callee.run();
-        int endErrorCount = getLatticeSubchecker().getErrorCount();
-        if (startErrorCount < endErrorCount) {
-            onError.run();
-        }
-        getLatticeSubchecker().setErrorCount(startErrorCount);
-    }
-
-    protected String getSourceFileName() {
-        return root.getSourceFile().getName();
-    }
-
-    protected String getAbsoluteSourceFileName() {
-        return Paths.get(root.getSourceFile().getName()).toAbsolutePath().toString();
-    }
-
-    protected long getStartLineNumber(Tree tree) {
-        return root.getLineMap().getLineNumber(positions.getStartPosition(root, tree));
-    }
-
-    protected static boolean isConstructor(MethodTree tree) {
-        JCMethodDecl t = (JCMethodDecl) tree;
-        return t.name == t.name.table.names.init;
-    }
-
-    public void addUninitializedFields(Tree packingStatement, List<VariableElement> uninitFields) {
-        result.uninitializedFields.put(packingStatement, uninitFields);
-    }
-
-    public static class Result {
-
-        private LatticeSubchecker checker;
-
-        private Set<AssignmentTree> illTypedAssignments = new HashSet<>();
-        private Set<VariableTree> illTypedVars = new HashSet<>();
-        private Set<MethodTree> illTypedConstructors = new HashSet<>();
-
-        private Set<MethodTree> illTypedMethodResults = new HashSet<>();
-        private Map<MethodTree, Set<Integer>> illTypedMethodOutputParams = new HashMap<>();
-
-        private Map<MethodTree, List<Pair<AnnotatedDeclaredType, AnnotatedExecutableType>>> overriddenMethods = new HashMap<>();
-
-        private Map<String, List<Invariant>> instanceInvariants = new HashMap<>();
-        private Map<String, List<Invariant>> staticInvariants = new HashMap<>();
-        private Map<MethodTree, AnnotationMirror[]> methodOutputTypes = new HashMap<>();
-
-        private Map<String, List<Union<StatementTree, VariableTree, BlockTree>>> instanceInitializers = new HashMap<>();
-        private Map<String, List<Union<StatementTree, VariableTree, BlockTree>>> staticInitializers = new HashMap<>();
-        private Map<MethodInvocationTree, Set<Integer>> illTypedMethodParams = new HashMap<>();
-        private Set<MethodInvocationTree> illTypedMethodReceivers = new HashSet<>();
-        private Map<NewClassTree, Set<Integer>> illTypedConstructorParams = new HashMap<>();
-
-        private Map<Tree, List<VariableElement>> uninitializedFields = new HashMap<>();
-
-        private Result(LatticeSubchecker checker) {
-            this.checker = checker;
-        }
-
-        public LatticeSubchecker getChecker() {
-            return checker;
-        }
-
-        public LatticeAnnotatedTypeFactory getTypeFactory() {
-            return checker.getTypeFactory();
-        }
-
-        public Lattice getLattice() {
-            return getTypeFactory().getLattice();
-        }
-
-        public boolean isWellTyped(AssignmentTree tree) {
-            return !illTypedAssignments.contains(tree);
-        }
-
-        public boolean isWellTyped(VariableTree tree) {
-            return !illTypedVars.contains(tree);
-        }
-
-        public boolean isWellTypedConstructor(MethodTree tree) {
-            if (!isConstructor(tree)) {
-                throw new IllegalArgumentException();
-            }
-
-            return !illTypedConstructors.contains(tree);
-        }
-
-        public boolean isWellTypedMethodResult(MethodTree tree) {
-            return !illTypedMethodResults.contains(tree);
-        }
-
-        private void addInstanceInvariant(String className, Invariant invariant) {
-            CollectionUtils.addToListMap(instanceInvariants, className, invariant);
-        }
-
-        private void addStaticInvariant(String className, Invariant invariant) {
-            CollectionUtils.addToListMap(staticInvariants, className, invariant);
-        }
-
-        private void addInstanceInitializer(String className, Union<StatementTree, VariableTree, BlockTree> init) {
-            CollectionUtils.addToListMap(instanceInitializers, className, init);
-        }
-
-        private void addStaticInitializer(String className, Union<StatementTree, VariableTree, BlockTree> init) {
-            CollectionUtils.addToListMap(staticInitializers, className, init);
-        }
-
-        private void addillTypedMethodParam(MethodInvocationTree tree, int param) {
-            CollectionUtils.addToSetMap(illTypedMethodParams, tree, param);
-        }
-
-        private void addillTypedConstructorParam(NewClassTree tree, int param) {
-            CollectionUtils.addToSetMap(illTypedConstructorParams, tree, param);
-        }
-
-        private void addIllTypedMethodOutputParam(MethodTree tree, int param) {
-            CollectionUtils.addToSetMap(illTypedMethodOutputParams, tree, param);
-        }
-
-        public List<Pair<AnnotatedDeclaredType, AnnotatedExecutableType>> getOverriddenMethods(MethodTree tree) {
-            return CollectionUtils.getUnmodifiableList(overriddenMethods, tree);
-        }
-
-        public List<Invariant> getInstanceInvariants(String className) {
-            return CollectionUtils.getUnmodifiableList(instanceInvariants, className);
-        }
-
-        public List<Invariant> getStaticInvariants(String className) {
-            return CollectionUtils.getUnmodifiableList(staticInvariants, className);
-        }
-
-        public List<Union<StatementTree, VariableTree, BlockTree>> getInstanceInitializers(String className) {
-            return CollectionUtils.getUnmodifiableList(instanceInitializers, className);
-        }
-
-        public List<Union<StatementTree, VariableTree, BlockTree>> getStaticInitializers(String className) {
-            return CollectionUtils.getUnmodifiableList(staticInitializers, className);
-        }
-
-        public List<AnnotationMirror> getMethodOutputTypes(MethodTree tree) {
-            return methodOutputTypes.containsKey(tree)
-                    ? Collections.unmodifiableList(Arrays.asList(methodOutputTypes.get(tree)))
-                    : List.of();
-        }
-
-        public Set<Integer> getIllTypedMethodParams(MethodInvocationTree tree) {
-            return CollectionUtils.getUnmodifiableSet(illTypedMethodParams, tree);
-        }
-
-        public Set<MethodInvocationTree> getIllTypedMethodReceivers() {
-            return Collections.unmodifiableSet(illTypedMethodReceivers);
-        }
-
-        public Set<Integer> getIllTypedConstructorParams(NewClassTree tree) {
-            return CollectionUtils.getUnmodifiableSet(illTypedConstructorParams, tree);
-        }
-
-        public Set<Integer> getIllTypedMethodOutputParams(MethodTree tree) {
-            return CollectionUtils.getUnmodifiableSet(illTypedMethodOutputParams, tree);
-        }
-
-        public List<VariableElement> getUninitializedFields(Tree tree) {
-            return CollectionUtils.getUnmodifiableList(uninitializedFields, tree);
-        }
-
-        public void addAll(Result result) {
-            illTypedAssignments.addAll(result.illTypedAssignments);
-            illTypedVars.addAll(result.illTypedVars);
-            illTypedConstructors.addAll(result.illTypedConstructors);
-
-            illTypedMethodResults.addAll(result.illTypedMethodResults);
-            illTypedMethodOutputParams.putAll(result.illTypedMethodOutputParams);
-
-            overriddenMethods.putAll(result.overriddenMethods);
-            instanceInvariants.putAll(result.instanceInvariants);
-            staticInvariants.putAll(result.staticInvariants);
-            instanceInitializers.putAll(result.instanceInitializers);
-            staticInitializers.putAll(result.staticInitializers);
-
-            illTypedMethodParams.putAll(result.illTypedMethodParams);
-            illTypedMethodReceivers.addAll(result.illTypedMethodReceivers);
-            illTypedConstructorParams.putAll(result.illTypedConstructorParams);
-
-            uninitializedFields.putAll(result.uninitializedFields);
-        }
-    }
-
-    public static class Invariant {
-
-        private String fieldName;
-        private AnnotatedTypeMirror type;
-
-        private Invariant(String fieldName, AnnotatedTypeMirror type) {
-            this.fieldName = fieldName;
-            this.type = type;
-        }
-
-        public String getFieldName() {
-            return fieldName;
-        }
-
-        public AnnotatedTypeMirror getType() {
-            return type;
         }
     }
 }

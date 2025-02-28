@@ -1,5 +1,6 @@
 import edu.kit.kastel.property.util.Packing;
 import edu.kit.kastel.property.subchecker.lattice.qual.*;
+import org.checkerframework.checker.nullness.qual.*;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
 import org.checkerframework.checker.initialization.qual.*;
 

@@ -37,13 +37,14 @@ import edu.kit.kastel.property.lattice.PropertyAnnotationType;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.Unique;
-import edu.kit.kastel.property.subchecker.lattice.LatticeAnnotatedTypeFactory;
+import edu.kit.kastel.property.subchecker.lattice.CooperativeVisitor;
 import edu.kit.kastel.property.subchecker.lattice.LatticeVisitor;
 import edu.kit.kastel.property.util.TypeUtils;
 import edu.kit.kastel.property.util.Union;
 import org.apache.commons.lang3.StringUtils;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
+import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
@@ -55,6 +56,7 @@ import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -421,9 +423,9 @@ public class JavaJMLPrinter extends PrettyPrinter {
                 }
             }
 
-            for (LatticeVisitor.Result wellTypedness : results) {
-                LatticeAnnotatedTypeFactory factory = wellTypedness.getTypeFactory();
-                Lattice lattice = factory.getLattice();
+            for (CooperativeVisitor.Result wellTypedness : results) {
+                GenericAnnotatedTypeFactory<?,?,?,?> factory = wellTypedness.getTypeFactory();
+                Lattice lattice = wellTypedness.getLattice();
                 AnnotatedExecutableType method = wellTypedness.getTypeFactory().getAnnotatedType(tree);
 
                 if (method.getReceiverType() != null) {
@@ -438,7 +440,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
                     AnnotatedTypeMirror paramType = method.getParameterTypes().get(i);
                     String paramName = paramNames.get(i);
 
-                    if (!AnnotationUtils.areSame(paramType.getAnnotationInHierarchy(factory.getTop()), factory.getTop())) {
+                    if (!AnnotationUtils.areSame(paramType.getAnnotationInHierarchy(getTop(factory)), getTop(factory))) {
                         jmlContract.addClause(
                                 new Condition(ConditionType.ASSERTION, ConditionLocation.PRECONDITION, lattice.getPropertyAnnotation(paramType), paramName));
                     }
@@ -447,10 +449,10 @@ public class JavaJMLPrinter extends PrettyPrinter {
 
             if (isConstructor(tree)) {
                 for (LatticeVisitor.Result wellTypedness : results) {
-                    LatticeAnnotatedTypeFactory factory = wellTypedness.getTypeFactory();
+                    GenericAnnotatedTypeFactory<?,?,?,?> factory = wellTypedness.getTypeFactory();
                     AnnotatedTypeMirror receiverType = factory.getMethodReturnType(enclMethod);
 
-                    if (AnnotationUtils.areSame(receiverType.getAnnotationInHierarchy(factory.getTop()), factory.getTop())) {
+                    if (AnnotationUtils.areSame(receiverType.getAnnotationInHierarchy(getTop(factory)), getTop(factory))) {
                         continue;
                     }
 
@@ -468,12 +470,12 @@ public class JavaJMLPrinter extends PrettyPrinter {
             } else {
                 for (LatticeVisitor.Result wellTypedness : results) {
                     Lattice lattice = wellTypedness.getLattice();
-                    LatticeAnnotatedTypeFactory factory = wellTypedness.getTypeFactory();
+                    GenericAnnotatedTypeFactory<?,?,?,?> factory = wellTypedness.getTypeFactory();
                     AnnotatedTypeMirror returnType = factory.getMethodReturnType(enclMethod);
 
                     if (!(returnType instanceof AnnotatedExecutableType)
                             && returnType.getKind() != TypeKind.VOID
-                            && !AnnotationUtils.areSame(returnType.getAnnotationInHierarchy(factory.getTop()), factory.getTop())) {
+                            && !AnnotationUtils.areSame(returnType.getAnnotationInHierarchy(getTop(factory)), getTop(factory))) {
                         boolean wt = wellTypedness.isWellTypedMethodResult(tree);
                         PropertyAnnotation pa = lattice.getPropertyAnnotation(returnType);
                         jmlContract.addClause(new Condition(wt, ConditionLocation.POSTCONDITION, pa, "\\result"));
@@ -489,7 +491,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
 
             for (LatticeVisitor.Result wellTypedness : results) {
                 Lattice lattice = wellTypedness.getLattice();
-                LatticeAnnotatedTypeFactory factory = wellTypedness.getTypeFactory();
+                GenericAnnotatedTypeFactory<?,?,?,?> factory = wellTypedness.getTypeFactory();
                 AnnotatedExecutableType method = wellTypedness.getTypeFactory().getAnnotatedType(tree);
                 List<AnnotationMirror> methodOutputTypes = wellTypedness.getMethodOutputTypes(tree);
                 Set<Integer> illTypedMethodOutputParams = wellTypedness.getIllTypedMethodOutputParams(tree);
@@ -498,7 +500,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
                     String paramName = "this";
                     boolean wt = !illTypedMethodOutputParams.contains(0);
 
-                    if (paramOutputType != null && !AnnotationUtils.areSame(paramOutputType, factory.getTop())) {
+                    if (paramOutputType != null && !AnnotationUtils.areSame(paramOutputType, getTop(factory))) {
                         PropertyAnnotation pa = lattice.getPropertyAnnotation(paramOutputType);
                         if (!(pa.getAnnotationType().isInv() && !wt)) {
                             jmlContract.addClause(
@@ -521,7 +523,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
                     String paramName = paramNames.get(i);
                     boolean wt = !illTypedMethodOutputParams.contains(i + 1);
 
-                    if (!AnnotationUtils.areSame(paramOutputType, factory.getTop())) {
+                    if (!AnnotationUtils.areSame(paramOutputType, getTop(factory))) {
                         jmlContract.addClause(
                                 new Condition(
                                         wt,
@@ -1111,7 +1113,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
         }
 
         for (LatticeVisitor.Result wellTypedness : results) {
-            LatticeAnnotatedTypeFactory factory = wellTypedness.getTypeFactory();
+            GenericAnnotatedTypeFactory<?,?,?,?> factory = wellTypedness.getTypeFactory();
             Lattice lattice = wellTypedness.getLattice();
             AnnotatedExecutableType methodType = factory.getAnnotatedType(tree);
             List<AnnotatedTypeMirror> requiredParamTypes = methodType.getParameterTypes();
@@ -1134,7 +1136,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
                 PropertyAnnotationType pat = pa.getAnnotationType();
 
                 if (!pat.isTrivial()
-                        && !AnnotationUtils.areSame(requiredParamTypes.get(i).getAnnotationInHierarchy(factory.getTop()), factory.getTop())) {
+                        && !AnnotationUtils.areSame(requiredParamTypes.get(i).getAnnotationInHierarchy(getTop(factory)), getTop(factory))) {
                     jmlContract.addClause(new Condition(ConditionType.ASSERTION, ConditionLocation.PRECONDITION, pa, paramNames.get(i))
                             .toStringOr(trampolineBooleanParamName(paramNames.get(i), wellTypedness)));
                     jmlContract.addClause(new Condition(ConditionType.ASSUMPTION, ConditionLocation.PRECONDITION, pa, paramNames.get(i))
@@ -1144,7 +1146,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
         }
 
         for (LatticeVisitor.Result wellTypedness : results) {
-            LatticeAnnotatedTypeFactory factory = wellTypedness.getTypeFactory();
+            GenericAnnotatedTypeFactory<?,?,?,?> factory = wellTypedness.getTypeFactory();
             Lattice lattice = wellTypedness.getLattice();
 
             AnnotatedExecutableType methodType = factory.getAnnotatedType(tree);
@@ -1168,17 +1170,17 @@ public class JavaJMLPrinter extends PrettyPrinter {
 
 
         for (LatticeVisitor.Result wellTypedness : results) {
-            LatticeAnnotatedTypeFactory factory = wellTypedness.getTypeFactory();
+            GenericAnnotatedTypeFactory<?,?,?,?> factory = wellTypedness.getTypeFactory();
             Lattice lattice = wellTypedness.getLattice();
             AnnotatedExecutableType methodType = factory.getAnnotatedType(tree);
 
             if (propertyMethodType.getReturnType().getKind() != TypeKind.VOID && !isConstructor(tree)) {
                 AnnotatedTypeMirror returnType = wellTypedness.getTypeFactory().getMethodReturnType(tree);
-                AnnotationMirror anno = returnType.getAnnotationInHierarchy(wellTypedness.getTypeFactory().getTop());
+                AnnotationMirror anno = returnType.getAnnotationInHierarchy(getTop(wellTypedness.getTypeFactory()));
 
                 if (anno != null && !AnnotationUtils.areSame(
                         anno,
-                        wellTypedness.getTypeFactory().getTop())) {
+                        getTop(wellTypedness.getTypeFactory()))) {
                     PropertyAnnotation pa = lattice.getPropertyAnnotation(returnType);
                     PropertyAnnotationType pat = pa.getAnnotationType();
 
@@ -1194,7 +1196,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
             {
                 AnnotationMirror paramOutputType = methodOutputTypes.get(0);
 
-                if (paramOutputType != null && !AnnotationUtils.areSame(paramOutputType, factory.getTop())) {
+                if (paramOutputType != null && !AnnotationUtils.areSame(paramOutputType, getTop(factory))) {
                     jmlContract.addClause(
                             new Condition(
                                     true,
@@ -1207,7 +1209,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
                 AnnotationMirror paramOutputType = methodOutputTypes.get(i + 1);
                 String paramName = paramNames.get(i);
 
-                if (!AnnotationUtils.areSame(paramOutputType, factory.getTop())) {
+                if (!AnnotationUtils.areSame(paramOutputType, getTop(factory))) {
                     jmlContract.addClause(
                             new Condition(
                                     true,
@@ -1346,7 +1348,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
     }
 
     protected String trampolineBooleanParamName(String paramName, LatticeVisitor.Result wellTypedness) {
-        return String.format("%s_%s", paramName, wellTypedness.getTypeFactory().getLattice().getIdent());
+        return String.format("%s_%s", paramName, wellTypedness.getLattice().getIdent());
     }
 
 
@@ -1388,6 +1390,10 @@ public class JavaJMLPrinter extends PrettyPrinter {
 
     public Name getEnclMethodNameName() {
         return enclMethod.sym.getQualifiedName();
+    }
+
+    public AnnotationMirror getTop(GenericAnnotatedTypeFactory<?,?,?,?> factory) {
+        return factory.getQualifierHierarchy().getTopAnnotations().first();
     }
     
     @SuppressWarnings("unchecked")
@@ -1433,11 +1439,11 @@ public class JavaJMLPrinter extends PrettyPrinter {
         List<Condition> malTyped = new ArrayList<>();
 
         for (LatticeVisitor.Result wellTypedness : results) {
-            LatticeAnnotatedTypeFactory factory = wellTypedness.getTypeFactory();
+            GenericAnnotatedTypeFactory<?,?,?,?> factory = wellTypedness.getTypeFactory();
             AnnotatedTypeMirror type = factory.getAnnotatedTypeLhs(tree.getVariable());
 
             if (type instanceof AnnotatedExecutableType
-                    || AnnotationUtils.areSame(type.getAnnotationInHierarchy(factory.getTop()), factory.getTop())) {
+                    || AnnotationUtils.areSame(type.getAnnotationInHierarchy(getTop(factory)), getTop(factory))) {
                 continue;
             }
 
@@ -1456,11 +1462,11 @@ public class JavaJMLPrinter extends PrettyPrinter {
         List<Condition> malTyped = new ArrayList<>();
 
         for (LatticeVisitor.Result wellTypedness : results) {
-            LatticeAnnotatedTypeFactory factory = wellTypedness.getTypeFactory();
+            GenericAnnotatedTypeFactory<?,?,?,?> factory = wellTypedness.getTypeFactory();
             AnnotatedTypeMirror type = factory.getAnnotatedTypeLhs(tree);
 
             if (type instanceof AnnotatedExecutableType
-                    || AnnotationUtils.areSame(type.getAnnotationInHierarchy(factory.getTop()), factory.getTop())) {
+                    || AnnotationUtils.areSame(type.getAnnotationInHierarchy(getTop(factory)), getTop(factory))) {
                 continue;
             }
 

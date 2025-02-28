@@ -17,6 +17,7 @@
 package edu.kit.kastel.property.subchecker.lattice;
 
 import edu.kit.kastel.property.checker.PropertyChecker;
+import edu.kit.kastel.property.lattice.Lattice;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
 import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
@@ -28,7 +29,7 @@ import java.net.URLClassLoader;
 import java.util.List;
 import java.util.Objects;
 
-public final class LatticeSubchecker extends BaseTypeChecker {
+public final class LatticeSubchecker extends BaseTypeChecker implements CooperativeChecker {
 
     private int errorCount = 0;
 
@@ -81,7 +82,7 @@ public final class LatticeSubchecker extends BaseTypeChecker {
 
     @Override
     public List<BaseTypeChecker> getSubcheckers() {
-        return List.of(parent.getExclusivityChecker());
+        return List.of(); // return List.of(parent.getExclusivityChecker());
     }
 
     @Override
@@ -111,8 +112,14 @@ public final class LatticeSubchecker extends BaseTypeChecker {
         return parent.getProjectClassLoader();
     }
 
+    @Override
     public int getIdent() {
         return ident;
+    }
+
+    @Override
+    public Lattice getLattice() {
+        return getTypeFactory().getLattice();
     }
 
     @Override

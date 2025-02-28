@@ -20,16 +20,37 @@ import edu.kit.kastel.property.config.Config;
 import edu.kit.kastel.property.packing.PackingChecker;
 import edu.kit.kastel.property.packing.PackingFieldAccessSubchecker;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
+import edu.kit.kastel.property.subchecker.lattice.CooperativeVisitor;
 import edu.kit.kastel.property.subchecker.lattice.LatticeSubchecker;
-import edu.kit.kastel.property.subchecker.lattice.LatticeVisitor;
+import edu.kit.kastel.property.subchecker.nullness.KeyForLatticeSubchecker;
+import edu.kit.kastel.property.subchecker.nullness.NullnessLatticeSubchecker;
+import org.checkerframework.checker.nullness.NullnessChecker;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
+import org.checkerframework.common.reflection.MethodValChecker;
+import org.checkerframework.framework.source.SupportedLintOptions;
 import org.checkerframework.framework.source.SupportedOptions;
 
 import java.io.File;
 import java.nio.file.Paths;
 import java.util.*;
 
+@SupportedLintOptions({
+        NullnessChecker.LINT_NOINITFORMONOTONICNONNULL,
+        NullnessChecker.LINT_REDUNDANTNULLCOMPARISON,
+        // Temporary option to forbid non-null array component types, which is allowed by default.
+        // Forbidding is sound and will eventually be the default.
+        // Allowing is unsound, as described in Section 3.3.4, "Nullness and arrays":
+        //     https://eisop.github.io/cf/manual/#nullness-arrays
+        // It is the default temporarily, until we improve the analysis to reduce false positives or we
+        // learn what advice to give programmers about avoid false positive warnings.
+        // See issue #986: https://github.com/typetools/checker-framework/issues/986
+        "soundArrayCreationNullness",
+        // Old name for soundArrayCreationNullness, for backward compatibility; remove in January 2021.
+        "forbidnonnullarraycomponents",
+        NullnessChecker.LINT_TRUSTARRAYLENZERO,
+        NullnessChecker.LINT_PERMITCLEARPROPERTY,
+})
 @SupportedOptions({
     Config.LATTICES_FILE_OPTION,
     Config.INPUT_DIR_OPTION,
@@ -37,16 +58,21 @@ import java.util.*;
     Config.QUAL_PKG_OPTION,
     Config.TRANSLATION_ONLY_OPTION,
     Config.NO_EXCLUSITIVY_OPTION,
-    "assumeInitialized"
+    "assumeKeyFor",
+    "assumeInitialized",
+    "jspecifyNullMarkedAlias",
+    "conservativeArgumentNullnessAfterInvocation"
 })
 public final class PropertyChecker extends PackingChecker {
 
     private ExclusivityChecker exclusivityChecker;
     private PackingFieldAccessSubchecker fieldAccessChecker;
+    private NullnessLatticeSubchecker nullnessLatticeSubchecker;
     private List<LatticeSubchecker> latticeSubcheckers;
     private List<BaseTypeChecker> packingTargetCheckers;
+    private List<BaseTypeChecker> subcheckers;
 
-    private Map<String, PriorityQueue<LatticeVisitor.Result>> results = new HashMap<>();
+    private Map<String, PriorityQueue<CooperativeVisitor.Result>> results = new HashMap<>();
 
     public PropertyChecker() { }
 
@@ -79,6 +105,7 @@ public final class PropertyChecker extends PackingChecker {
         if (packingTargetCheckers == null) {
             packingTargetCheckers = new ArrayList<>();
             packingTargetCheckers.add(getExclusivityChecker());
+            packingTargetCheckers.add(getNullnessLatticeSubchecker());
             packingTargetCheckers.addAll(getLatticeSubcheckers());
         }
 
@@ -87,18 +114,29 @@ public final class PropertyChecker extends PackingChecker {
 
     @Override
     public List<BaseTypeChecker> getSubcheckers() {
-        List<BaseTypeChecker> checkers = new ArrayList<>();
-        checkers.add(getFieldAccessChecker());
-        checkers.add(getExclusivityChecker());
-        checkers.addAll(getLatticeSubcheckers());
-        return checkers;
+        if (subcheckers == null) {
+            subcheckers = new ArrayList<>();
+            subcheckers.add(getFieldAccessChecker());
+            subcheckers.add(getExclusivityChecker());
+
+            if (shouldResolveReflection()) {
+                subcheckers.add(new MethodValChecker());
+            }
+            if (!hasOptionNoSubcheckers("assumeKeyFor")) {
+                subcheckers.add(new KeyForLatticeSubchecker(this));
+            }
+            subcheckers.add(getNullnessLatticeSubchecker());
+
+            subcheckers.addAll(getLatticeSubcheckers());
+        }
+        return subcheckers;
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public <T extends BaseTypeChecker> @Nullable T getSubchecker(Class<T> checkerClass) {
         for (BaseTypeChecker checker : getSubcheckers()) {
-            if (checker.getClass() == checkerClass) {
+            if (checkerClass.isInstance(checker)) {
                 return (T) checker;
             }
         }
@@ -112,6 +150,14 @@ public final class PropertyChecker extends PackingChecker {
         }
 
         return exclusivityChecker;
+    }
+
+    public NullnessLatticeSubchecker getNullnessLatticeSubchecker() {
+        if (nullnessLatticeSubchecker == null) {
+            nullnessLatticeSubchecker = new NullnessLatticeSubchecker(this, new File(getInputDir()));
+        }
+
+        return nullnessLatticeSubchecker;
     }
 
     public PackingFieldAccessSubchecker getFieldAccessChecker() {
@@ -130,7 +176,7 @@ public final class PropertyChecker extends PackingChecker {
             String inputDir = getInputDir();
             String qualPackage = getQualPackage();
 
-            int ident = 0;
+            int ident = 1;
             for (String lattice : lattices) {
                 latticeSubcheckers.add(new LatticeSubchecker(this, new File(lattice.strip()), new File(inputDir), qualPackage, ident++));
             }
@@ -140,27 +186,32 @@ public final class PropertyChecker extends PackingChecker {
     }
     
     public String[] getLattices() {
-    	return getOption(Config.LATTICES_FILE_OPTION).split(Config.SPLIT);
+        String option = getOptionsNoSubcheckers().get(Config.LATTICES_FILE_OPTION);
+        if (option == null) {
+            return new String[] {};
+        } else {
+            return option.split(Config.SPLIT);
+        }
     }
 
     public String getOutputDir() {
-    	return getOption(Config.OUTPUT_DIR_OPTION);
+    	return getOptionsNoSubcheckers().get(Config.OUTPUT_DIR_OPTION);
     }
     
     public String getQualPackage() {
-    	return getOption(Config.QUAL_PKG_OPTION);
+    	return getOptionsNoSubcheckers().get(Config.QUAL_PKG_OPTION);
     }
 
-    public void addResult(String fileName, LatticeVisitor.Result result) {
+    public void addResult(String fileName, CooperativeVisitor.Result result) {
         if (!results.containsKey(fileName)) {
             results.put(fileName, new PriorityQueue<>(
                         (r0, r1) -> r0.getChecker().getIdent() - r1.getChecker().getIdent()));
 
             results.get(fileName).add(result);
         } else {
-            Optional<LatticeVisitor.Result> optional = results.get(fileName).stream().filter(r -> r.getChecker().equals(result.getChecker())).findAny();
+            Optional<CooperativeVisitor.Result> optional = results.get(fileName).stream().filter(r -> r.getChecker().equals(result.getChecker())).findAny();
             if (optional.isPresent()) {
-                LatticeVisitor.Result r = optional.get();
+                CooperativeVisitor.Result r = optional.get();
                 r.addAll(result);
             } else {
                 results.get(fileName).add(result);
@@ -168,8 +219,8 @@ public final class PropertyChecker extends PackingChecker {
         }
     }
 
-    public List<LatticeVisitor.Result> getResults(String fileName) {
-        PriorityQueue<LatticeVisitor.Result> q = results.get(fileName);
+    public List<CooperativeVisitor.Result> getResults(String fileName) {
+        PriorityQueue<CooperativeVisitor.Result> q = results.get(fileName);
         return q != null ? Collections.unmodifiableList(new ArrayList<>(q)) : Collections.emptyList();
     }
 

@@ -29,1660 +29,1737 @@
 
 package edu.kit.kastel.property.printer;
 
-import static com.sun.tools.javac.code.Flags.ANNOTATION;
-import static com.sun.tools.javac.code.Flags.ENUM;
-import static com.sun.tools.javac.code.Flags.ExtendedStandardFlags;
-import static com.sun.tools.javac.code.Flags.INTERFACE;
-import static com.sun.tools.javac.code.Flags.SYNTHETIC;
-import static com.sun.tools.javac.code.Flags.VARARGS;
-import static com.sun.tools.javac.tree.JCTree.Tag.ANNOTATED_TYPE;
-import static com.sun.tools.javac.tree.JCTree.Tag.IMPORT;
-import static com.sun.tools.javac.tree.JCTree.Tag.NEWCLASS;
-import static com.sun.tools.javac.tree.JCTree.Tag.PACKAGEDEF;
-import static com.sun.tools.javac.tree.JCTree.Tag.PARENS;
-import static com.sun.tools.javac.tree.JCTree.Tag.SELECT;
-import static com.sun.tools.javac.tree.JCTree.Tag.TYPEARRAY;
-import static com.sun.tools.javac.tree.JCTree.Tag.VARDEF;
-
-import java.io.IOException;
-import java.io.StringWriter;
-import java.io.Writer;
-
 import com.sun.source.tree.MemberReferenceTree.ReferenceMode;
 import com.sun.source.tree.ModuleTree.ModuleKind;
 import com.sun.tools.javac.code.BoundKind;
-import com.sun.tools.javac.code.Flags;
 import com.sun.tools.javac.code.Symbol;
-import com.sun.tools.javac.tree.DocCommentTable;
-import com.sun.tools.javac.tree.JCTree;
-import com.sun.tools.javac.tree.JCTree.JCAnnotatedType;
-import com.sun.tools.javac.tree.JCTree.JCAnnotation;
-import com.sun.tools.javac.tree.JCTree.JCArrayAccess;
-import com.sun.tools.javac.tree.JCTree.JCArrayTypeTree;
-import com.sun.tools.javac.tree.JCTree.JCAssert;
-import com.sun.tools.javac.tree.JCTree.JCAssign;
-import com.sun.tools.javac.tree.JCTree.JCAssignOp;
-import com.sun.tools.javac.tree.JCTree.JCBinary;
-import com.sun.tools.javac.tree.JCTree.JCBlock;
-import com.sun.tools.javac.tree.JCTree.JCBreak;
+import com.sun.tools.javac.tree.*;
 import com.sun.tools.javac.tree.JCTree.JCCase;
-import com.sun.tools.javac.tree.JCTree.JCCatch;
-import com.sun.tools.javac.tree.JCTree.JCClassDecl;
-import com.sun.tools.javac.tree.JCTree.JCCompilationUnit;
-import com.sun.tools.javac.tree.JCTree.JCConditional;
-import com.sun.tools.javac.tree.JCTree.JCContinue;
-import com.sun.tools.javac.tree.JCTree.JCDoWhileLoop;
-import com.sun.tools.javac.tree.JCTree.JCEnhancedForLoop;
-import com.sun.tools.javac.tree.JCTree.JCErroneous;
-import com.sun.tools.javac.tree.JCTree.JCExports;
-import com.sun.tools.javac.tree.JCTree.JCExpression;
-import com.sun.tools.javac.tree.JCTree.JCExpressionStatement;
-import com.sun.tools.javac.tree.JCTree.JCFieldAccess;
-import com.sun.tools.javac.tree.JCTree.JCForLoop;
-import com.sun.tools.javac.tree.JCTree.JCIdent;
-import com.sun.tools.javac.tree.JCTree.JCIf;
-import com.sun.tools.javac.tree.JCTree.JCImport;
-import com.sun.tools.javac.tree.JCTree.JCInstanceOf;
-import com.sun.tools.javac.tree.JCTree.JCLabeledStatement;
-import com.sun.tools.javac.tree.JCTree.JCLambda;
-import com.sun.tools.javac.tree.JCTree.JCLiteral;
-import com.sun.tools.javac.tree.JCTree.JCMemberReference;
-import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
-import com.sun.tools.javac.tree.JCTree.JCMethodInvocation;
-import com.sun.tools.javac.tree.JCTree.JCModifiers;
-import com.sun.tools.javac.tree.JCTree.JCModuleDecl;
-import com.sun.tools.javac.tree.JCTree.JCNewArray;
-import com.sun.tools.javac.tree.JCTree.JCNewClass;
-import com.sun.tools.javac.tree.JCTree.JCOpens;
-import com.sun.tools.javac.tree.JCTree.JCPackageDecl;
-import com.sun.tools.javac.tree.JCTree.JCParens;
-import com.sun.tools.javac.tree.JCTree.JCPrimitiveTypeTree;
-import com.sun.tools.javac.tree.JCTree.JCProvides;
-import com.sun.tools.javac.tree.JCTree.JCRequires;
-import com.sun.tools.javac.tree.JCTree.JCReturn;
-import com.sun.tools.javac.tree.JCTree.JCSkip;
-import com.sun.tools.javac.tree.JCTree.JCStatement;
-import com.sun.tools.javac.tree.JCTree.JCSwitch;
-import com.sun.tools.javac.tree.JCTree.JCSynchronized;
-import com.sun.tools.javac.tree.JCTree.JCThrow;
-import com.sun.tools.javac.tree.JCTree.JCTry;
-import com.sun.tools.javac.tree.JCTree.JCTypeApply;
-import com.sun.tools.javac.tree.JCTree.JCTypeCast;
-import com.sun.tools.javac.tree.JCTree.JCTypeIntersection;
-import com.sun.tools.javac.tree.JCTree.JCTypeParameter;
-import com.sun.tools.javac.tree.JCTree.JCTypeUnion;
-import com.sun.tools.javac.tree.JCTree.JCUnary;
-import com.sun.tools.javac.tree.JCTree.JCUses;
-import com.sun.tools.javac.tree.JCTree.JCVariableDecl;
-import com.sun.tools.javac.tree.JCTree.JCWhileLoop;
-import com.sun.tools.javac.tree.JCTree.JCWildcard;
-import com.sun.tools.javac.tree.JCTree.LetExpr;
-import com.sun.tools.javac.tree.JCTree.TypeBoundKind;
-import com.sun.tools.javac.tree.Pretty;
-import com.sun.tools.javac.tree.TreeInfo;
-import com.sun.tools.javac.tree.TreeScanner;
+import com.sun.tools.javac.tree.JCTree.Tag;
 import com.sun.tools.javac.util.Convert;
 import com.sun.tools.javac.util.List;
 import com.sun.tools.javac.util.Name;
+
+import java.io.IOException;
+import java.io.StringWriter;
+import java.io.UncheckedIOException;
+import java.io.Writer;
+import java.util.Iterator;
+import java.util.stream.Collectors;
 
 /** Duplicate of {@link com.sun.tools.javac.tree.Pretty} to be able to access package-private members.
  */
 @SuppressWarnings("all")
 public class PrettyPrinter extends JCTree.Visitor {
+    private final boolean sourceOutput;
+    Writer out;
+    public int width = 4;
+    int lmargin = 0;
+    Name enclClassName;
+    DocCommentTable docComments = null;
+    private static final String trimSequence = "[...]";
+    private static final int PREFERRED_LENGTH = 20;
+    String lineSep = System.getProperty("line.separator");
+    int prec;
 
     public PrettyPrinter(Writer out, boolean sourceOutput) {
         this.out = out;
         this.sourceOutput = sourceOutput;
     }
 
-    /** Set when we are producing source output.  If we're not
-     *  producing source output, we can sometimes give more detail in
-     *  the output even though that detail would not be valid java
-     *  source.
-     */
-    private final boolean sourceOutput;
-
-    /** The output stream on which trees are printed.
-     */
-    Writer out;
-
-    /** Indentation width (can be reassigned from outside).
-     */
-    public int width = 4;
-
-    /** The current left margin.
-     */
-    int lmargin = 0;
-
-    /** The enclosing class name.
-     */
-    protected Name enclClassName;
-
-    /** A table mapping trees to their documentation comments
-     *  (can be null)
-     */
-    DocCommentTable docComments = null;
-
-    /**
-     * A string sequence to be used when Pretty output should be constrained
-     * to fit into a given size
-     */
-    private final static String trimSequence = "[...]";
-
-    /**
-     * Max number of chars to be generated when output should fit into a single line
-     */
-    private final static int PREFERRED_LENGTH = 20;
-
-    /** Align code to be indented to left margin.
-     */
     void align() throws IOException {
-        for (int i = 0; i < lmargin; i++) {
-            out.write(" ");
+        for(int i = 0; i < this.lmargin; ++i) {
+            this.out.write(" ");
         }
+
     }
 
-    /** Increase left margin by indentation width.
-     */
     void indent() {
-        lmargin = lmargin + width;
+        this.lmargin += this.width;
     }
 
-    /** Decrease left margin by indentation width.
-     */
     void undent() {
-        lmargin = lmargin - width;
+        this.lmargin -= this.width;
     }
 
-    /** Enter a new precedence level. Emit a `(' if new precedence level
-     *  is less than precedence level so far.
-     *  @param contextPrec    The precedence level in force so far.
-     *  @param ownPrec        The new precedence level.
-     */
     void open(int contextPrec, int ownPrec) throws IOException {
         if (ownPrec < contextPrec) {
-            out.write("(");
+            this.out.write("(");
         }
+
     }
 
-    /** Leave precedence level. Emit a `(' if inner precedence level
-     *  is less than precedence level we revert to.
-     *  @param contextPrec    The precedence level we revert to.
-     *  @param ownPrec        The inner precedence level.
-     */
     void close(int contextPrec, int ownPrec) throws IOException {
         if (ownPrec < contextPrec) {
-            out.write(")");
+            this.out.write(")");
         }
+
     }
 
-    /** Print string, replacing all non-ascii character with unicode escapes.
-     */
     public void print(Object s) throws IOException {
-        out.write(Convert.escapeUnicode(s.toString()));
+        this.out.write(Convert.escapeUnicode(s.toString()));
     }
 
-    /** Print new line.
-     */
+    private void print(char c) throws IOException {
+        this.out.write(c);
+    }
+
     public void println() throws IOException {
-        out.write(lineSep);
+        this.out.write(this.lineSep);
     }
 
     public static String toSimpleString(JCTree tree) {
-        return toSimpleString(tree, PREFERRED_LENGTH);
+        return toSimpleString(tree, 20);
     }
 
     public static String toSimpleString(JCTree tree, int maxLength) {
         StringWriter s = new StringWriter();
+
         try {
-            new Pretty(s, false).printExpr(tree);
+            (new Pretty(s, false)).printExpr(tree);
+        } catch (IOException var6) {
+            throw new AssertionError(var6);
         }
-        catch (IOException e) {
-            // should never happen, because StringWriter is defined
-            // never to throw any IOExceptions
-            throw new AssertionError(e);
-        }
-        //we need to (i) replace all line terminators with a space and (ii) remove
-        //occurrences of 'missing' in the Pretty output (generated when types are missing)
+
         String res = s.toString().trim().replaceAll("\\s+", " ").replaceAll("/\\*missing\\*/", "");
         if (res.length() < maxLength) {
             return res;
         } else {
-            int head = (maxLength - trimSequence.length()) * 2 / 3;
-            int tail = maxLength - trimSequence.length() - head;
-            return res.substring(0, head) + trimSequence + res.substring(res.length() - tail);
+            int head = (maxLength - "[...]".length()) * 2 / 3;
+            int tail = maxLength - "[...]".length() - head;
+            return res.substring(0, head) + "[...]" + res.substring(res.length() - tail);
         }
     }
 
-    String lineSep = System.getProperty("line.separator");
-
-    /**************************************************************************
-     * Traversal methods
-     *************************************************************************/
-
-    /** Exception to propogate IOException through visitXXX methods */
-    public static class UncheckedIOException extends Error {
-        static final long serialVersionUID = -4032692679158424751L;
-        UncheckedIOException(IOException e) {
-            super(e.getMessage(), e);
-        }
-    }
-
-    /** Visitor argument: the current precedence level.
-     */
-    int prec;
-
-    /** Visitor method: print expression tree.
-     *  @param prec  The current precedence level.
-     */
     public void printExpr(JCTree tree, int prec) throws IOException {
         int prevPrec = this.prec;
+
         try {
             this.prec = prec;
             if (tree == null) {
-                print("/*missing*/");
+                this.print("/*missing*/");
             } else {
                 tree.accept(this);
             }
-        } catch (UncheckedIOException ex) {
-            IOException e = new IOException(ex.getMessage());
-            e.initCause(ex);
-            throw e;
+        } catch (UncheckedIOException var8) {
+            throw var8.getCause();
         } finally {
             this.prec = prevPrec;
         }
+
     }
 
-    /** Derived visitor method: print expression tree at minimum precedence level
-     *  for expression.
-     */
     public void printExpr(JCTree tree) throws IOException {
-        printExpr(tree, TreeInfo.noPrec);
+        this.printExpr(tree, 0);
     }
 
-    /** Derived visitor method: print statement tree.
-     */
     public void printStat(JCTree tree) throws IOException {
-        printExpr(tree, TreeInfo.notExpression);
+        this.printExpr(tree, -1);
     }
 
-    /** Derived visitor method: print list of expression trees, separated by given string.
-     *  @param sep the separator string
-     */
     public <T extends JCTree> void printExprs(List<T> trees, String sep) throws IOException {
         if (trees.nonEmpty()) {
-            printExpr(trees.head);
-            for (List<T> l = trees.tail; l.nonEmpty(); l = l.tail) {
-                print(sep);
-                printExpr(l.head);
+            this.printExpr((JCTree)trees.head);
+
+            for(List<T> l = trees.tail; l.nonEmpty(); l = l.tail) {
+                this.print(sep);
+                this.printExpr((JCTree)l.head);
             }
         }
+
     }
 
-    /** Derived visitor method: print list of expression trees, separated by commas.
-     */
     public <T extends JCTree> void printExprs(List<T> trees) throws IOException {
-        printExprs(trees, ", ");
+        this.printExprs(trees, ", ");
     }
 
-    /** Derived visitor method: print list of statements, each on a separate line.
-     */
+    public void printPattern(JCTree tree) throws IOException {
+        this.printExpr(tree);
+    }
+
     public void printStats(List<? extends JCTree> trees) throws IOException {
-        for (List<? extends JCTree> l = trees; l.nonEmpty(); l = l.tail) {
-            align();
-            printStat(l.head);
-            println();
+        for(List<? extends JCTree> l = trees; l.nonEmpty(); l = l.tail) {
+            this.align();
+            this.printStat((JCTree)l.head);
+            this.println();
         }
+
     }
 
-    /** Print a set of modifiers.
-     */
     public void printFlags(long flags) throws IOException {
-        if ((flags & SYNTHETIC) != 0) {
-            print("/*synthetic*/ ");
+        if ((flags & 4096L) != 0L) {
+            this.print("/*synthetic*/ ");
         }
-        print(TreeInfo.flagNames(flags));
-        if ((flags & ExtendedStandardFlags) != 0) {
-            print(" ");
+
+        this.print(TreeInfo.flagNames(flags));
+        if ((flags & -4611677222334361601L) != 0L) {
+            this.print(' ');
         }
-        if ((flags & ANNOTATION) != 0) {
-            print("@");
+
+        if ((flags & 8192L) != 0L) {
+            this.print('@');
         }
+
     }
 
-    public void printAnnotations(List<JCAnnotation> trees) throws IOException {
-        for (List<JCAnnotation> l = trees; l.nonEmpty(); l = l.tail) {
-            printStat(l.head);
-            println();
-            align();
+    public void printAnnotations(List<JCTree.JCAnnotation> trees) throws IOException {
+        for(List<JCTree.JCAnnotation> l = trees; l.nonEmpty(); l = l.tail) {
+            this.printStat((JCTree)l.head);
+            this.println();
+            this.align();
         }
+
     }
 
-    public void printTypeAnnotations(List<JCAnnotation> trees) throws IOException {
-        for (List<JCAnnotation> l = trees; l.nonEmpty(); l = l.tail) {
-            printExpr(l.head);
-            print(" ");
+    public void printTypeAnnotations(List<JCTree.JCAnnotation> trees) throws IOException {
+        for(List<JCTree.JCAnnotation> l = trees; l.nonEmpty(); l = l.tail) {
+            this.printExpr((JCTree)l.head);
+            this.print(' ');
         }
+
     }
 
-    /** Print documentation comment, if it exists
-     *  @param tree    The tree for which a documentation comment should be printed.
-     */
     public void printDocComment(JCTree tree) throws IOException {
-        if (docComments != null) {
-            String dc = docComments.getCommentText(tree);
+        if (this.docComments != null) {
+            String dc = this.docComments.getCommentText(tree);
             if (dc != null) {
-                print("/**"); println();
+                this.print("/**");
+                this.println();
                 int pos = 0;
-                int endpos = lineEndPos(dc, pos);
-                while (pos < dc.length()) {
-                    align();
-                    print(" *");
+
+                for(int endpos = lineEndPos(dc, pos); pos < dc.length(); endpos = lineEndPos(dc, pos)) {
+                    this.align();
+                    this.print(" *");
                     if (pos < dc.length() && dc.charAt(pos) > ' ') {
-                        print(" ");
+                        this.print(' ');
                     }
-                    print(dc.substring(pos, endpos)); println();
+
+                    this.print(dc.substring(pos, endpos));
+                    this.println();
                     pos = endpos + 1;
-                    endpos = lineEndPos(dc, pos);
                 }
-                align(); print(" */"); println();
-                align();
+
+                this.align();
+                this.print(" */");
+                this.println();
+                this.align();
             }
         }
+
     }
-//where
+
     static int lineEndPos(String s, int start) {
-        int pos = s.indexOf('\n', start);
+        int pos = s.indexOf(10, start);
         if (pos < 0) {
             pos = s.length();
         }
+
         return pos;
     }
 
-    /** If type parameter list is non-empty, print it enclosed in
-     *  {@literal "<...>"} brackets.
-     */
-    public void printTypeParameters(List<JCTypeParameter> trees) throws IOException {
+    public void printTypeParameters(List<JCTree.JCTypeParameter> trees) throws IOException {
         if (trees.nonEmpty()) {
-            print("<");
-            printExprs(trees);
-            print(">");
+            this.print('<');
+            this.printExprs(trees);
+            this.print('>');
         }
+
     }
 
-    /** Print a block.
-     */
     public void printBlock(List<? extends JCTree> stats) throws IOException {
-        print("{");
-        println();
-        indent();
-        printStats(stats);
-        undent();
-        align();
-        print("}");
+        this.print('{');
+        this.println();
+        this.indent();
+        this.printStats(stats);
+        this.undent();
+        this.align();
+        this.print('}');
     }
 
-    /** Print a block.
-     */
     public void printEnumBody(List<JCTree> stats) throws IOException {
-        print("{");
-        println();
-        indent();
+        this.print('{');
+        this.println();
+        this.indent();
         boolean first = true;
-        for (List<JCTree> l = stats; l.nonEmpty(); l = l.tail) {
-            if (isEnumerator(l.head)) {
+
+        List l;
+        for(l = stats; l.nonEmpty(); l = l.tail) {
+            if (this.isEnumerator((JCTree)l.head)) {
                 if (!first) {
-                    print(",");
-                    println();
+                    this.print(',');
+                    this.println();
                 }
-                align();
-                printStat(l.head);
+
+                this.align();
+                this.printStat((JCTree)l.head);
                 first = false;
             }
         }
-        print(";");
-        println();
-        for (List<JCTree> l = stats; l.nonEmpty(); l = l.tail) {
-            if (!isEnumerator(l.head)) {
-                align();
-                printStat(l.head);
-                println();
+
+        this.print(';');
+        this.println();
+
+        for(l = stats; l.nonEmpty(); l = l.tail) {
+            if (!this.isEnumerator((JCTree)l.head)) {
+                this.align();
+                this.printStat((JCTree)l.head);
+                this.println();
             }
         }
-        undent();
-        align();
-        print("}");
+
+        this.undent();
+        this.align();
+        this.print('}');
     }
 
-    /** Is the given tree an enumerator definition? */
     boolean isEnumerator(JCTree t) {
-        return t.hasTag(VARDEF) && (((JCVariableDecl) t).mods.flags & ENUM) != 0;
+        return t.hasTag(Tag.VARDEF) && (((JCTree.JCVariableDecl)t).mods.flags & 16384L) != 0L;
     }
 
-    /** Print unit consisting of package clause and import statements in toplevel,
-     *  followed by class definition. if class definition == null,
-     *  print all definitions in toplevel.
-     *  @param tree     The toplevel tree
-     *  @param cdef     The class definition, which is assumed to be part of the
-     *                  toplevel tree.
-     */
-    public void printUnit(JCCompilationUnit tree, JCClassDecl cdef) throws IOException {
-        docComments = tree.docComments;
-        printDocComment(tree);
-
+    public void printUnit(JCTree.JCCompilationUnit tree, JCTree.JCClassDecl cdef) throws IOException {
+        this.docComments = tree.docComments;
+        this.printDocComment(tree);
         boolean firstImport = true;
-        for (List<JCTree> l = tree.defs;
-             l.nonEmpty() &&
-                 (cdef == null ||
-                  l.head.hasTag(IMPORT) || l.head.hasTag(PACKAGEDEF));
-             l = l.tail) {
-            if (l.head.hasTag(IMPORT)) {
-                JCImport imp = (JCImport)l.head;
+
+        for(List<JCTree> l = tree.defs; l.nonEmpty() && (cdef == null || ((JCTree)l.head).hasTag(Tag.IMPORT) || ((JCTree)l.head).hasTag(Tag.PACKAGEDEF)); l = l.tail) {
+            if (((JCTree)l.head).hasTag(Tag.IMPORT)) {
+                JCTree.JCImport imp = (JCTree.JCImport)l.head;
                 Name name = TreeInfo.name(imp.qualid);
-                if (name == name.table.names.asterisk ||
-                        cdef == null ||
-                        isUsed(TreeInfo.symbol(imp.qualid), cdef)) {
+                if (name == name.table.names.asterisk || cdef == null || this.isUsed(TreeInfo.symbol(imp.qualid), cdef)) {
                     if (firstImport) {
                         firstImport = false;
-                        println();
+                        this.println();
                     }
-                    printStat(imp);
+
+                    this.printStat(imp);
                 }
             } else {
-                printStat(l.head);
+                this.printStat((JCTree)l.head);
             }
         }
+
         if (cdef != null) {
-            printStat(cdef);
-            println();
+            this.printStat(cdef);
+            this.println();
         }
+
     }
-    // where
+
     boolean isUsed(final Symbol t, JCTree cdef) {
         class UsedVisitor extends TreeScanner {
+            boolean result = false;
+
+            UsedVisitor(final PrettyPrinter this$0) {
+            }
+
             public void scan(JCTree tree) {
-                if (tree!=null && !result) {
+                if (tree != null && !this.result) {
                     tree.accept(this);
                 }
+
             }
-            boolean result = false;
-            public void visitIdent(JCIdent tree) {
+
+            public void visitIdent(JCTree.JCIdent tree) {
                 if (tree.sym == t) {
-                    result = true;
+                    this.result = true;
                 }
+
             }
         }
-        UsedVisitor v = new UsedVisitor();
+
+        UsedVisitor v = new UsedVisitor(this);
         v.scan(cdef);
         return v.result;
     }
 
-    /**************************************************************************
-     * Visitor methods
-     *************************************************************************/
-
-    public void visitTopLevel(JCCompilationUnit tree) {
+    public void visitTopLevel(JCTree.JCCompilationUnit tree) {
         try {
-            printUnit(tree, null);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            this.printUnit(tree, (JCTree.JCClassDecl)null);
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    public void visitPackageDef(JCPackageDecl tree) {
+    public void visitPackageDef(JCTree.JCPackageDecl tree) {
         try {
-            printDocComment(tree);
-            printAnnotations(tree.annotations);
+            this.printDocComment(tree);
+            this.printAnnotations(tree.annotations);
             if (tree.pid != null) {
-                print("package ");
-                printExpr(tree.pid);
-                print(";");
-                println();
+                this.print("package ");
+                this.printExpr(tree.pid);
+                this.print(';');
+                this.println();
             }
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    @Override
-    public void visitModuleDef(JCModuleDecl tree) {
+    public void visitModuleDef(JCTree.JCModuleDecl tree) {
         try {
-            printDocComment(tree);
-            printAnnotations(tree.mods.annotations);
+            this.printDocComment(tree);
+            this.printAnnotations(tree.mods.annotations);
             if (tree.getModuleType() == ModuleKind.OPEN) {
-                print("open ");
+                this.print("open ");
             }
-            print("module ");
-            printExpr(tree.qualId);
+
+            this.print("module ");
+            this.printExpr(tree.qualId);
             if (tree.directives == null) {
-                print(";");
+                this.print(';');
             } else {
-                printBlock(tree.directives);
+                this.print(' ');
+                this.printBlock(tree.directives);
             }
-            println();
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+
+            this.println();
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    @Override
-    public void visitExports(JCExports tree) {
+    public void visitExports(JCTree.JCExports tree) {
         try {
-            print("exports ");
-            printExpr(tree.qualid);
+            this.print("exports ");
+            this.printExpr(tree.qualid);
             if (tree.moduleNames != null) {
-                print(" to ");
-                printExprs(tree.moduleNames);
+                this.print(" to ");
+                this.printExprs(tree.moduleNames);
             }
-            print(";");
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+
+            this.print(';');
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    @Override
-    public void visitOpens(JCOpens tree) {
+    public void visitOpens(JCTree.JCOpens tree) {
         try {
-            print("opens ");
-            printExpr(tree.qualid);
+            this.print("opens ");
+            this.printExpr(tree.qualid);
             if (tree.moduleNames != null) {
-                print(" to ");
-                printExprs(tree.moduleNames);
+                this.print(" to ");
+                this.printExprs(tree.moduleNames);
             }
-            print(";");
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+
+            this.print(';');
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    @Override
-    public void visitProvides(JCProvides tree) {
+    public void visitProvides(JCTree.JCProvides tree) {
         try {
-            print("provides ");
-            printExpr(tree.serviceName);
-            print(" with ");
-            printExprs(tree.implNames);
-            print(";");
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            this.print("provides ");
+            this.printExpr(tree.serviceName);
+            this.print(" with ");
+            this.printExprs(tree.implNames);
+            this.print(';');
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    @Override
-    public void visitRequires(JCRequires tree) {
+    public void visitRequires(JCTree.JCRequires tree) {
         try {
-            print("requires ");
+            this.print("requires ");
             if (tree.isStaticPhase) {
-                print("static ");
+                this.print("static ");
             }
+
             if (tree.isTransitive) {
-                print("transitive ");
+                this.print("transitive ");
             }
-            printExpr(tree.moduleName);
-            print(";");
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+
+            this.printExpr(tree.moduleName);
+            this.print(';');
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    @Override
-    public void visitUses(JCUses tree) {
+    public void visitUses(JCTree.JCUses tree) {
         try {
-            print("uses ");
-            printExpr(tree.qualid);
-            print(";");
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            this.print("uses ");
+            this.printExpr(tree.qualid);
+            this.print(';');
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    public void visitImport(JCImport tree) {
+    public void visitImport(JCTree.JCImport tree) {
         try {
-            print("import ");
+            this.print("import ");
             if (tree.staticImport) {
-                print("static ");
+                this.print("static ");
             }
-            printExpr(tree.qualid);
-            print(";");
-            println();
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+
+            this.printExpr(tree.qualid);
+            this.print(';');
+            this.println();
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    public void visitClassDef(JCClassDecl tree) {
+    public void visitClassDef(JCTree.JCClassDecl tree) {
         try {
-            println(); align();
-            printDocComment(tree);
-            printAnnotations(tree.mods.annotations);
-            printFlags(tree.mods.flags & ~INTERFACE);
-            Name enclClassNamePrev = enclClassName;
-            enclClassName = tree.name;
-            if ((tree.mods.flags & INTERFACE) != 0) {
-                print("interface " + tree.name);
-                printTypeParameters(tree.typarams);
+            this.println();
+            this.align();
+            this.printDocComment(tree);
+            this.printAnnotations(tree.mods.annotations);
+            this.printFlags(tree.mods.flags & -513L);
+            Name enclClassNamePrev = this.enclClassName;
+            this.enclClassName = tree.name;
+            if ((tree.mods.flags & 512L) != 0L) {
+                this.print("interface ");
+                this.print(tree.name);
+                this.printTypeParameters(tree.typarams);
                 if (tree.implementing.nonEmpty()) {
-                    print(" extends ");
-                    printExprs(tree.implementing);
+                    this.print(" extends ");
+                    this.printExprs(tree.implementing);
+                }
+
+                if (tree.permitting.nonEmpty()) {
+                    this.print(" permits ");
+                    this.printExprs(tree.permitting);
                 }
             } else {
-                if ((tree.mods.flags & ENUM) != 0) {
-                    print("enum " + tree.name);
+                if ((tree.mods.flags & 16384L) != 0L) {
+                    this.print("enum ");
                 } else {
-                    print("class " + tree.name);
+                    this.print("class ");
                 }
-                printTypeParameters(tree.typarams);
+
+                this.print(tree.name);
+                this.printTypeParameters(tree.typarams);
                 if (tree.extending != null) {
-                    print(" extends ");
-                    printExpr(tree.extending);
+                    this.print(" extends ");
+                    this.printExpr(tree.extending);
                 }
+
                 if (tree.implementing.nonEmpty()) {
-                    print(" implements ");
-                    printExprs(tree.implementing);
+                    this.print(" implements ");
+                    this.printExprs(tree.implementing);
+                }
+
+                if (tree.permitting.nonEmpty()) {
+                    this.print(" permits ");
+                    this.printExprs(tree.permitting);
                 }
             }
-            print(" ");
-            if ((tree.mods.flags & ENUM) != 0) {
-                printEnumBody(tree.defs);
+
+            this.print(' ');
+            if ((tree.mods.flags & 16384L) != 0L) {
+                this.printEnumBody(tree.defs);
             } else {
-                printBlock(tree.defs);
+                this.printBlock(tree.defs);
             }
-            enclClassName = enclClassNamePrev;
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+
+            this.enclClassName = enclClassNamePrev;
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    public void visitMethodDef(JCMethodDecl tree) {
+    public void visitMethodDef(JCTree.JCMethodDecl tree) {
         try {
-            // when producing source output, omit anonymous constructors
-            if (tree.name == tree.name.table.names.init &&
-                    enclClassName == null &&
-                    sourceOutput) {
-                return;
-            }
-            println(); align();
-            printDocComment(tree);
-            printExpr(tree.mods);
-            printTypeParameters(tree.typarams);
-            if (tree.name == tree.name.table.names.init) {
-                print(enclClassName != null ? enclClassName : tree.name);
-            } else {
-                printExpr(tree.restype);
-                print(" " + tree.name);
-            }
-            print("(");
-            if (tree.recvparam!=null) {
-                printExpr(tree.recvparam);
-                if (tree.params.size() > 0) {
-                    print(", ");
+            if (tree.name != tree.name.table.names.init || this.enclClassName != null || !this.sourceOutput) {
+                this.println();
+                this.align();
+                this.printDocComment(tree);
+                this.printExpr(tree.mods);
+                this.printTypeParameters(tree.typarams);
+                if (tree.name == tree.name.table.names.init) {
+                    this.print(this.enclClassName != null ? this.enclClassName : tree.name);
+                } else {
+                    this.printExpr(tree.restype);
+                    this.print(' ');
+                    this.print(tree.name);
                 }
+
+                this.print('(');
+                if (tree.recvparam != null) {
+                    this.printExpr(tree.recvparam);
+                    if (tree.params.size() > 0) {
+                        this.print(", ");
+                    }
+                }
+
+                this.printExprs(tree.params);
+                this.print(')');
+                if (tree.thrown.nonEmpty()) {
+                    this.print(" throws ");
+                    this.printExprs(tree.thrown);
+                }
+
+                if (tree.defaultValue != null) {
+                    this.print(" default ");
+                    this.printExpr(tree.defaultValue);
+                }
+
+                if (tree.body != null) {
+                    this.print(' ');
+                    this.printStat(tree.body);
+                } else {
+                    this.print(';');
+                }
+
             }
-            printExprs(tree.params);
-            print(")");
-            if (tree.thrown.nonEmpty()) {
-                print(" throws ");
-                printExprs(tree.thrown);
-            }
-            if (tree.defaultValue != null) {
-                print(" default ");
-                printExpr(tree.defaultValue);
-            }
-            if (tree.body != null) {
-                print(" ");
-                printStat(tree.body);
-            } else {
-                print(";");
-            }
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    public void visitVarDef(JCVariableDecl tree) {
+    public void visitVarDef(JCTree.JCVariableDecl tree) {
         try {
-            if (docComments != null && docComments.hasComment(tree)) {
-                println(); align();
+            if (this.docComments != null && this.docComments.hasComment(tree)) {
+                this.println();
+                this.align();
             }
-            printDocComment(tree);
-            if ((tree.mods.flags & ENUM) != 0) {
-                print("/*public static final*/ ");
-                print(tree.name);
+
+            this.printDocComment(tree);
+            if ((tree.mods.flags & 16384L) != 0L) {
+                this.print("/*public static final*/ ");
+                this.print(tree.name);
                 if (tree.init != null) {
-                    if (tree.init.hasTag(NEWCLASS)) {
-                        JCNewClass init = (JCNewClass) tree.init;
-                        if (sourceOutput) {
-                            print(" /*enum*/ ");
+                    if (tree.init.hasTag(Tag.NEWCLASS)) {
+                        JCTree.JCNewClass init = (JCTree.JCNewClass)tree.init;
+                        if (this.sourceOutput) {
+                            this.print(" /*enum*/ ");
                             if (init.args != null && init.args.nonEmpty()) {
-                                print("(");
-                                print(init.args);
-                                print(")");
+                                this.print('(');
+                                this.print(init.args);
+                                this.print(')');
                             }
+
                             if (init.def != null && init.def.defs != null) {
-                                print(" ");
-                                printBlock(init.def.defs);
+                                this.print(' ');
+                                this.printBlock(init.def.defs);
                             }
-                            return;
-                        }else {
-                            print(" /* = ");
-                            print("new ");
-                            if (init.def != null && init.def.mods.annotations.nonEmpty()) {
-                                printTypeAnnotations(init.def.mods.annotations);
-                            }
-                            printExpr(init.clazz);
-                            print("(");
-                            printExprs(init.args);
-                            print(")");
-                            print(" */");
-                            print(" /*enum*/ ");
-                            if (init.args != null && init.args.nonEmpty()) {
-                                print("(");
-                                printExprs(init.args);
-                                print(")");
-                            }
-                            if (init.def != null && init.def.defs != null) {
-                                print(" ");
-                                printBlock(init.def.defs);
-                            }
+
                             return;
                         }
+
+                        this.print(" /* = ");
+                        this.print("new ");
+                        if (init.def != null && init.def.mods.annotations.nonEmpty()) {
+                            this.printTypeAnnotations(init.def.mods.annotations);
+                        }
+
+                        this.printExpr(init.clazz);
+                        this.print('(');
+                        this.printExprs(init.args);
+                        this.print(')');
+                        this.print(" */");
+                        this.print(" /*enum*/ ");
+                        if (init.args != null && init.args.nonEmpty()) {
+                            this.print('(');
+                            this.printExprs(init.args);
+                            this.print(')');
+                        }
+
+                        if (init.def != null && init.def.defs != null) {
+                            this.print(' ');
+                            this.printBlock(init.def.defs);
+                        }
+
+                        return;
                     }
-                    print(" /* = ");
-                    printExpr(tree.init);
-                    print(" */");
+
+                    this.print(" /* = ");
+                    this.printExpr(tree.init);
+                    this.print(" */");
                 }
             } else {
-                printExpr(tree.mods);
-                if ((tree.mods.flags & VARARGS) != 0) {
+                this.printExpr(tree.mods);
+                if ((tree.mods.flags & 17179869184L) != 0L) {
                     JCTree vartype = tree.vartype;
-                    List<JCAnnotation> tas = null;
-                    if (vartype instanceof JCAnnotatedType) {
-                        tas = ((JCAnnotatedType)vartype).annotations;
-                        vartype = ((JCAnnotatedType)vartype).underlyingType;
+                    List<JCTree.JCAnnotation> tas = null;
+                    if (vartype instanceof JCTree.JCAnnotatedType) {
+                        JCTree.JCAnnotatedType annotatedType = (JCTree.JCAnnotatedType)vartype;
+                        tas = annotatedType.annotations;
+                        vartype = annotatedType.underlyingType;
                     }
-                    printExpr(((JCArrayTypeTree) vartype).elemtype);
+
+                    this.printExpr(((JCTree.JCArrayTypeTree)vartype).elemtype);
                     if (tas != null) {
-                        print(' ');
-                        printTypeAnnotations(tas);
+                        this.print(' ');
+                        this.printTypeAnnotations(tas);
                     }
-                    print("... " + tree.name);
+
+                    this.print("... ");
+                    this.print(tree.name);
                 } else {
-                    printExpr(tree.vartype);
-                    print(" " + tree.name);
+                    this.printExpr(tree.vartype);
+                    this.print(' ');
+                    if (tree.name.isEmpty()) {
+                        this.print('_');
+                    } else {
+                        this.print(tree.name);
+                    }
                 }
+
                 if (tree.init != null) {
-                    print(" = ");
-                    printExpr(tree.init);
+                    this.print(" = ");
+                    this.printExpr(tree.init);
                 }
-                if (prec == TreeInfo.notExpression) {
-                    print(";");
+
+                if (this.prec == -1) {
+                    this.print(';');
                 }
             }
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+
+        } catch (IOException var5) {
+            throw new UncheckedIOException(var5);
         }
     }
 
-    public void visitSkip(JCSkip tree) {
+    public void visitSkip(JCTree.JCSkip tree) {
         try {
-            print(";");
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            this.print(';');
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    public void visitBlock(JCBlock tree) {
+    public void visitBlock(JCTree.JCBlock tree) {
         try {
-            printFlags(tree.flags);
-            printBlock(tree.stats);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            this.printFlags(tree.flags);
+            this.printBlock(tree.stats);
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    public void visitDoLoop(JCDoWhileLoop tree) {
+    public void visitDoLoop(JCTree.JCDoWhileLoop tree) {
         try {
-            print("do ");
-            printStat(tree.body);
-            align();
-            print(" while ");
-            if (tree.cond.hasTag(PARENS)) {
-                printExpr(tree.cond);
+            this.print("do ");
+            this.printStat(tree.body);
+            this.align();
+            this.print(" while ");
+            if (tree.cond.hasTag(Tag.PARENS)) {
+                this.printExpr(tree.cond);
             } else {
-                print("(");
-                printExpr(tree.cond);
-                print(")");
+                this.print('(');
+                this.printExpr(tree.cond);
+                this.print(')');
             }
-            print(";");
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+
+            this.print(';');
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    public void visitWhileLoop(JCWhileLoop tree) {
+    public void visitWhileLoop(JCTree.JCWhileLoop tree) {
         try {
-            print("while ");
-            if (tree.cond.hasTag(PARENS)) {
-                printExpr(tree.cond);
+            this.print("while ");
+            if (tree.cond.hasTag(Tag.PARENS)) {
+                this.printExpr(tree.cond);
             } else {
-                print("(");
-                printExpr(tree.cond);
-                print(")");
+                this.print('(');
+                this.printExpr(tree.cond);
+                this.print(')');
             }
-            print(" ");
-            printStat(tree.body);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+
+            this.print(' ');
+            this.printStat(tree.body);
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    public void visitForLoop(JCForLoop tree) {
+    public void visitForLoop(JCTree.JCForLoop tree) {
         try {
-            print("for (");
+            this.print("for (");
             if (tree.init.nonEmpty()) {
-                if (tree.init.head.hasTag(VARDEF)) {
-                    printExpr(tree.init.head);
-                    for (List<JCStatement> l = tree.init.tail; l.nonEmpty(); l = l.tail) {
-                        JCVariableDecl vdef = (JCVariableDecl)l.head;
-                        print(", " + vdef.name);
+                if (((JCTree.JCStatement)tree.init.head).hasTag(Tag.VARDEF)) {
+                    this.printExpr((JCTree)tree.init.head);
+
+                    for(List<JCTree.JCStatement> l = tree.init.tail; l.nonEmpty(); l = l.tail) {
+                        JCTree.JCVariableDecl vdef = (JCTree.JCVariableDecl)l.head;
+                        this.print(", ");
+                        this.print(vdef.name);
                         if (vdef.init != null) {
-                            print(" = ");
-                            printExpr(vdef.init);
+                            this.print(" = ");
+                            this.printExpr(vdef.init);
                         }
                     }
                 } else {
-                    printExprs(tree.init);
+                    this.printExprs(tree.init);
                 }
             }
-            print("; ");
+
+            this.print("; ");
             if (tree.cond != null) {
-                printExpr(tree.cond);
+                this.printExpr(tree.cond);
             }
-            print("; ");
-            printExprs(tree.step);
-            print(") ");
-            printStat(tree.body);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+
+            this.print("; ");
+            this.printExprs(tree.step);
+            this.print(") ");
+            this.printStat(tree.body);
+        } catch (IOException var4) {
+            throw new UncheckedIOException(var4);
         }
     }
 
-    public void visitForeachLoop(JCEnhancedForLoop tree) {
+    public void visitForeachLoop(JCTree.JCEnhancedForLoop tree) {
         try {
-            print("for (");
-            printExpr(tree.var);
-            print(" : ");
-            printExpr(tree.expr);
-            print(") ");
-            printStat(tree.body);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            this.print("for (");
+            this.printExpr(tree.var);
+            this.print(" : ");
+            this.printExpr(tree.expr);
+            this.print(") ");
+            this.printStat(tree.body);
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    public void visitLabelled(JCLabeledStatement tree) {
+    public void visitLabelled(JCTree.JCLabeledStatement tree) {
         try {
-            print(tree.label + ": ");
-            printStat(tree.body);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            this.print(tree.label);
+            this.print(": ");
+            this.printStat(tree.body);
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    public void visitSwitch(JCSwitch tree) {
+    public void visitSwitch(JCTree.JCSwitch tree) {
         try {
-            print("switch ");
-            if (tree.selector.hasTag(PARENS)) {
-                printExpr(tree.selector);
+            this.print("switch ");
+            if (tree.selector.hasTag(Tag.PARENS)) {
+                this.printExpr(tree.selector);
             } else {
-                print("(");
-                printExpr(tree.selector);
-                print(")");
+                this.print('(');
+                this.printExpr(tree.selector);
+                this.print(')');
             }
-            print(" {");
-            println();
-            printStats(tree.cases);
-            align();
-            print("}");
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+
+            this.print(" {");
+            this.println();
+            this.printStats(tree.cases);
+            this.align();
+            this.print('}');
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    public void visitCase(JCCase tree) {
+    public void visitCase(JCTree.JCCase tree) {
         try {
-            if (tree.pat == null) {
-                print("default");
+            if (tree.labels.size() == 1 && ((JCTree.JCCaseLabel)tree.labels.get(0)).hasTag(Tag.DEFAULTCASELABEL)) {
+                this.print("default");
             } else {
-                print("case ");
-                printExpr(tree.pat);
+                this.print("case ");
+                this.printExprs(tree.labels);
             }
-            print(": ");
-            println();
-            indent();
-            printStats(tree.stats);
-            undent();
-            align();
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
 
-    public void visitSynchronized(JCSynchronized tree) {
-        try {
-            print("synchronized ");
-            if (tree.lock.hasTag(PARENS)) {
-                printExpr(tree.lock);
+            if (tree.guard != null) {
+                this.print(" when ");
+                this.print(tree.guard);
+            }
+
+            if (tree.caseKind == JCCase.STATEMENT) {
+                this.print(':');
+                this.println();
+                this.indent();
+                this.printStats(tree.stats);
+                this.undent();
+                this.align();
             } else {
-                print("(");
-                printExpr(tree.lock);
-                print(")");
-            }
-            print(" ");
-            printStat(tree.body);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
-
-    public void visitTry(JCTry tree) {
-        try {
-            print("try ");
-            if (tree.resources.nonEmpty()) {
-                print("(");
-                boolean first = true;
-                for (JCTree var : tree.resources) {
-                    if (!first) {
-                        println();
-                        indent();
-                    }
-                    printStat(var);
-                    first = false;
+                this.print(" -> ");
+                if (tree.stats.size() == 1) {
+                    this.printStat((JCTree)tree.stats.head);
+                } else {
+                    this.printBlock(tree.stats);
                 }
-                print(") ");
             }
-            printStat(tree.body);
-            for (List<JCCatch> l = tree.catchers; l.nonEmpty(); l = l.tail) {
-                printStat(l.head);
-            }
-            if (tree.finalizer != null) {
-                print(" finally ");
-                printStat(tree.finalizer);
-            }
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    public void visitCatch(JCCatch tree) {
+    public void visitDefaultCaseLabel(JCTree.JCDefaultCaseLabel that) {
         try {
-            print(" catch (");
-            printExpr(tree.param);
-            print(") ");
-            printStat(tree.body);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            this.print("default");
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    public void visitConditional(JCConditional tree) {
+    public void visitConstantCaseLabel(JCTree.JCConstantCaseLabel tree) {
         try {
-            open(prec, TreeInfo.condPrec);
-            printExpr(tree.cond, TreeInfo.condPrec + 1);
-            print(" ? ");
-            printExpr(tree.truepart);
-            print(" : ");
-            printExpr(tree.falsepart, TreeInfo.condPrec);
-            close(prec, TreeInfo.condPrec);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            this.print(tree.expr);
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    public void visitIf(JCIf tree) {
+    public void visitPatternCaseLabel(JCTree.JCPatternCaseLabel tree) {
         try {
-            print("if ");
-            if (tree.cond.hasTag(PARENS)) {
-                printExpr(tree.cond);
+            this.print(tree.pat);
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
+        }
+    }
+
+    public void visitSwitchExpression(JCTree.JCSwitchExpression tree) {
+        try {
+            this.print("switch ");
+            if (tree.selector.hasTag(Tag.PARENS)) {
+                this.printExpr(tree.selector);
             } else {
-                print("(");
-                printExpr(tree.cond);
-                print(")");
+                this.print('(');
+                this.printExpr(tree.selector);
+                this.print(')');
             }
-            print(" ");
-            printStat(tree.thenpart);
+
+            this.print(" {");
+            this.println();
+            this.printStats(tree.cases);
+            this.align();
+            this.print('}');
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
+        }
+    }
+
+    public void visitBindingPattern(JCTree.JCBindingPattern patt) {
+        try {
+            this.printExpr(patt.var);
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
+        }
+    }
+
+    public void visitAnyPattern(JCTree.JCAnyPattern patt) {
+        try {
+            this.print('_');
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
+        }
+    }
+
+    public void visitRecordPattern(JCTree.JCRecordPattern tree) {
+        try {
+            this.printExpr(tree.deconstructor);
+            this.print('(');
+            this.printExprs(tree.nested);
+            this.print(')');
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
+        }
+    }
+
+    public void visitSynchronized(JCTree.JCSynchronized tree) {
+        try {
+            this.print("synchronized ");
+            if (tree.lock.hasTag(Tag.PARENS)) {
+                this.printExpr(tree.lock);
+            } else {
+                this.print('(');
+                this.printExpr(tree.lock);
+                this.print(')');
+            }
+
+            this.print(' ');
+            this.printStat(tree.body);
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
+        }
+    }
+
+    public void visitTry(JCTree.JCTry tree) {
+        try {
+            this.print("try ");
+            if (tree.resources.nonEmpty()) {
+                this.print('(');
+                boolean first = true;
+
+                for(Iterator var3 = tree.resources.iterator(); var3.hasNext(); first = false) {
+                    JCTree var = (JCTree)var3.next();
+                    if (!first) {
+                        this.println();
+                        this.indent();
+                    }
+
+                    this.printStat(var);
+                }
+
+                this.print(") ");
+            }
+
+            this.printStat(tree.body);
+
+            for(List<JCTree.JCCatch> l = tree.catchers; l.nonEmpty(); l = l.tail) {
+                this.printStat((JCTree)l.head);
+            }
+
+            if (tree.finalizer != null) {
+                this.print(" finally ");
+                this.printStat(tree.finalizer);
+            }
+
+        } catch (IOException var5) {
+            throw new UncheckedIOException(var5);
+        }
+    }
+
+    public void visitCatch(JCTree.JCCatch tree) {
+        try {
+            this.print(" catch (");
+            this.printExpr(tree.param);
+            this.print(") ");
+            this.printStat(tree.body);
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
+        }
+    }
+
+    public void visitConditional(JCTree.JCConditional tree) {
+        try {
+            this.open(this.prec, 3);
+            this.printExpr(tree.cond, 4);
+            this.print(" ? ");
+            this.printExpr(tree.truepart);
+            this.print(" : ");
+            this.printExpr(tree.falsepart, 3);
+            this.close(this.prec, 3);
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
+        }
+    }
+
+    public void visitIf(JCTree.JCIf tree) {
+        try {
+            this.print("if ");
+            if (tree.cond.hasTag(Tag.PARENS)) {
+                this.printExpr(tree.cond);
+            } else {
+                this.print('(');
+                this.printExpr(tree.cond);
+                this.print(')');
+            }
+
+            this.print(' ');
+            this.printStat(tree.thenpart);
             if (tree.elsepart != null) {
-                print(" else ");
-                printStat(tree.elsepart);
+                this.print(" else ");
+                this.printStat(tree.elsepart);
             }
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    public void visitExec(JCExpressionStatement tree) {
+    public void visitExec(JCTree.JCExpressionStatement tree) {
         try {
-            printExpr(tree.expr);
-            if (prec == TreeInfo.notExpression) {
-                print(";");
+            this.printExpr(tree.expr);
+            if (this.prec == -1) {
+                this.print(';');
             }
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    public void visitBreak(JCBreak tree) {
+    public void visitBreak(JCTree.JCBreak tree) {
         try {
-            print("break");
+            this.print("break");
             if (tree.label != null) {
-                print(" " + tree.label);
+                this.print(' ');
+                this.print(tree.label);
             }
-            print(";");
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+
+            this.print(';');
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    public void visitContinue(JCContinue tree) {
+    public void visitYield(JCTree.JCYield tree) {
         try {
-            print("continue");
+            this.print("yield");
+            this.print(' ');
+            this.printExpr(tree.value);
+            this.print(';');
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
+        }
+    }
+
+    public void visitContinue(JCTree.JCContinue tree) {
+        try {
+            this.print("continue");
             if (tree.label != null) {
-                print(" " + tree.label);
+                this.print(' ');
+                this.print(tree.label);
             }
-            print(";");
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+
+            this.print(';');
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    public void visitReturn(JCReturn tree) {
+    public void visitReturn(JCTree.JCReturn tree) {
         try {
-            print("return");
+            this.print("return");
             if (tree.expr != null) {
-                print(" ");
-                printExpr(tree.expr);
+                this.print(' ');
+                this.printExpr(tree.expr);
             }
-            print(";");
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+
+            this.print(';');
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    public void visitThrow(JCThrow tree) {
+    public void visitThrow(JCTree.JCThrow tree) {
         try {
-            print("throw ");
-            printExpr(tree.expr);
-            print(";");
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            this.print("throw ");
+            this.printExpr(tree.expr);
+            this.print(';');
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    public void visitAssert(JCAssert tree) {
+    public void visitAssert(JCTree.JCAssert tree) {
         try {
-            print("assert ");
-            printExpr(tree.cond);
+            this.print("assert ");
+            this.printExpr(tree.cond);
             if (tree.detail != null) {
-                print(" : ");
-                printExpr(tree.detail);
+                this.print(" : ");
+                this.printExpr(tree.detail);
             }
-            print(";");
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+
+            this.print(';');
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    public void visitApply(JCMethodInvocation tree) {
+    public void visitApply(JCTree.JCMethodInvocation tree) {
         try {
             if (!tree.typeargs.isEmpty()) {
-                if (tree.meth.hasTag(SELECT)) {
-                    JCFieldAccess left = (JCFieldAccess)tree.meth;
-                    printExpr(left.selected);
-                    print(".<");
-                    printExprs(tree.typeargs);
-                    print(">" + left.name);
+                if (tree.meth.hasTag(Tag.SELECT)) {
+                    JCTree.JCFieldAccess left = (JCTree.JCFieldAccess)tree.meth;
+                    this.printExpr(left.selected);
+                    this.print(".<");
+                    this.printExprs(tree.typeargs);
+                    this.print('>');
+                    this.print(left.name);
                 } else {
-                    print("<");
-                    printExprs(tree.typeargs);
-                    print(">");
-                    printExpr(tree.meth);
+                    this.print('<');
+                    this.printExprs(tree.typeargs);
+                    this.print('>');
+                    this.printExpr(tree.meth);
                 }
             } else {
-                printExpr(tree.meth);
+                this.printExpr(tree.meth);
             }
-            print("(");
-            printExprs(tree.args);
-            print(")");
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+
+            this.print('(');
+            this.printExprs(tree.args);
+            this.print(')');
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    public void visitNewClass(JCNewClass tree) {
+    public void visitNewClass(JCTree.JCNewClass tree) {
         try {
             if (tree.encl != null) {
-                printExpr(tree.encl);
-                print(".");
+                this.printExpr(tree.encl);
+                this.print('.');
             }
-            print("new ");
+
+            this.print("new ");
             if (!tree.typeargs.isEmpty()) {
-                print("<");
-                printExprs(tree.typeargs);
-                print(">");
+                this.print('<');
+                this.printExprs(tree.typeargs);
+                this.print('>');
             }
+
             if (tree.def != null && tree.def.mods.annotations.nonEmpty()) {
-                printTypeAnnotations(tree.def.mods.annotations);
+                this.printTypeAnnotations(tree.def.mods.annotations);
             }
-            printExpr(tree.clazz);
-            print("(");
-            printExprs(tree.args);
-            print(")");
+
+            this.printExpr(tree.clazz);
+            this.print('(');
+            this.printExprs(tree.args);
+            this.print(')');
             if (tree.def != null) {
-                Name enclClassNamePrev = enclClassName;
-                enclClassName =
-                        tree.def.name != null ? tree.def.name :
-                            tree.type != null && tree.type.tsym.name != tree.type.tsym.name.table.names.empty
-                                ? tree.type.tsym.name : null;
-                if ((tree.def.mods.flags & Flags.ENUM) != 0) {
-                    print("/*enum*/");
+                Name enclClassNamePrev = this.enclClassName;
+                this.enclClassName = tree.def.name != null ? tree.def.name : (tree.type != null && tree.type.tsym.name != tree.type.tsym.name.table.names.empty ? tree.type.tsym.name : null);
+                if ((tree.def.mods.flags & 16384L) != 0L) {
+                    this.print("/*enum*/");
                 }
-                printBlock(tree.def.defs);
-                enclClassName = enclClassNamePrev;
+
+                this.printBlock(tree.def.defs);
+                this.enclClassName = enclClassNamePrev;
             }
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    public void visitNewArray(JCNewArray tree) {
+    public void visitNewArray(JCTree.JCNewArray tree) {
         try {
             if (tree.elemtype != null) {
-                print("new ");
+                this.print("new ");
                 JCTree elem = tree.elemtype;
-                printBaseElementType(elem);
-
+                this.printBaseElementType(elem);
                 if (!tree.annotations.isEmpty()) {
-                    print(' ');
-                    printTypeAnnotations(tree.annotations);
+                    this.print(' ');
+                    this.printTypeAnnotations(tree.annotations);
                 }
+
                 if (tree.elems != null) {
-                    print("[]");
+                    this.print("[]");
                 }
 
                 int i = 0;
-                List<List<JCAnnotation>> da = tree.dimAnnotations;
-                for (List<JCExpression> l = tree.dims; l.nonEmpty(); l = l.tail) {
-                    if (da.size() > i && !da.get(i).isEmpty()) {
-                        print(' ');
-                        printTypeAnnotations(da.get(i));
+                List<List<JCTree.JCAnnotation>> da = tree.dimAnnotations;
+
+                for(List<JCTree.JCExpression> l = tree.dims; l.nonEmpty(); l = l.tail) {
+                    if (da.size() > i && !((List)da.get(i)).isEmpty()) {
+                        this.print(' ');
+                        this.printTypeAnnotations((List)da.get(i));
                     }
-                    print("[");
-                    i++;
-                    printExpr(l.head);
-                    print("]");
+
+                    this.print('[');
+                    ++i;
+                    this.printExpr((JCTree)l.head);
+                    this.print(']');
                 }
-                printBrackets(elem);
+
+                this.printBrackets(elem);
             }
+
             if (tree.elems != null) {
-                print("{");
-                printExprs(tree.elems);
-                print("}");
+                this.print('{');
+                this.printExprs(tree.elems);
+                this.print('}');
             }
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+
+        } catch (IOException var6) {
+            throw new UncheckedIOException(var6);
         }
     }
 
-    public void visitLambda(JCLambda tree) {
+    public void visitLambda(JCTree.JCLambda tree) {
         try {
-            print("(");
-            if (tree.paramKind == JCLambda.ParameterKind.EXPLICIT) {
-                printExprs(tree.params);
+            this.print('(');
+            if (tree.paramKind == JCTree.JCLambda.ParameterKind.EXPLICIT) {
+                this.printExprs(tree.params);
             } else {
                 String sep = "";
-                for (JCVariableDecl param : tree.params) {
-                    print(sep);
-                    print(param.name);
-                    sep = ",";
+
+                for(Iterator var3 = tree.params.iterator(); var3.hasNext(); sep = ",") {
+                    JCTree.JCVariableDecl param = (JCTree.JCVariableDecl)var3.next();
+                    this.print(sep);
+                    this.print(param.name);
                 }
             }
-            print(")->");
-            printExpr(tree.body);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+
+            this.print(")->");
+            this.printExpr(tree.body);
+        } catch (IOException var5) {
+            throw new UncheckedIOException(var5);
         }
     }
 
-    public void visitParens(JCParens tree) {
+    public void visitParens(JCTree.JCParens tree) {
         try {
-            print("(");
-            printExpr(tree.expr);
-            print(")");
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            this.print('(');
+            this.printExpr(tree.expr);
+            this.print(')');
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    public void visitAssign(JCAssign tree) {
+    public void visitAssign(JCTree.JCAssign tree) {
         try {
-            open(prec, TreeInfo.assignPrec);
-            printExpr(tree.lhs, TreeInfo.assignPrec + 1);
-            print(" = ");
-            printExpr(tree.rhs, TreeInfo.assignPrec);
-            close(prec, TreeInfo.assignPrec);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            this.open(this.prec, 1);
+            this.printExpr(tree.lhs, 2);
+            this.print(" = ");
+            this.printExpr(tree.rhs, 1);
+            this.close(this.prec, 1);
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
     public String operatorName(JCTree.Tag tag) {
-        switch(tag) {
-            case POS:     return "+";
-            case NEG:     return "-";
-            case NOT:     return "!";
-            case COMPL:   return "~";
-            case PREINC:  return "++";
-            case PREDEC:  return "--";
-            case POSTINC: return "++";
-            case POSTDEC: return "--";
-            case NULLCHK: return "<*nullchk*>";
-            case OR:      return "||";
-            case AND:     return "&&";
-            case EQ:      return "==";
-            case NE:      return "!=";
-            case LT:      return "<";
-            case GT:      return ">";
-            case LE:      return "<=";
-            case GE:      return ">=";
-            case BITOR:   return "|";
-            case BITXOR:  return "^";
-            case BITAND:  return "&";
-            case SL:      return "<<";
-            case SR:      return ">>";
-            case USR:     return ">>>";
-            case PLUS:    return "+";
-            case MINUS:   return "-";
-            case MUL:     return "*";
-            case DIV:     return "/";
-            case MOD:     return "%";
-            default: throw new Error();
+        switch (tag) {
+        case POS:
+            return "+";
+        case NEG:
+            return "-";
+        case NOT:
+            return "!";
+        case COMPL:
+            return "~";
+        case PREINC:
+            return "++";
+        case PREDEC:
+            return "--";
+        case POSTINC:
+            return "++";
+        case POSTDEC:
+            return "--";
+        case NULLCHK:
+            return "<*nullchk*>";
+        case OR:
+            return "||";
+        case AND:
+            return "&&";
+        case EQ:
+            return "==";
+        case NE:
+            return "!=";
+        case LT:
+            return "<";
+        case GT:
+            return ">";
+        case LE:
+            return "<=";
+        case GE:
+            return ">=";
+        case BITOR:
+            return "|";
+        case BITXOR:
+            return "^";
+        case BITAND:
+            return "&";
+        case SL:
+            return "<<";
+        case SR:
+            return ">>";
+        case USR:
+            return ">>>";
+        case PLUS:
+            return "+";
+        case MINUS:
+            return "-";
+        case MUL:
+            return "*";
+        case DIV:
+            return "/";
+        case MOD:
+            return "%";
+        default:
+            throw new Error();
         }
     }
 
-    public void visitAssignop(JCAssignOp tree) {
+    public void visitAssignop(JCTree.JCAssignOp tree) {
         try {
-            open(prec, TreeInfo.assignopPrec);
-            printExpr(tree.lhs, TreeInfo.assignopPrec + 1);
-            print(" " + operatorName(tree.getTag().noAssignOp()) + "= ");
-            printExpr(tree.rhs, TreeInfo.assignopPrec);
-            close(prec, TreeInfo.assignopPrec);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            this.open(this.prec, 2);
+            this.printExpr(tree.lhs, 3);
+            this.print(' ');
+            this.print(this.operatorName(tree.getTag().noAssignOp()));
+            this.print("= ");
+            this.printExpr(tree.rhs, 2);
+            this.close(this.prec, 2);
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    public void visitUnary(JCUnary tree) {
+    public void visitUnary(JCTree.JCUnary tree) {
         try {
             int ownprec = TreeInfo.opPrec(tree.getTag());
-            String opname = operatorName(tree.getTag());
-            open(prec, ownprec);
+            String opname = this.operatorName(tree.getTag());
+            this.open(this.prec, ownprec);
             if (!tree.getTag().isPostUnaryOp()) {
-                print(opname);
-                printExpr(tree.arg, ownprec);
+                this.print(opname);
+                this.printExpr(tree.arg, ownprec);
             } else {
-                printExpr(tree.arg, ownprec);
-                print(opname);
+                this.printExpr(tree.arg, ownprec);
+                this.print(opname);
             }
-            close(prec, ownprec);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+
+            this.close(this.prec, ownprec);
+        } catch (IOException var4) {
+            throw new UncheckedIOException(var4);
         }
     }
 
-    public void visitBinary(JCBinary tree) {
+    public void visitBinary(JCTree.JCBinary tree) {
         try {
             int ownprec = TreeInfo.opPrec(tree.getTag());
-            String opname = operatorName(tree.getTag());
-            open(prec, ownprec);
-            printExpr(tree.lhs, ownprec);
-            print(" " + opname + " ");
-            printExpr(tree.rhs, ownprec + 1);
-            close(prec, ownprec);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            String opname = this.operatorName(tree.getTag());
+            this.open(this.prec, ownprec);
+            this.printExpr(tree.lhs, ownprec);
+            this.print(' ');
+            this.print(opname);
+            this.print(' ');
+            this.printExpr(tree.rhs, ownprec + 1);
+            this.close(this.prec, ownprec);
+        } catch (IOException var4) {
+            throw new UncheckedIOException(var4);
         }
     }
 
-    public void visitTypeCast(JCTypeCast tree) {
+    public void visitTypeCast(JCTree.JCTypeCast tree) {
         try {
-            open(prec, TreeInfo.prefixPrec);
-            print("(");
-            printExpr(tree.clazz);
-            print(")");
-            printExpr(tree.expr, TreeInfo.prefixPrec);
-            close(prec, TreeInfo.prefixPrec);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            this.open(this.prec, 14);
+            this.print('(');
+            this.printExpr(tree.clazz);
+            this.print(')');
+            this.printExpr(tree.expr, 14);
+            this.close(this.prec, 14);
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    public void visitTypeTest(JCInstanceOf tree) {
+    public void visitTypeTest(JCTree.JCInstanceOf tree) {
         try {
-            open(prec, TreeInfo.ordPrec);
-            printExpr(tree.expr, TreeInfo.ordPrec);
-            print(" instanceof ");
-            printExpr(tree.clazz, TreeInfo.ordPrec + 1);
-            close(prec, TreeInfo.ordPrec);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
-
-    public void visitIndexed(JCArrayAccess tree) {
-        try {
-            printExpr(tree.indexed, TreeInfo.postfixPrec);
-            print("[");
-            printExpr(tree.index);
-            print("]");
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
-
-    public void visitSelect(JCFieldAccess tree) {
-        try {
-            printExpr(tree.selected, TreeInfo.postfixPrec);
-            print("." + tree.name);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
-
-    public void visitReference(JCMemberReference tree) {
-        try {
-            printExpr(tree.expr);
-            print("::");
-            if (tree.typeargs != null) {
-                print("<");
-                printExprs(tree.typeargs);
-                print(">");
+            this.open(this.prec, 10);
+            this.printExpr(tree.expr, 10);
+            this.print(" instanceof ");
+            if (tree.pattern instanceof JCTree.JCPattern) {
+                this.printPattern(tree.pattern);
+            } else {
+                this.printExpr(tree.getType(), 11);
             }
-            print(tree.getMode() == ReferenceMode.INVOKE ? tree.name : "new");
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+
+            this.close(this.prec, 10);
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    public void visitIdent(JCIdent tree) {
+    public void visitIndexed(JCTree.JCArrayAccess tree) {
         try {
-            print(tree.name);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            this.printExpr(tree.indexed, 15);
+            this.print('[');
+            this.printExpr(tree.index);
+            this.print(']');
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    public void visitLiteral(JCLiteral tree) {
+    public void visitSelect(JCTree.JCFieldAccess tree) {
+        try {
+            this.printExpr(tree.selected, 15);
+            this.print('.');
+            this.print(tree.name);
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
+        }
+    }
+
+    public void visitReference(JCTree.JCMemberReference tree) {
+        try {
+            this.printExpr(tree.expr);
+            this.print("::");
+            if (tree.typeargs != null) {
+                this.print('<');
+                this.printExprs(tree.typeargs);
+                this.print('>');
+            }
+
+            this.print(tree.getMode() == ReferenceMode.INVOKE ? tree.name : "new");
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
+        }
+    }
+
+    public void visitIdent(JCTree.JCIdent tree) {
+        try {
+            this.print(tree.name);
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
+        }
+    }
+
+    public void visitLiteral(JCTree.JCLiteral tree) {
         try {
             switch (tree.typetag) {
-                case INT:
-                    print(tree.value.toString());
-                    break;
-                case LONG:
-                    print(tree.value + "L");
-                    break;
-                case FLOAT:
-                    print(tree.value + "F");
-                    break;
-                case DOUBLE:
-                    print(tree.value.toString());
-                    break;
-                case CHAR:
-                    print("\'" +
-                            Convert.quote(
-                            String.valueOf((char)((Number)tree.value).intValue())) +
-                            "\'");
-                    break;
-                case BOOLEAN:
-                    print(((Number)tree.value).intValue() == 1 ? "true" : "false");
-                    break;
-                case BOT:
-                    print("null");
-                    break;
-                default:
-                    print("\"" + Convert.quote(tree.value.toString()) + "\"");
-                    break;
-            }
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
-
-    public void visitTypeIdent(JCPrimitiveTypeTree tree) {
-        try {
-            switch(tree.typetag) {
-                case BYTE:
-                    print("byte");
-                    break;
-                case CHAR:
-                    print("char");
-                    break;
-                case SHORT:
-                    print("short");
-                    break;
-                case INT:
-                    print("int");
-                    break;
-                case LONG:
-                    print("long");
-                    break;
-                case FLOAT:
-                    print("float");
-                    break;
-                case DOUBLE:
-                    print("double");
-                    break;
-                case BOOLEAN:
-                    print("boolean");
-                    break;
-                case VOID:
-                    print("void");
-                    break;
-                default:
-                    print("error");
-                    break;
-            }
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
-
-    public void visitTypeArray(JCArrayTypeTree tree) {
-        try {
-            printBaseElementType(tree);
-            printBrackets(tree);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
-
-    // Prints the inner element type of a nested array
-    private void printBaseElementType(JCTree tree) throws IOException {
-        JCTree lastAnnotatedType = null;
-        JCTree cur = tree;
-        loop: while (true) {
-            switch (cur.getTag()) {
-            case TYPEARRAY:
-                lastAnnotatedType = null;
-                cur = ((JCArrayTypeTree)cur).elemtype;
+            case INT:
+                this.print(tree.value.toString());
                 break;
-            case WILDCARD:
-                lastAnnotatedType = null;
-                cur = ((JCWildcard)cur).inner;
+            case LONG:
+                this.print(tree.value);
+                this.print('L');
                 break;
-            case ANNOTATED_TYPE:
-                lastAnnotatedType = cur;
-                cur = ((JCAnnotatedType)cur).underlyingType;
+            case FLOAT:
+                this.print(tree.value);
+                this.print('F');
+                break;
+            case DOUBLE:
+                this.print(tree.value.toString());
+                break;
+            case CHAR:
+                this.print('\'');
+                this.print(Convert.quote(String.valueOf((char)((Number)tree.value).intValue())));
+                this.print('\'');
+                break;
+            case BOOLEAN:
+                this.print(((Number)tree.value).intValue() == 1 ? "true" : "false");
+                break;
+            case BOT:
+                this.print("null");
                 break;
             default:
-                break loop;
+                this.print('"');
+                this.print(Convert.quote(tree.value.toString()));
+                this.print('"');
             }
-        }
-        if (lastAnnotatedType!=null) {
-            printExpr(lastAnnotatedType);
-        } else {
-            printExpr(cur);
+
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    // prints the brackets of a nested array in reverse order
-    // tree is either JCArrayTypeTree or JCAnnotatedTypeTree
+    public void visitStringTemplate(JCTree.JCStringTemplate tree) {
+        try {
+            JCTree.JCExpression processor = tree.processor;
+            this.print("[");
+            if (processor != null) {
+                this.printExpr(processor);
+            }
+
+            this.print("]");
+            this.print("\"" + (String)tree.fragments.stream().collect(Collectors.joining("\\{}")) + "\"");
+            this.print("(");
+            this.printExprs(tree.expressions);
+            this.print(")");
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
+        }
+    }
+
+    public void visitTypeIdent(JCTree.JCPrimitiveTypeTree tree) {
+        try {
+            switch (tree.typetag) {
+            case INT:
+                this.print("int");
+                break;
+            case LONG:
+                this.print("long");
+                break;
+            case FLOAT:
+                this.print("float");
+                break;
+            case DOUBLE:
+                this.print("double");
+                break;
+            case CHAR:
+                this.print("char");
+                break;
+            case BOOLEAN:
+                this.print("boolean");
+                break;
+            case BOT:
+            default:
+                this.print("error");
+                break;
+            case BYTE:
+                this.print("byte");
+                break;
+            case SHORT:
+                this.print("short");
+                break;
+            case VOID:
+                this.print("void");
+            }
+
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
+        }
+    }
+
+    public void visitTypeArray(JCTree.JCArrayTypeTree tree) {
+        try {
+            this.printBaseElementType(tree);
+            this.printBrackets(tree);
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
+        }
+    }
+
+    private void printBaseElementType(JCTree tree) throws IOException {
+        this.printExpr(TreeInfo.innermostType(tree, false));
+    }
+
     private void printBrackets(JCTree tree) throws IOException {
         JCTree elem = tree;
-        while (true) {
-            if (elem.hasTag(ANNOTATED_TYPE)) {
-                JCAnnotatedType atype = (JCAnnotatedType) elem;
+
+        while(true) {
+            if (((JCTree)elem).hasTag(Tag.ANNOTATED_TYPE)) {
+                JCTree.JCAnnotatedType atype = (JCTree.JCAnnotatedType)elem;
                 elem = atype.underlyingType;
-                if (elem.hasTag(TYPEARRAY)) {
-                    print(' ');
-                    printTypeAnnotations(atype.annotations);
+                if (((JCTree)elem).hasTag(Tag.TYPEARRAY)) {
+                    this.print(' ');
+                    this.printTypeAnnotations(atype.annotations);
                 }
             }
-            if (elem.hasTag(TYPEARRAY)) {
-                print("[]");
-                elem = ((JCArrayTypeTree)elem).elemtype;
-            } else {
-                break;
+
+            if (!((JCTree)elem).hasTag(Tag.TYPEARRAY)) {
+                return;
             }
+
+            this.print("[]");
+            elem = ((JCTree.JCArrayTypeTree)elem).elemtype;
         }
     }
 
-    public void visitTypeApply(JCTypeApply tree) {
+    public void visitTypeApply(JCTree.JCTypeApply tree) {
         try {
-            printExpr(tree.clazz);
-            print("<");
-            printExprs(tree.arguments);
-            print(">");
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            this.printExpr(tree.clazz);
+            this.print('<');
+            this.printExprs(tree.arguments);
+            this.print('>');
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    public void visitTypeUnion(JCTypeUnion tree) {
+    public void visitTypeUnion(JCTree.JCTypeUnion tree) {
         try {
-            printExprs(tree.alternatives, " | ");
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            this.printExprs(tree.alternatives, " | ");
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    public void visitTypeIntersection(JCTypeIntersection tree) {
+    public void visitTypeIntersection(JCTree.JCTypeIntersection tree) {
         try {
-            printExprs(tree.bounds, " & ");
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            this.printExprs(tree.bounds, " & ");
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    public void visitTypeParameter(JCTypeParameter tree) {
+    public void visitTypeParameter(JCTree.JCTypeParameter tree) {
         try {
             if (tree.annotations.nonEmpty()) {
                 this.printTypeAnnotations(tree.annotations);
             }
-            print(tree.name);
+
+            this.print(tree.name);
             if (tree.bounds.nonEmpty()) {
-                print(" extends ");
-                printExprs(tree.bounds, " & ");
+                this.print(" extends ");
+                this.printExprs(tree.bounds, " & ");
             }
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    @Override
-    public void visitWildcard(JCWildcard tree) {
+    public void visitWildcard(JCTree.JCWildcard tree) {
         try {
-            print(tree.kind);
+            this.print(tree.kind);
             if (tree.kind.kind != BoundKind.UNBOUND) {
-                printExpr(tree.inner);
+                this.printExpr(tree.inner);
             }
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    @Override
-    public void visitTypeBoundKind(TypeBoundKind tree) {
+    public void visitTypeBoundKind(JCTree.TypeBoundKind tree) {
         try {
-            print(String.valueOf(tree.kind));
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            this.print(String.valueOf(tree.kind));
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    public void visitErroneous(JCErroneous tree) {
+    public void visitErroneous(JCTree.JCErroneous tree) {
         try {
-            print("(ERROR)");
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            this.print("(ERROR)");
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    public void visitLetExpr(LetExpr tree) {
+    public void visitLetExpr(JCTree.LetExpr tree) {
         try {
-            print("(let " + tree.defs + " in " + tree.expr + ")");
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            this.print("(let ");
+            this.print(tree.defs);
+            this.print(" in ");
+            this.print(tree.expr);
+            this.print(')');
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    public void visitModifiers(JCModifiers mods) {
+    public void visitModifiers(JCTree.JCModifiers mods) {
         try {
-            printAnnotations(mods.annotations);
-            printFlags(mods.flags);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            this.printAnnotations(mods.annotations);
+            this.printFlags(mods.flags);
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    public void visitAnnotation(JCAnnotation tree) {
+    public void visitAnnotation(JCTree.JCAnnotation tree) {
         try {
-            print("@");
-            printExpr(tree.annotationType);
-            print("(");
-            printExprs(tree.args);
-            print(")");
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            this.print('@');
+            this.printExpr(tree.annotationType);
+            if (!tree.args.isEmpty()) {
+                this.print('(');
+                this.printExprs(tree.args);
+                this.print(')');
+            }
+
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
-    public void visitAnnotatedType(JCAnnotatedType tree) {
+    public void visitAnnotatedType(JCTree.JCAnnotatedType tree) {
         try {
-            if (tree.underlyingType.hasTag(SELECT)) {
-                JCFieldAccess access = (JCFieldAccess) tree.underlyingType;
-                printExpr(access.selected, TreeInfo.postfixPrec);
-                print(".");
-                printTypeAnnotations(tree.annotations);
-                print(access.name);
-            } else if (tree.underlyingType.hasTag(TYPEARRAY)) {
-                printBaseElementType(tree);
-                printBrackets(tree);
+            if (tree.underlyingType.hasTag(Tag.SELECT)) {
+                JCTree.JCFieldAccess access = (JCTree.JCFieldAccess)tree.underlyingType;
+                this.printExpr(access.selected, 15);
+                this.print('.');
+                this.printTypeAnnotations(tree.annotations);
+                this.print(access.name);
+            } else if (tree.underlyingType.hasTag(Tag.TYPEARRAY)) {
+                this.printBaseElementType(tree);
+                this.printBrackets(tree);
             } else {
-                printTypeAnnotations(tree.annotations);
-                printExpr(tree.underlyingType);
+                this.printTypeAnnotations(tree.annotations);
+                this.printExpr(tree.underlyingType);
             }
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
 
     public void visitTree(JCTree tree) {
         try {
-            print("(UNKNOWN: " + tree.getTag() + ")");
-            println();
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            this.print("(UNKNOWN: ");
+            this.print(tree.getTag());
+            this.print(')');
+            this.println();
+        } catch (IOException var3) {
+            throw new UncheckedIOException(var3);
         }
     }
-
 }
