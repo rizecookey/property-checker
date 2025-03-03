@@ -93,7 +93,6 @@ public class JavaExpressionUtil {
             this.reference = reference;
             this.exclFactory = exclFactory;
             this.exclHierarchy = exclFactory.getQualifierHierarchy();
-            // TODO: don't derive exclusivity value from context here, but from declared type of root expression in method header (pass to maybeDependent)
             this.ownerAnno = store.deriveExclusivityValue(reference.getReceiver());
         }
 

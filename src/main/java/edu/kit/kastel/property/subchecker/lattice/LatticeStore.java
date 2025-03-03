@@ -205,7 +205,6 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 		updateCommittedFields(invocation, packingStoreAfter, packingFactory);
 	}
 
-	// TODO: also return the exclusivity value of the owners
 	public List<FieldAccess> changedFields(
 			MethodCall invocation,
 			Node node,

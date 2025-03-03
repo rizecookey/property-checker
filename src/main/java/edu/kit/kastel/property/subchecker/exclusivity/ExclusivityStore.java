@@ -42,38 +42,20 @@ public class ExclusivityStore extends PackingClientStore<ExclusivityValue, Exclu
 
     @Nullable
     public AnnotationMirror deriveExclusivityValue(JavaExpression expression) {
-        // TODO deduplicate: implement this in terms of derivation method in factory
         var factory = ((ExclusivityAnnotatedTypeFactory) analysis.getTypeFactory());
+
         // a.b, a.b.c, ..., expression (or empty if expression is not a field access)
-        List<? extends JavaExpression> fieldPath = Stream.iterate(expression,
+        var fieldPath = Stream.iterate(expression,
                         e -> e instanceof FieldAccess,
                         e -> ((FieldAccess) e).getReceiver())
                 .toList()
                 .reversed();
 
-        if (fieldPath.isEmpty()) {
-            // expression is not a field access
-            return exclAnnotation(expression);
-        }
-
         // first component of field path. based on that, we derive the exclusivity type of the complete field access.
-        JavaExpression root = ((FieldAccess) fieldPath.getFirst()).getReceiver();
+        JavaExpression root = fieldPath.isEmpty() ? expression : ((FieldAccess) fieldPath.getFirst()).getReceiver();
         var exclType = AnnotatedTypeMirror.createType(root.getType(), factory, false);
-        var rootAnno = exclAnnotation(root);
-        if (rootAnno == null) {
-            return null;
-        }
-        exclType.addAnnotation(rootAnno);
-        // fieldPath only contains FieldAccesses but can't be declared as List<FieldAccess> due to generics limitations
-        //noinspection unchecked
-        for (FieldAccess component : (List<FieldAccess>) fieldPath) {
-            var field = component.getField();
-            var declaredType = factory.getAnnotatedType(field);
-            viewpointAdapter.viewpointAdaptMember(exclType, field, declaredType);
-            exclType = declaredType;
-        }
-
-        return factory.getExclusivityAnnotation(exclType);
+        exclType.addAnnotation(exclAnnotation(root));
+        return factory.deriveExclusivityValue(exclType, expression);
     }
 
     private AnnotationMirror exclAnnotation(JavaExpression expr) {
