@@ -25,14 +25,12 @@ public final class Customer {
     @JMLClause("ensures \\result.name == name && \\result.age == 18;")
     @JMLClause("assignable \\nothing;") @Pure
     public static @AgedOver(age="18") Customer customer18(String name) {
-        // :: error: agedover.return.type.incompatible
         return new Customer(name, 18);
     }
 
     @JMLClause("ensures \\result.name == name && \\result.age == 14;")
     @JMLClause("assignable \\nothing;") @Pure
     public static @AgedOver(age="14") Customer customer14(String name) {
-        // :: error: agedover.return.type.incompatible
         return new Customer(name, 14);
     }
 }

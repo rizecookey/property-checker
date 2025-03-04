@@ -14,7 +14,6 @@ public abstract class LengthReceiverTest implements List {
             @Length(len="1") LengthReceiverTest this,
             @Length(len="2") LengthReceiverTest that) { }
 
-    // :: error: length.contracts.postcondition.not.satisfied
     public void foo0(
             LengthReceiverTest this,
             @Length(len="1") LengthReceiverTest a,
@@ -25,7 +24,6 @@ public abstract class LengthReceiverTest implements List {
         a.method(a);
     }
 
-    // :: error: length.contracts.postcondition.not.satisfied
     public void foo1(
             LengthReceiverTest this,
             @Length(len="1") LengthReceiverTest a,
@@ -42,7 +40,6 @@ public abstract class LengthReceiverTest implements List {
         b.method(b);
     }
 
-    // :: error: length.contracts.postcondition.not.satisfied
     public void foo3(
             LengthReceiverTest this,
             @Length(len="1") LengthReceiverTest a,

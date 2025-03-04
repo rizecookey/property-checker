@@ -24,7 +24,6 @@ public final class ListClient {
 
     public void correctPacking(@Unique ListClient this) {
         Packing.unpack(this, ListClient.class);
-        // :: error: length.method.invocation.invalid
         a.insert(42, 1);
         // :: error: length.method.invocation.invalid
         c.insert(42, 1);

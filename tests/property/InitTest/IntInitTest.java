@@ -23,7 +23,7 @@ public final class IntInitTest {
     }
 
     public @Remainder(remainder="0", modulus="2") int helper(@Unique @UnknownInitialization IntInitTest this) {
-    	// :: error: remainder.return.type.incompatible :: error: packing.return.type.incompatible
+    	// :: error: remainder.return.type.incompatible
         return this.even;
     }
 

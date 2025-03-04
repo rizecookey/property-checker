@@ -23,7 +23,6 @@ public class DependentLengthTest {
         return null;
     }
 
-    // :: error: length.contracts.postcondition.not.satisfied
     public static void foo(
             @Length(len="1") List l0,
             @Length(len="2") List l1) {
