@@ -109,11 +109,20 @@ public class JavaExpressionUtil {
 
         @Override
         protected Void visitMethodCall(MethodCall methodCallExpr, Void unused) {
-            // TODO: add "known" exceptions here for methods that are actually "pure" (no dependency on fields)
             // if a method is called, we conservatively assume that the method implementation depends on the
             // value of the input field behind an owner alias somehow, and thus we consider it dependent.
+            if (completelyPureMethod(methodCallExpr.getElement())) {
+                return super.visitMethodCall(methodCallExpr, unused);
+            }
             found = true;
             return null;
+        }
+
+        // Returns true if the method is pure, its return value only depends on its parameters,
+        // and there are no field accesses
+        private boolean completelyPureMethod(ExecutableElement method) {
+            // currently only special handling for Math helpers - more known methods can be added here
+            return TypesUtils.getClassFromType(method.getEnclosingElement().asType()) == Math.class;
         }
 
         private boolean possibleAlias(FieldAccess expr) {

@@ -103,7 +103,8 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 				entry -> !entry.getKey().equals(dependency) // dependents don't include the value itself
 						&& entry.getValue().getRefinement(entry.getKey()).map(exprAnalyzer::test).orElse(true);
 
-		// TODO: why do we set local variables to top type, but remove field values?
+		// We set local variable types to top if they're invalidated. If we removed them from the store,
+		// the framework would incorrectly fall back to their declared type
 		localVariableValues.entrySet().stream()
 				.filter(isDependent)
 				.forEach(entry -> entry.setValue(createTopValue(entry.getKey().getElement().asType())));
