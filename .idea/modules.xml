@@ -2,7 +2,6 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/checker-framework/checker-qual-android/checker-framework.checker-qual-android.main.iml" filepath="$PROJECT_DIR$/.idea/modules/checker-framework/checker-qual-android/checker-framework.checker-qual-android.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/checker-framework/checker-qual/checker-framework.checker-qual.main.iml" filepath="$PROJECT_DIR$/.idea/modules/checker-framework/checker-qual/checker-framework.checker-qual.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/checker-framework/checker-util/checker-framework.checker-util.main.iml" filepath="$PROJECT_DIR$/.idea/modules/checker-framework/checker-util/checker-framework.checker-util.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/checker-framework/checker/checker-framework.checker.main.iml" filepath="$PROJECT_DIR$/.idea/modules/checker-framework/checker/checker-framework.checker.main.iml" />
