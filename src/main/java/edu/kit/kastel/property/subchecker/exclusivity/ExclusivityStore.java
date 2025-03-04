@@ -5,6 +5,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.expression.FieldAccess;
 import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.dataflow.expression.MethodCall;
+import org.checkerframework.dataflow.expression.ThisReference;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 
 import javax.lang.model.element.AnnotationMirror;
@@ -68,6 +69,10 @@ public class ExclusivityStore extends PackingClientStore<ExclusivityValue, Exclu
             var methodType = factory.getAnnotatedType(mc.getElement());
             // TODO: does this need to be viewpoint-adapted too?
             return factory.getExclusivityAnnotation(methodType.getReturnType());
+        } else if (expr instanceof ThisReference) {
+            // if this is not in store, we're in a constructor/initialiser
+            // TODO is this assumption true?
+            return factory.UNIQUE;
         }
         return null;
     }
