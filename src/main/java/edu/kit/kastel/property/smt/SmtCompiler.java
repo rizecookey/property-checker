@@ -135,7 +135,7 @@ public final class SmtCompiler {
                 case FLOAT -> fpmgr().makeNumber((float) value, FormulaType.getSinglePrecisionFloatingPointType());
                 case DOUBLE -> fpmgr().makeNumber((double) value, getDoublePrecisionFloatingPointType());
                 case BOOLEAN -> bmgr().makeBoolean((boolean) value);
-                // null or string literal
+                // null, this or string literal
                 case UNKNOWN -> unknownValue(value);
             };
             case SmtExpression.UnaryOperation(var type, var op, var expr) -> {
@@ -289,7 +289,7 @@ public final class SmtCompiler {
         );
     }
 
-    // represent a value of unknown type (literal value or expression) in SMT by assigning it an integer value
+    // represent a literal value of unknown type in SMT by assigning it an integer value
     private IntegerFormula unknownValue(Object value) {
         return imgr().makeNumber(unknownValues.getId(value));
     }

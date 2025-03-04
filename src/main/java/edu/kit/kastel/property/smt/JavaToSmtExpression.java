@@ -48,7 +48,7 @@ public class JavaToSmtExpression extends JavaExpressionVisitor<SmtExpression, Se
     @Override
     protected SmtExpression visitThisReference(ThisReference thisExpr, Set<JavaExpression> refs) {
         refs.add(thisExpr);
-        return new SmtExpression.Variable(SmtType.fromExpression(thisExpr), thisExpr);
+        return new SmtExpression.Literal(SmtType.fromExpression(thisExpr), ThisReference.class);
     }
 
     @Override
