@@ -39,12 +39,19 @@ import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.Unique;
 import edu.kit.kastel.property.subchecker.lattice.CooperativeVisitor;
 import edu.kit.kastel.property.subchecker.lattice.LatticeVisitor;
+import edu.kit.kastel.property.subchecker.nullness.NullnessLatticeAnnotatedTypeFactory;
 import edu.kit.kastel.property.util.TypeUtils;
 import edu.kit.kastel.property.util.Union;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
+import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
 import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
+import org.checkerframework.framework.util.Contract;
+import org.checkerframework.framework.util.JavaExpressionParseUtil;
+import org.checkerframework.framework.util.StringToJavaExpression;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
@@ -489,52 +496,99 @@ public class JavaJMLPrinter extends PrettyPrinter {
                 }
             }
 
-            for (LatticeVisitor.Result wellTypedness : results) {
+            for (CooperativeVisitor.Result wellTypedness : results) {
                 Lattice lattice = wellTypedness.getLattice();
                 GenericAnnotatedTypeFactory<?,?,?,?> factory = wellTypedness.getTypeFactory();
                 AnnotatedExecutableType method = wellTypedness.getTypeFactory().getAnnotatedType(tree);
-                List<AnnotationMirror> methodOutputTypes = wellTypedness.getMethodOutputTypes(tree);
-                Set<Integer> illTypedMethodOutputParams = wellTypedness.getIllTypedMethodOutputParams(tree);
-                if (!methodOutputTypes.isEmpty()) {
-                    AnnotationMirror paramOutputType = methodOutputTypes.get(0);
-                    String paramName = "this";
-                    boolean wt = !illTypedMethodOutputParams.contains(0);
 
-                    if (paramOutputType != null && !AnnotationUtils.areSame(paramOutputType, getTop(factory))) {
-                        PropertyAnnotation pa = lattice.getPropertyAnnotation(paramOutputType);
-                        if (!(pa.getAnnotationType().isInv() && !wt)) {
+                if (factory instanceof NullnessLatticeAnnotatedTypeFactory) {
+                    // Nullness Checker
+                    Set<Contract> contracts = factory.getContractsFromMethod().getContracts(TreeUtils.elementFromDeclaration(tree));
+                    StringToJavaExpression stringToJavaExpr =
+                            stringExpr -> StringToJavaExpression.atMethodBody(stringExpr, tree, factory.getChecker());
+
+                    for (Contract contract : contracts) {
+                        String exprStr = contract.expressionString;
+                        AnnotationMirror anno = contract.viewpointAdaptDependentTypeAnnotation(
+                                factory, stringToJavaExpr, tree);
+                        JavaExpression exprJe;
+                        try {
+                            exprJe = StringToJavaExpression.atMethodBody(
+                                    exprStr, tree, factory.getChecker());
+                        } catch (JavaExpressionParseUtil.JavaExpressionParseException e) {
+                            throw new UncheckedIOException("Cannot parse contract", new IOException(e));
+                        }
+
+                        if (contract.kind == Contract.Kind.POSTCONDITION) {
+                            // @EnsuresNonNull(exprJe)
+                            boolean wt = !wellTypedness.getNullnessPostconditions().get(tree).contains(Pair.of(anno, exprJe));
+                            jmlContract.addClause(String.format(
+                                    "%s %s != null;",
+                                    wt ? "ensures_free" : "ensures",
+                                    exprJe));
+                        } else if (contract.kind == Contract.Kind.CONDITIONALPOSTCONDITION) {
+                            // @EnsuresNonNullIf(exprJe, contractResult)
+                            boolean contractResult = ((Contract.ConditionalPostcondition) contract).resultValue;
+                            boolean wt = !wellTypedness.getNullnessCondPostconditions().get(tree).contains(Triple.of(anno, exprJe, contractResult));
+                            jmlContract.addClause(String.format(
+                                    "%s %s ==> %s != null;",
+                                    wt ? "ensures_free" : "ensures",
+                                    contractResult ? "\\result" : "!\\result",
+                                    exprJe));
+                        } else if (contract.kind == Contract.Kind.PRECONDITION) {
+                            // @RequiresNonNull(exprJe)
+                            jmlContract.addClause(String.format(
+                                    "requires %s != null;",
+                                    exprJe));
+                        } else {
+                            throw new AssertionError("unknown contract kind");
+                        }
+                    }
+                } else {
+                    // Lattice Subchecker
+                    List<AnnotationMirror> methodOutputTypes = wellTypedness.getMethodOutputTypes(tree);
+                    Set<Integer> illTypedMethodOutputParams = wellTypedness.getIllTypedMethodOutputParams(tree);
+                    if (!methodOutputTypes.isEmpty()) {
+                        AnnotationMirror paramOutputType = methodOutputTypes.get(0);
+                        String paramName = "this";
+                        boolean wt = !illTypedMethodOutputParams.contains(0);
+
+                        if (paramOutputType != null && !AnnotationUtils.areSame(paramOutputType, getTop(factory))) {
+                            PropertyAnnotation pa = lattice.getPropertyAnnotation(paramOutputType);
+                            if (!(pa.getAnnotationType().isInv() && !wt)) {
+                                jmlContract.addClause(
+                                        new Condition(
+                                                wt,
+                                                ConditionLocation.POSTCONDITION,
+                                                pa,
+                                                paramName));
+                            }
+
+                            if (!wt) {
+                                ++methodCallPostconditions;
+                            } else {
+                                ++freeMethodCallPostconditions;
+                            }
+                        }
+                    }
+                    for (int i = 0; i < method.getParameterTypes().size(); ++i) {
+                        AnnotationMirror paramOutputType = methodOutputTypes.get(i + 1);
+                        String paramName = paramNames.get(i);
+                        boolean wt = !illTypedMethodOutputParams.contains(i + 1);
+
+                        if (!AnnotationUtils.areSame(paramOutputType, getTop(factory))) {
                             jmlContract.addClause(
                                     new Condition(
                                             wt,
                                             ConditionLocation.POSTCONDITION,
-                                            pa,
+                                            lattice.getPropertyAnnotation(paramOutputType),
                                             paramName));
-                        }
 
-                        if (!wt) {
-                            ++methodCallPostconditions;
-                        } else {
-                            ++freeMethodCallPostconditions;
-                        }
-                    }
-                }
-                for (int i = 0; i < method.getParameterTypes().size(); ++i) {
-                    AnnotationMirror paramOutputType = methodOutputTypes.get(i + 1);
-                    String paramName = paramNames.get(i);
-                    boolean wt = !illTypedMethodOutputParams.contains(i + 1);
-
-                    if (!AnnotationUtils.areSame(paramOutputType, getTop(factory))) {
-                        jmlContract.addClause(
-                                new Condition(
-                                        wt,
-                                        ConditionLocation.POSTCONDITION,
-                                        lattice.getPropertyAnnotation(paramOutputType),
-                                        paramName));
-
-                        if (!wt) {
-                            ++methodCallPostconditions;
-                        } else {
-                            ++freeMethodCallPostconditions;
+                            if (!wt) {
+                                ++methodCallPostconditions;
+                            } else {
+                                ++freeMethodCallPostconditions;
+                            }
                         }
                     }
                 }
@@ -1192,30 +1246,73 @@ public class JavaJMLPrinter extends PrettyPrinter {
                 }
             }
 
-            List<AnnotationMirror> methodOutputTypes = wellTypedness.getMethodOutputTypes(tree);
-            {
-                AnnotationMirror paramOutputType = methodOutputTypes.get(0);
+            if (factory instanceof NullnessLatticeAnnotatedTypeFactory) {
+                // Nullness Checker
+                Set<Contract> contracts = factory.getContractsFromMethod().getContracts(TreeUtils.elementFromDeclaration(tree));
+                StringToJavaExpression stringToJavaExpr =
+                        stringExpr -> StringToJavaExpression.atMethodBody(stringExpr, tree, factory.getChecker());
 
-                if (paramOutputType != null && !AnnotationUtils.areSame(paramOutputType, getTop(factory))) {
-                    jmlContract.addClause(
-                            new Condition(
-                                    true,
-                                    ConditionLocation.POSTCONDITION,
-                                    lattice.getPropertyAnnotation(paramOutputType),
-                                    "this"));
+                for (Contract contract : contracts) {
+                    String exprStr = contract.expressionString;
+                    AnnotationMirror anno = contract.viewpointAdaptDependentTypeAnnotation(
+                            factory, stringToJavaExpr, tree);
+                    JavaExpression exprJe;
+                    try {
+                        exprJe = StringToJavaExpression.atMethodBody(
+                                exprStr, tree, factory.getChecker());
+                    } catch (JavaExpressionParseUtil.JavaExpressionParseException e) {
+                        throw new UncheckedIOException("Cannot parse contract", new IOException(e));
+                    }
+
+                    if (contract.kind == Contract.Kind.POSTCONDITION) {
+                        // @EnsuresNonNull(exprJe)
+                        jmlContract.addClause(String.format(
+                                "ensures_free %s != null;",
+                                exprJe));
+                    } else if (contract.kind == Contract.Kind.CONDITIONALPOSTCONDITION) {
+                        // @EnsuresNonNullIf(exprJe, contractResult)
+                        boolean contractResult = ((Contract.ConditionalPostcondition) contract).resultValue;
+                        boolean wt = !wellTypedness.getNullnessCondPostconditions().get(tree).contains(Triple.of(anno, exprJe, contractResult));
+                        jmlContract.addClause(String.format(
+                                "ensures_free %s ==> %s != null;",
+                                contractResult ? "\\result" : "!\\result",
+                                exprJe));
+                    } else if (contract.kind == Contract.Kind.PRECONDITION) {
+                        // @RequiresNonNull(exprJe)
+                        jmlContract.addClause(String.format(
+                                "requires %s != null;",
+                                exprJe));
+                    } else {
+                        throw new AssertionError("unknown contract kind");
+                    }
                 }
-            }
-            for (int i = 0; i < methodType.getParameterTypes().size(); ++i) {
-                AnnotationMirror paramOutputType = methodOutputTypes.get(i + 1);
-                String paramName = paramNames.get(i);
+            } else {
+                // Lattice Subchecker
+                List<AnnotationMirror> methodOutputTypes = wellTypedness.getMethodOutputTypes(tree);
+                {
+                    AnnotationMirror paramOutputType = methodOutputTypes.get(0);
 
-                if (!AnnotationUtils.areSame(paramOutputType, getTop(factory))) {
-                    jmlContract.addClause(
-                            new Condition(
-                                    true,
-                                    ConditionLocation.POSTCONDITION,
-                                    lattice.getPropertyAnnotation(paramOutputType),
-                                    paramName));
+                    if (paramOutputType != null && !AnnotationUtils.areSame(paramOutputType, getTop(factory))) {
+                        jmlContract.addClause(
+                                new Condition(
+                                        true,
+                                        ConditionLocation.POSTCONDITION,
+                                        lattice.getPropertyAnnotation(paramOutputType),
+                                        "this"));
+                    }
+                }
+                for (int i = 0; i < methodType.getParameterTypes().size(); ++i) {
+                    AnnotationMirror paramOutputType = methodOutputTypes.get(i + 1);
+                    String paramName = paramNames.get(i);
+
+                    if (!AnnotationUtils.areSame(paramOutputType, getTop(factory))) {
+                        jmlContract.addClause(
+                                new Condition(
+                                        true,
+                                        ConditionLocation.POSTCONDITION,
+                                        lattice.getPropertyAnnotation(paramOutputType),
+                                        paramName));
+                    }
                 }
             }
         }

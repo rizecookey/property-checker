@@ -12,6 +12,7 @@ import edu.kit.kastel.property.subchecker.lattice.LatticeVisitor;
 import edu.kit.kastel.property.util.Packing;
 import edu.kit.kastel.property.util.TypeUtils;
 import edu.kit.kastel.property.util.Union;
+import org.apache.commons.lang3.tuple.Triple;
 import org.checkerframework.checker.nullness.NullnessNoInitAnnotatedTypeFactory;
 import org.checkerframework.checker.nullness.NullnessNoInitVisitor;
 import org.checkerframework.common.basetype.BaseTypeChecker;
@@ -27,10 +28,7 @@ import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.Name;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class NullnessLatticeVisitor extends NullnessNoInitVisitor implements CooperativeVisitor {
@@ -160,11 +158,27 @@ public class NullnessLatticeVisitor extends NullnessNoInitVisitor implements Coo
     }
 
     @Override
+    protected void checkPostcondition(MethodTree methodTree, AnnotationMirror annotation, JavaExpression expression) {
+        call(
+                () -> super.checkPostcondition(methodTree, annotation, expression),
+                () -> this.result.nullnessPostconditions.get(methodTree).addLast(Pair.of(annotation, expression)));
+    }
+
+    @Override
+    protected void checkConditionalPostcondition(MethodTree methodTree, AnnotationMirror annotation, JavaExpression expression, boolean result) {
+        call(
+                () -> super.checkConditionalPostcondition(methodTree, annotation, expression, result),
+                () -> this.result.nullnessCondPostconditions.get(methodTree).addLast(Triple.of(annotation, expression, result)));
+    }
+
+    @Override
     public Void visitMethod(MethodTree node, Void p) {
         MethodTree prevEnclMethod = enclMethod;
         enclMethod = node;
 
         result.methodOutputTypes.put(node, new AnnotationMirror[node.getParameters().size() + 1]);
+        result.nullnessPostconditions.put(node, new ArrayList<>());
+        result.nullnessCondPostconditions.put(node, new ArrayList<>());
 
         ExecutableElement methodElement = TreeUtils.elementFromDeclaration(node);
         Map<AnnotatedTypeMirror.AnnotatedDeclaredType, ExecutableElement> overriddenMethods =

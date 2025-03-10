@@ -116,6 +116,7 @@ public abstract class PackingClientTransfer<
                     }
                 }
             }
+            addInformationFromPreconditions(initStore, factory, method, methodDeclTree, TreeUtils.elementFromDeclaration(methodDeclTree));
         }
 
         return initStore;

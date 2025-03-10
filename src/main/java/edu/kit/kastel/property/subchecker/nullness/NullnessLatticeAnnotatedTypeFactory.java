@@ -20,18 +20,17 @@ import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.dataflow.expression.LocalVariable;
 import org.checkerframework.dataflow.expression.ThisReference;
 import org.checkerframework.framework.flow.CFAbstractAnalysis;
+import org.checkerframework.framework.flow.CFAbstractStore;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.LiteralTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
 import org.checkerframework.javacutil.Pair;
 
+import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.type.TypeMirror;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class NullnessLatticeAnnotatedTypeFactory extends NullnessNoInitAnnotatedTypeFactory implements CooperativeAnnotatedTypeFactory {
@@ -181,7 +180,32 @@ public class NullnessLatticeAnnotatedTypeFactory extends NullnessNoInitAnnotated
         // instead of a JavaExpression, so we could use
         // atypeFactory.getAnnotatedType on the whole expression,
         // but that doesn't seem possible.
-        return super.getAnnotatedTypeBefore(expr, tree);
+        NullnessNoInitStore store = getStoreBefore(tree);
+        NullnessNoInitValue value = null;
+        if (CFAbstractStore.canInsertJavaExpression(expr)) {
+            value = store.getValue(expr);
+        }
+        Set<? extends AnnotationMirror> annos = null;
+        if (value != null) {
+            annos = value.getAnnotations();
+        } else {
+            // If there is no information in the store (possible if e.g., no refinement
+            // of the field has occurred), use top instead of automatically
+            // issuing a warning. This is not perfectly precise: for example,
+            // if jeExpr is a field it would be more precise to use the field's
+            // declared type rather than top. However, doing so would be unsound
+            // in at least three circumstances where the type of the field depends
+            // on the type of the receiver: (1) all fields in Nullness Checker,
+            // because of possibility that the receiver is under initialization,
+            // (2) polymorphic fields, and (3) fields whose type is a type variable.
+            // Using top here instead means that the method is always sound;
+            // a subclass can then override it with a more precise implementation.
+            annos = getQualifierHierarchy().getTopAnnotations();
+        }
+
+        AnnotatedTypeMirror res = AnnotatedTypeMirror.createType(expr.getType(), this, false);
+        res.addAnnotations(annos);
+        return res;
     }
 
 }

@@ -6,6 +6,8 @@ import com.sun.tools.javac.tree.JCTree;
 import edu.kit.kastel.property.lattice.Lattice;
 import edu.kit.kastel.property.util.CollectionUtils;
 import edu.kit.kastel.property.util.Union;
+import org.apache.commons.lang3.tuple.Triple;
+import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
 import org.checkerframework.javacutil.Pair;
@@ -74,6 +76,9 @@ public interface CooperativeVisitor {
         public Map<String, List<Invariant>> instanceInvariants = new HashMap<>();
         public Map<String, List<Invariant>> staticInvariants = new HashMap<>();
         public Map<MethodTree, AnnotationMirror[]> methodOutputTypes = new HashMap<>();
+
+        public Map<MethodTree, List<Pair<AnnotationMirror, JavaExpression>>> nullnessPostconditions = new HashMap<>();
+        public Map<MethodTree, List<Triple<AnnotationMirror, JavaExpression, Boolean>>> nullnessCondPostconditions = new HashMap<>();
 
         public Map<String, List<Union<StatementTree, VariableTree, BlockTree>>> instanceInitializers = new HashMap<>();
         public Map<String, List<Union<StatementTree, VariableTree, BlockTree>>> staticInitializers = new HashMap<>();
@@ -171,6 +176,14 @@ public interface CooperativeVisitor {
             return methodOutputTypes.containsKey(tree)
                     ? Collections.unmodifiableList(Arrays.asList(methodOutputTypes.get(tree)))
                     : List.of();
+        }
+
+        public Map<MethodTree, List<Pair<AnnotationMirror, JavaExpression>>> getNullnessPostconditions() {
+            return nullnessPostconditions;
+        }
+
+        public Map<MethodTree, List<Triple<AnnotationMirror, JavaExpression, Boolean>>> getNullnessCondPostconditions() {
+            return nullnessCondPostconditions;
         }
 
         public Set<Integer> getIllTypedMethodParams(MethodInvocationTree tree) {

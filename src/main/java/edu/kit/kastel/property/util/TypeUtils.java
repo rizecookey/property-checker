@@ -25,6 +25,7 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.code.Type.ArrayType;
+import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
 
 import java.util.ArrayList;
@@ -42,7 +43,11 @@ public final class TypeUtils {
             }
         }
 
-        return param.toString().equals("this") ? 0 : i + 1;
+        if (ElementUtils.isStatic(TreeUtils.elementFromDeclaration(tree))) {
+            return i;
+        } else {
+            return param.toString().equals("this") ? 0 : i + 1;
+        }
     }
 
     public static int getParameterIndex(MethodTree tree, VariableTree param) {

@@ -14,14 +14,14 @@ public class ExceptionTest {
         this.field = new Object();
     }
 
-    public void foo(ExceptionTest this) {}
+    public void foo(@Unique ExceptionTest this) {}
 
     public static void main() {
         ExceptionTest obj = new ExceptionTest();
         try {
             obj.foo();
         } catch (Exception e) {
-            // :: error: exclusivity.type.invalidated :: error: nullness.method.invocation.invalid
+            // :: error: exclusivity.type.invalidated
             obj.foo();
         }
     }

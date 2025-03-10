@@ -112,6 +112,11 @@ public final class ExclusivityVisitor extends PackingClientVisitor<ExclusivityAn
             validateTypeOf(arg);
         }
         atypeFactory.useRegularIFlow();
+
+        checkPreconditions(
+                node,
+                atypeFactory.getContractsFromMethod().getPreconditions(TreeUtils.elementFromUse(node)));
+
         return p;
     }
 

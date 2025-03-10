@@ -165,24 +165,30 @@ public class PackingTransfer extends InitializationAbstractTransfer<CFValue, Pac
                 // For normal method calls, set receiver output type to input type by default.
                 AnnotatedTypeMirror receiverType = method.executableType.getReceiverType();
                 if (receiverType != null) {
-                    CFValue receiverDefaultValue = new CFValue(
+                    JavaExpression expr = JavaExpression.fromNode(receiver);
+                    CFValue newVal = new CFValue(
                             analysis,
                             receiverType.getAnnotations(),
                             receiverType.getUnderlyingType());
-                    store.replaceValue(JavaExpression.fromNode(receiver), receiverDefaultValue);
+                    if (atypeFactory.isSideEffectFree(executableElement)) {
+                        newVal = newVal.mostSpecific(store.getValue(expr), newVal);
+                    }
+                    store.replaceValue(expr, newVal);
                 }
             }
 
             // Set parameter output types to input type by default.
             int i = 0;
             for (AnnotatedTypeMirror paramType : method.executableType.getParameterTypes()) {
-                CFValue paramDefaultValue = new CFValue(
+                JavaExpression expr = JavaExpression.fromNode(((MethodInvocationNode) invocationNode).getArgument(i++));
+                CFValue newVal = new CFValue(
                         analysis,
                         paramType.getAnnotations(),
                         paramType.getUnderlyingType());
-                store.replaceValue(
-                        JavaExpression.fromNode(((MethodInvocationNode) invocationNode).getArgument(i++)),
-                        paramDefaultValue);
+                if (atypeFactory.isSideEffectFree(executableElement)) {
+                    newVal = newVal.mostSpecific(store.getValue(expr), newVal);
+                }
+                store.replaceValue(expr, newVal);
             }
         } else if (invocationNode instanceof ObjectCreationNode) {
             stringToJavaExpr =
@@ -230,10 +236,14 @@ public class PackingTransfer extends InitializationAbstractTransfer<CFValue, Pac
                 // This is done because we use postconditions to implement output types for the parameters, which may
                 // be incompatible with the input types. If a parameter has no explicit output type, we use its input
                 // type as default, which is implemented above.
+                CFValue value = analysis.createSingleAnnotationValue(anno, je.getType());
+                if (atypeFactory.isSideEffectFree(executableElement)) {
+                    value = value.mostSpecific(store.getValue(je), value);
+                }
                 if (p.kind == Contract.Kind.CONDITIONALPOSTCONDITION) {
-                    store.insertValue(je, anno);
+                    // TODO
                 } else {
-                    store.insertValue(je, anno);
+                    store.insertValue(je, value);
                 }
             } catch (JavaExpressionParseUtil.JavaExpressionParseException e) {
                 // report errors here
