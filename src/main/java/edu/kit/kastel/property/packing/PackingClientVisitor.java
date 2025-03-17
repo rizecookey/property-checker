@@ -109,6 +109,10 @@ public abstract class PackingClientVisitor<
     }
 
     protected void checkExplicitConstructorResult(MethodTree tree) {
+        if (atypeFactory.getRegularExitStore(tree) == null) {
+            return;
+        }
+
         // Compare the this value in the constructor's exit store to the declared
         // constructor type.
         PackingClientValue<?> thisValue = atypeFactory.getRegularExitStore(tree).getValue((ThisNode) null);

@@ -133,6 +133,11 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
     @Override
     public Void visitMethodInvocation(MethodInvocationTree tree, Void p) {
+        if (enclMethod == null) {
+            // Don't check implicit constructors
+            return null;
+        }
+
         ExecutableElement invokedMethod = TreeUtils.elementFromUse(tree);
         ProcessingEnvironment env = atypeFactory.getProcessingEnv();
         if (ElementUtils.isMethod(invokedMethod, packMethod, env) || ElementUtils.isMethod(invokedMethod, unpackMethod, env)) {

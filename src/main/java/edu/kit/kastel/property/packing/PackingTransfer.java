@@ -165,13 +165,13 @@ public class PackingTransfer extends InitializationAbstractTransfer<CFValue, Pac
             } else {
                 // For normal method calls, set receiver output type to input type by default.
                 AnnotatedTypeMirror receiverType = method.executableType.getReceiverType();
-                if (receiverType != null) {
+                if (receiverType != null && !receiverType.getUnderlyingType().toString().equals("Array")) {
                     JavaExpression expr = JavaExpression.fromNode(receiver);
                     CFValue newVal = new CFValue(
                             analysis,
                             receiverType.getAnnotations(),
                             receiverType.getUnderlyingType());
-                    if (atypeFactory.isSideEffectFree(executableElement)) {
+                    if (atypeFactory.isSideEffectFree(executableElement) && TypeUtils.isStoreExpression(expr)) {
                         newVal = newVal.mostSpecific(store.getValue(expr), newVal);
                     }
                     store.replaceValue(expr, newVal);
@@ -179,17 +179,22 @@ public class PackingTransfer extends InitializationAbstractTransfer<CFValue, Pac
             }
 
             // Set parameter output types to input type by default.
-            int i = 0;
-            for (AnnotatedTypeMirror paramType : method.executableType.getParameterTypes()) {
-                JavaExpression expr = JavaExpression.fromNode(((MethodInvocationNode) invocationNode).getArgument(i++));
-                CFValue newVal = new CFValue(
-                        analysis,
-                        paramType.getAnnotations(),
-                        paramType.getUnderlyingType());
-                if (atypeFactory.isSideEffectFree(executableElement) && TypeUtils.isStoreExpression(expr)) {
-                    newVal = newVal.mostSpecific(store.getValue(expr), newVal);
+            try {
+                int i = 0;
+                for (AnnotatedTypeMirror paramType : method.executableType.getParameterTypes()) {
+                    JavaExpression expr = JavaExpression.fromNode(TypeUtils.getArgumentWithVarargs((MethodInvocationNode) invocationNode, i++));
+                    CFValue newVal = new CFValue(
+                            analysis,
+                            paramType.getAnnotations(),
+                            paramType.getUnderlyingType());
+                    if (atypeFactory.isSideEffectFree(executableElement) && TypeUtils.isStoreExpression(expr)) {
+                        newVal = newVal.mostSpecific(store.getValue(expr), newVal);
+                    }
+                    store.replaceValue(expr, newVal);
                 }
-                store.replaceValue(expr, newVal);
+            } catch (IndexOutOfBoundsException e) {
+                //TODO
+                return;
             }
         } else if (invocationNode instanceof ObjectCreationNode) {
             stringToJavaExpr =

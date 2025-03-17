@@ -22,6 +22,9 @@ import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.code.Type.ArrayType;
+import org.checkerframework.dataflow.cfg.node.ArrayCreationNode;
+import org.checkerframework.dataflow.cfg.node.MethodInvocationNode;
+import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.dataflow.expression.*;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
@@ -102,6 +105,15 @@ public final class TypeUtils {
             || expr instanceof MethodCall
             || expr instanceof ArrayAccess
             || expr instanceof ClassName;
+    }
+
+    public static Node getArgumentWithVarargs(MethodInvocationNode node, int i) {
+        int num = node.getArguments().size();
+        if (i >= num - 1 && node.getArgument(num - 1) instanceof ArrayCreationNode arrayCreationNode && arrayCreationNode.getInitializers().size() > 0) {
+            return arrayCreationNode.getInitializer(i - num + 1);
+        } else {
+            return node.getArgument(i);
+        }
     }
 
     private static void allFieldsInHierarchy(ClassTree clazz, List<VariableTree> fields) {

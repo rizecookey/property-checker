@@ -134,7 +134,7 @@ public class PackingAnnotatedTypeFactory
         AnnotatedTypeMirror declType = factory.getAnnotatedType(var);
         AnnotatedTypeMirror refType;
         if (value != null) {
-            refType = AnnotatedTypeMirror.createType(value.getUnderlyingType(), factory, false);
+            refType = AnnotatedTypeMirror.createType(declType.getUnderlyingType(), factory, false);
             refType.addAnnotations(value.getAnnotations());
         } else {
             refType = AnnotatedTypeMirror.createType(declType.getUnderlyingType(), factory, false);
@@ -142,6 +142,9 @@ public class PackingAnnotatedTypeFactory
         }
         if (refType instanceof AnnotatedTypeMirror.AnnotatedDeclaredType) {
             ((AnnotatedTypeMirror.AnnotatedDeclaredType) refType).getTypeArguments().forEach(arg -> factory.addDefaultAnnotations(arg));
+        }
+        if (refType instanceof AnnotatedTypeMirror.AnnotatedArrayType) {
+            factory.addDefaultAnnotations(((AnnotatedTypeMirror.AnnotatedArrayType) refType).getComponentType());
         }
 
         return factory.getTypeHierarchy().isSubtype(refType, declType);
@@ -196,8 +199,6 @@ public class PackingAnnotatedTypeFactory
                             || node instanceof BinaryOperationNode
                             || node instanceof UnaryOperationNode) {
                         return analysis.createAbstractValue(AnnotationMirrorSet.singleton(INITIALIZED), node.getType());
-                    } else if (!((expr = JavaExpression.fromNode(node)) instanceof Unknown)) {
-                        return store.getValue(expr);
                     } else if (node instanceof MethodInvocationNode) {
                         return store.getValue((MethodInvocationNode) node);
                     } else if (node instanceof FieldAccessNode) {

@@ -7,7 +7,6 @@ import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.dataflow.cfg.node.*;
 import org.checkerframework.dataflow.cfg.visualize.CFGVisualizer;
 import org.checkerframework.dataflow.expression.JavaExpression;
-import org.checkerframework.dataflow.expression.Unknown;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
@@ -141,8 +140,6 @@ public abstract class PackingClientAnnotatedTypeFactory<
                             // We already dealt with primitives and null, so node must be a String
                             return analysis.createAbstractValue(AnnotationMirrorSet.singleton(getDefaultStringQualifier()), node.getType());
                         }
-                    } else if (!((expr = JavaExpression.fromNode(node)) instanceof Unknown)) {
-                        return store.getValue(expr);
                     } else if (node instanceof MethodInvocationNode) {
                         return store.getValue((MethodInvocationNode) node);
                     } else if (node instanceof FieldAccessNode) {

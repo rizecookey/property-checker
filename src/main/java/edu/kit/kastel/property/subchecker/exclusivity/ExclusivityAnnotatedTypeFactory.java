@@ -13,7 +13,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.dataflow.cfg.node.*;
 import org.checkerframework.dataflow.expression.JavaExpression;
-import org.checkerframework.dataflow.expression.Unknown;
 import org.checkerframework.framework.flow.CFAbstractAnalysis;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
@@ -75,7 +74,7 @@ public final class ExclusivityAnnotatedTypeFactory
                 return qualifier;
             }
         }
-        return null;
+        return MAYBE_ALIASED;
     }
 
     public void useIFlowAfter(@NonNull Tree useIFlowAfter) {
@@ -121,8 +120,6 @@ public final class ExclusivityAnnotatedTypeFactory
                                 || node instanceof BinaryOperationNode
                                 || node instanceof UnaryOperationNode) {
                             return analysis.createAbstractValue(AnnotationMirrorSet.singleton(getDefaultPrimitiveQualifier()), node.getType());
-                        } else if (!((expr = JavaExpression.fromNode(node)) instanceof Unknown)) {
-                            return store.getValue(expr);
                         } else if (node instanceof MethodInvocationNode) {
                             return store.getValue((MethodInvocationNode) node);
                         } else if (node instanceof FieldAccessNode) {
@@ -145,7 +142,7 @@ public final class ExclusivityAnnotatedTypeFactory
     }
 
     public AnnotationMirror getExclusivityAnnotation(AnnotatedTypeMirror annotatedTypeMirror) {
-        return annotatedTypeMirror.getAnnotationInHierarchy(READ_ONLY);
+        return Objects.requireNonNullElse(annotatedTypeMirror.getAnnotationInHierarchy(READ_ONLY), MAYBE_ALIASED);
     }
 
     public AnnotationMirror getExclusivityAnnotation(Node node) {

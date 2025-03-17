@@ -6,6 +6,7 @@ import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFa
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityTransfer;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.ReadOnly;
+import edu.kit.kastel.property.util.TypeUtils;
 import org.checkerframework.dataflow.cfg.UnderlyingAST;
 import org.checkerframework.dataflow.cfg.node.*;
 import org.checkerframework.dataflow.expression.FieldAccess;
@@ -173,27 +174,32 @@ public abstract class PackingClientTransfer<
                 }
             }
 
-            // Set parameter output types to input type by default (unless param is @ReadOnly or primitive).
-            int i = 0;
-            List<AnnotatedTypeMirror> exclParamTypes = exclMethod.executableType.getParameterTypes();
-            for (AnnotatedTypeMirror paramType : method.executableType.getParameterTypes()) {
-                boolean paramReadOnly = exclParamTypes.get(i).hasAnnotation(ReadOnly.class);
-                if (!paramReadOnly && ! paramType.getKind().isPrimitive()) {
-                    V paramDefaultValue = analysis.createAbstractValue(
-                            paramType.getAnnotations(),
-                            paramType.getUnderlyingType());
-                    if (sideEffectFree) {
-                        store.insertOrRefine(
-                                JavaExpression.fromNode(((MethodInvocationNode) invocationNode).getArgument(i)),
-                                paramDefaultValue.getAnnotations().first());
-                    } else {
-                        store.insertValue(
-                                JavaExpression.fromNode(((MethodInvocationNode) invocationNode).getArgument(i)),
-                                paramDefaultValue);
+            try {
+                // Set parameter output types to input type by default (unless param is @ReadOnly or primitive).
+                int i = 0;
+                List<AnnotatedTypeMirror> exclParamTypes = exclMethod.executableType.getParameterTypes();
+                for (AnnotatedTypeMirror paramType : method.executableType.getParameterTypes()) {
+                    boolean paramReadOnly = exclParamTypes.get(i).hasAnnotation(ReadOnly.class);
+                    if (!paramReadOnly && ! paramType.getKind().isPrimitive()) {
+                        V paramDefaultValue = analysis.createAbstractValue(
+                                paramType.getAnnotations(),
+                                paramType.getUnderlyingType());
+                        if (sideEffectFree) {
+                            store.insertOrRefine(
+                                    JavaExpression.fromNode(TypeUtils.getArgumentWithVarargs((MethodInvocationNode) invocationNode, i)),
+                                    paramDefaultValue.getAnnotations().first());
+                        } else {
+                            store.insertValue(
+                                    JavaExpression.fromNode(TypeUtils.getArgumentWithVarargs((MethodInvocationNode) invocationNode, i)),
+                                    paramDefaultValue);
+                        }
                     }
-                }
 
-                ++i;
+                    ++i;
+                }
+            } catch (IndexOutOfBoundsException e) {
+                //TODO
+                return;
             }
         } else if (invocationNode instanceof ObjectCreationNode) {
             sideEffectFree = false;

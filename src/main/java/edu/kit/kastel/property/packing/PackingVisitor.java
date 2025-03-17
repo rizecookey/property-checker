@@ -28,10 +28,7 @@ import javax.lang.model.element.*;
 import javax.lang.model.type.NoType;
 import javax.lang.model.type.TypeMirror;
 import java.lang.annotation.Annotation;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.StringJoiner;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class PackingVisitor
@@ -124,6 +121,10 @@ public class PackingVisitor
                 }
                 varFrame = classType;
             } else {
+                VariableTree receiver = methodTree.getReceiverParameter();
+                if (receiver == null) {
+                    return false;
+                }
                 varFrame = ((JCTree) methodTree.getReceiverParameter()).type;
                 boolean unique = methodTree.getReceiverParameter().getModifiers().getAnnotations().stream().anyMatch(anno -> anno.toString().equals("@Unique"));
                 if (!unique) {
@@ -199,6 +200,11 @@ public class PackingVisitor
     public Void visitMethodInvocation(MethodInvocationTree node, Void p) {
         ExecutableElement invokedMethod = TreeUtils.elementFromUse(node);
         ProcessingEnvironment env = atypeFactory.getProcessingEnv();
+
+        if (enclMethod == null) {
+            // Don't check implicit constructors
+            return null;
+        }
 
         if (ElementUtils.isMethod(invokedMethod, packMethod, env) || ElementUtils.isMethod(invokedMethod, unpackMethod, env)) {
             ExpressionTree objToPack = node.getArguments().get(0);
@@ -301,11 +307,15 @@ public class PackingVisitor
     }
 
     private void checkFieldsInitializedUpToFrame(
-        Tree tree,
-        BaseTypeChecker targetChecker,
-        PackingStore packingStore,
-        CFAbstractStore<?, ?> targetStore,
-        TypeMirror frame) {
+            Tree tree,
+            BaseTypeChecker targetChecker,
+            PackingStore packingStore,
+            CFAbstractStore<?, ?> targetStore,
+            TypeMirror frame) {
+        if (packingStore == null || targetStore == null) {
+            return;
+        }
+
         List<VariableElement> uninitializedFields =
                 atypeFactory.getUninitializedFields(
                         packingStore,
@@ -382,8 +392,9 @@ public class PackingVisitor
         // instead, we compare the this value in the constructor's exit store to the declared
         // constructor type.
         // Implicit default constructors are instead treated by ::checkConstructorResult
-        if (TreeUtils.isConstructor(tree) && !TreeUtils.isSynthetic(tree)) {
-            CFValue thisValue = atypeFactory.getRegularExitStore(tree).getValue((ThisNode) null);
+        PackingStore exitStore = atypeFactory.getRegularExitStore(tree);
+        if (TreeUtils.isConstructor(tree) && !TreeUtils.isSynthetic(tree) && exitStore != null) {
+            CFValue thisValue = exitStore.getValue((ThisNode) null);
             AnnotationMirror declared = getDeclaredConstructorResult(tree);
             AnnotationMirror top = qualHierarchy.getTopAnnotations().first();
 
@@ -525,7 +536,7 @@ public class PackingVisitor
                 return true;
             }
 
-            if (atypeFactory.isMonotonicMethod(enclMethod)) {
+            if (enclMethod != null && atypeFactory.isMonotonicMethod(enclMethod)) {
                 checker.reportError(varTree, "initialization.nonmonotonic.write");
                 return false;
             }
@@ -618,8 +629,8 @@ public class PackingVisitor
         // @ReadOnly vars must not be @Initialized
         ExclusivityAnnotatedTypeFactory exclFactory = getChecker().getTypeFactoryOfSubcheckerOrNull(ExclusivityChecker.class);
         AnnotatedTypeMirror exclType = exclFactory.getAnnotatedTypeLhs(tree);
-        AnnotationMirror annotation = variableType.getAnnotationInHierarchy(atypeFactory.getInitialized());
-        AnnotationMirror exclAnnotation = exclType.getAnnotationInHierarchy(exclFactory.READ_ONLY);
+        AnnotationMirror annotation = Objects.requireNonNullElse(variableType.getAnnotationInHierarchy(atypeFactory.getInitialized()), atypeFactory.getInitialized());
+        AnnotationMirror exclAnnotation = exclFactory.getExclusivityAnnotation(exclType);
         if ((!atypeFactory.isUnknownInitialization(annotation) || !atypeFactory.getTypeFrameFromAnnotation(annotation).toString().equals("java.lang.Object"))
                 && (exclAnnotation == null || AnnotationUtils.areSame(exclAnnotation, exclFactory.READ_ONLY))) {
             checker.reportError(tree, "type.invalid.readonly.init");
@@ -651,6 +662,11 @@ public class PackingVisitor
                 GenericAnnotatedTypeFactory<?, ?, ?, ?> targetFactory = targetChecker.getTypeFactory();
                 // The target checker's store corresponding to initExitStore
                 CFAbstractStore<?, ?> targetExitStore = targetFactory.getRegularExitStore(tree);
+
+                if (targetExitStore == null) {
+                    return;
+                }
+
                 List<VariableElement> uninitializedFields =
                         atypeFactory.getUninitializedFields(
                                 initExitStore,

@@ -99,6 +99,9 @@ abstract class AbstractTypeRule<N extends Node> implements TypeRule {
     }
 
     protected final boolean isLhs(Node node) {
+        if (node instanceof ImplicitThisNode) {
+            return true;
+        }
         switch (node.getTree().getKind()) {
             case VARIABLE:
             case IDENTIFIER:
@@ -149,25 +152,21 @@ abstract class AbstractTypeRule<N extends Node> implements TypeRule {
 
     protected final AnnotationMirror getRefinedTypeAnnotation(Node node) {
         AnnotationMirror oldAnno;
-        if (node instanceof ImplicitThisNode) {
-            //TODO
-            assert false;
-            oldAnno = null;
-        } else {
-            ExclusivityValue value = null;
-            if (node instanceof FieldAccessNode) {
-                value = store.getValue((FieldAccessNode) node);
-            } else if (node instanceof LocalVariableNode) {
-                value = store.getValue((LocalVariableNode) node);
-            } else if (node instanceof ThisNode) {
-                value = store.getValue((ThisNode) node);
-            }
+        ExclusivityValue value = null;
+        if (node instanceof FieldAccessNode) {
+            value = store.getValue((FieldAccessNode) node);
+        } else if (node instanceof LocalVariableNode) {
+            value = store.getValue((LocalVariableNode) node);
+        } else if (node instanceof ThisNode) {
+            value = store.getValue((ThisNode) node);
+        }
 
-            if (value != null) {
-                oldAnno = factory.getExclusivityAnnotation(value.getAnnotations());
-            } else {
-                oldAnno = factory.getExclusivityAnnotation(factory.getAnnotatedType(node.getTree()).getAnnotations());
-            }
+        if (value != null) {
+            oldAnno = factory.getExclusivityAnnotation(value.getAnnotations());
+        } else if (node.getTree() != null) {
+            oldAnno = factory.getExclusivityAnnotation(factory.getAnnotatedType(node.getTree()).getAnnotations());
+        } else {
+            oldAnno = factory.MAYBE_ALIASED;
         }
         assert oldAnno != null;
         return oldAnno;
