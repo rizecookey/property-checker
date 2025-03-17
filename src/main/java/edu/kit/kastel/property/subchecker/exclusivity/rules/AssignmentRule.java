@@ -34,6 +34,9 @@ public abstract class AssignmentRule extends AbstractTypeRule<AssignmentNode> {
 
     public final void apply(AnnotationMirror lhsType, Node rhs) throws RuleNotApplicable {
         AnnotationMirror oldRhs = getRefinedTypeAnnotation(rhs);
+        if (lhsType == null) {
+            lhsType = factory.MAYBE_ALIASED;
+        }
         applyInternal(lhsType, rhs);
         //printTypeChange(rhs, oldRhs);
         //System.out.print(",");

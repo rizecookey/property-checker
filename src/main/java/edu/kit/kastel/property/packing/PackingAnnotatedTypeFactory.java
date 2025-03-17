@@ -140,6 +140,9 @@ public class PackingAnnotatedTypeFactory
             refType = AnnotatedTypeMirror.createType(declType.getUnderlyingType(), factory, false);
             refType.addAnnotations(factory.getQualifierHierarchy().getTopAnnotations());
         }
+        if (refType instanceof AnnotatedTypeMirror.AnnotatedDeclaredType) {
+            ((AnnotatedTypeMirror.AnnotatedDeclaredType) refType).getTypeArguments().forEach(arg -> factory.addDefaultAnnotations(arg));
+        }
 
         return factory.getTypeHierarchy().isSubtype(refType, declType);
     }

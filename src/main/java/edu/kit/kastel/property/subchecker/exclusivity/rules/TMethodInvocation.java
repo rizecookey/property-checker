@@ -38,9 +38,7 @@ public class TMethodInvocation extends AbstractTypeRule<MethodInvocationNode> {
         if (!ElementUtils.isStatic(TreeUtils.elementFromUse(node.getTree()))
                 && !node.getTarget().getMethod().getSimpleName().contentEquals("<init>")) {
             if (receiverType == null || receiverType.getKind().equals(TypeKind.NONE)) {
-                //TODO
-                System.err.printf("warning: ignoring call to method without explicit 'this' parameter declaration: %s\n", node.getTarget());
-                return;
+                receiverTypeAnno = factory.MAYBE_ALIASED;
             }
 
             // "param_0 = arg_0"

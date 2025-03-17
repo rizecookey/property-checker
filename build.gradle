@@ -23,10 +23,6 @@ configurations {
     errorproneJavac
 }
 
-ext.versions = [
-        checkerFramework: "3.42.0-eisop3",
-]
-
 sourceCompatibility = 21
 targetCompatibility = 21
 def checkerframework_local = true  // Set this variable to [true] while using local version of checker framework.

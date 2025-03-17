@@ -35,11 +35,9 @@ import org.checkerframework.dataflow.cfg.node.MethodInvocationNode;
 import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
-import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
 
 import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 
 public final class LatticeTransfer extends PackingClientTransfer<LatticeValue, LatticeStore, LatticeTransfer> {
@@ -63,15 +61,6 @@ public final class LatticeTransfer extends PackingClientTransfer<LatticeValue, L
         if (receiver instanceof ClassNameNode && ((ClassNameNode) receiver).getElement().toString().equals(Packing.class.getName())) {
             // Packing statements don't change the store
             return new RegularTransferResult<>(null, store, false);
-        }
-
-        if (!ElementUtils.isStatic(TreeUtils.elementFromUse(node.getTree()))
-                && !node.getTarget().getMethod().getSimpleName().contentEquals("<init>")) {
-            if (receiverType == null || receiverType.getKind().equals(TypeKind.NONE)) {
-                //TODO in LatticeStore::updateForMethodCall. See also TMethodInvocation
-                System.err.printf("warning: ignoring call to method without explicit 'this' parameter declaration: %s\n", node.getTarget());
-                return new RegularTransferResult<>(null, store, true);
-            }
         }
 
         return super.visitMethodInvocation(node, in);
