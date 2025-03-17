@@ -7,6 +7,7 @@ import com.sun.source.tree.NewClassTree;
 import com.sun.tools.javac.code.Symbol;
 import edu.kit.kastel.property.util.ClassUtils;
 import edu.kit.kastel.property.util.Packing;
+import edu.kit.kastel.property.util.TypeUtils;
 import org.checkerframework.checker.initialization.InitializationAbstractTransfer;
 import org.checkerframework.checker.initialization.qual.FBCBottom;
 import org.checkerframework.checker.initialization.qual.Initialized;
@@ -185,7 +186,7 @@ public class PackingTransfer extends InitializationAbstractTransfer<CFValue, Pac
                         analysis,
                         paramType.getAnnotations(),
                         paramType.getUnderlyingType());
-                if (atypeFactory.isSideEffectFree(executableElement)) {
+                if (atypeFactory.isSideEffectFree(executableElement) && TypeUtils.isStoreExpression(expr)) {
                     newVal = newVal.mostSpecific(store.getValue(expr), newVal);
                 }
                 store.replaceValue(expr, newVal);

@@ -20,11 +20,11 @@ import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
-import org.checkerframework.dataflow.expression.JavaExpression;
-import org.checkerframework.framework.type.AnnotatedTypeMirror;
-import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.code.Type.ArrayType;
+import org.checkerframework.dataflow.expression.*;
+import org.checkerframework.framework.type.AnnotatedTypeMirror;
+import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
 
@@ -87,6 +87,21 @@ public final class TypeUtils {
         List<VariableTree> fields = new ArrayList<>();
         allFieldsInHierarchy(clazz, fields);
         return fields;
+    }
+
+    /**
+     * Determines whether the expression's value can be stored in a {@link org.checkerframework.framework.flow.CFAbstractStore}.
+     *
+     * @param expr an expression.
+     * @return whether the expression's value can be stored in a store.
+     */
+    public static boolean isStoreExpression(JavaExpression expr) {
+        return expr instanceof LocalVariable
+            || expr instanceof ThisReference
+            || expr instanceof FieldAccess
+            || expr instanceof MethodCall
+            || expr instanceof ArrayAccess
+            || expr instanceof ClassName;
     }
 
     private static void allFieldsInHierarchy(ClassTree clazz, List<VariableTree> fields) {
