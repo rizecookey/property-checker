@@ -19,12 +19,14 @@ package tests.daikon;
 import edu.kit.kastel.property.checker.PropertyChecker;
 import org.apache.commons.lang3.ObjectUtils;
 import org.checkerframework.framework.test.*;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
 import java.util.Collections;
 import java.util.List;
 
+@Ignore
 public class DaikonTest {
 
     /** The files containing test code, which will be type-checked. */

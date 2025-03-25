@@ -74,7 +74,7 @@ public final class ExclusivityAnnotatedTypeFactory
                 return qualifier;
             }
         }
-        return MAYBE_ALIASED;
+        return null;
     }
 
     public void useIFlowAfter(@NonNull Tree useIFlowAfter) {

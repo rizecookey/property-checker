@@ -153,6 +153,7 @@ public class PackingVisitor
 
         return false;
     }
+
     protected final boolean canInferPackingStatement(
             Tree varTree,
             Tree stmtTree,
