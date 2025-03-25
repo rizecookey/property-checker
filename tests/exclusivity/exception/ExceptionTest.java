@@ -10,18 +10,19 @@ public class ExceptionTest {
 
     public @Unique Object field;
 
-    public ExceptionTest() {
+    // :: error: simple.inconsistent.constructor.type
+    public @B ExceptionTest() {
         this.field = new Object();
     }
 
-    public void foo(@Unique ExceptionTest this) {}
+    public void foo(@Unique @B ExceptionTest this) {}
 
     public static void main() {
-        ExceptionTest obj = new ExceptionTest();
+        @B ExceptionTest obj = new ExceptionTest();
         try {
             obj.foo();
         } catch (Exception e) {
-            // :: error: exclusivity.type.invalidated
+            // :: error: packing.method.invocation.invalid :: error: simple.method.invocation.invalid
             obj.foo();
         }
     }

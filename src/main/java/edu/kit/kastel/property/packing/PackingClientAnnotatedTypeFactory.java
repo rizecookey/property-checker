@@ -159,6 +159,16 @@ public abstract class PackingClientAnnotatedTypeFactory<
     }
 
     @Override
+    public AnnotatedTypeMirror getAnnotatedType(Element elt) {
+        return super.getAnnotatedType(elt);
+    }
+
+    @Override
+    public AnnotatedTypeMirror getAnnotatedType(Tree tree) {
+        return super.getAnnotatedType(tree);
+    }
+
+    @Override
     protected void applyInferredAnnotations(AnnotatedTypeMirror type, Value inferred) {
         type.replaceAnnotations(inferred.getAnnotations());
     }

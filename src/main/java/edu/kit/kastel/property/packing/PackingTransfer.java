@@ -17,6 +17,7 @@ import org.checkerframework.dataflow.analysis.RegularTransferResult;
 import org.checkerframework.dataflow.analysis.TransferInput;
 import org.checkerframework.dataflow.analysis.TransferResult;
 import org.checkerframework.dataflow.cfg.UnderlyingAST;
+import org.checkerframework.dataflow.cfg.block.ExceptionBlock;
 import org.checkerframework.dataflow.cfg.node.*;
 import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.framework.flow.CFValue;
@@ -33,7 +34,9 @@ import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.type.TypeMirror;
 import java.lang.reflect.Modifier;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class PackingTransfer extends InitializationAbstractTransfer<CFValue, PackingStore, PackingTransfer> {
@@ -131,7 +134,25 @@ public class PackingTransfer extends InitializationAbstractTransfer<CFValue, Pac
             return result;
         }
 
-        return super.visitMethodInvocation(n, in);
+        TransferResult<CFValue, PackingStore> result = super.visitMethodInvocation(n, in);
+        if (n.getBlock() instanceof ExceptionBlock eb) {
+            Map<TypeMirror, PackingStore> exceptionalStores = new HashMap<>();
+            PackingStore excStore = in.getRegularStore().copy();
+
+            in.getRegularStore().getFieldValues().keySet().forEach(f -> excStore.insertValue(f, topValue(f.getType())));
+            n.getArguments().forEach(a -> excStore.insertValue(JavaExpression.fromNode(n), topValue(n.getType())));
+            excStore.insertValue(JavaExpression.fromNode(n.getTarget().getReceiver()), topValue(n.getTarget().getReceiver().getType()));
+            eb.getExceptionalSuccessors().keySet().forEach(cause -> exceptionalStores.put(cause, excStore));
+
+            return new RegularTransferResult<>(result.getResultValue(), result.getRegularStore(), exceptionalStores);
+        }
+
+        return result;
+    }
+    public CFValue topValue(TypeMirror underlyingType) {
+        return analysis.createSingleAnnotationValue(
+                analysis.getTypeFactory().getQualifierHierarchy().getTopAnnotations().first(),
+                underlyingType);
     }
 
     @Override

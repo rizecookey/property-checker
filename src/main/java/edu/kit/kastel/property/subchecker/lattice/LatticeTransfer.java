@@ -37,9 +37,6 @@ import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.javacutil.TreeUtils;
 
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.type.TypeMirror;
-
 public final class LatticeTransfer extends PackingClientTransfer<LatticeValue, LatticeStore, LatticeTransfer> {
 
     private final LatticeAnnotatedTypeFactory factory;
@@ -51,12 +48,9 @@ public final class LatticeTransfer extends PackingClientTransfer<LatticeValue, L
 
     @Override
     public TransferResult<LatticeValue, LatticeStore> visitMethodInvocation(MethodInvocationNode node, TransferInput<LatticeValue, LatticeStore> in) {
-        TypeMirror receiverType;
         LatticeStore store = in.getRegularStore();
         MethodAccessNode target = node.getTarget();
-        ExecutableElement method = target.getMethod();
         Node receiver = target.getReceiver();
-        receiverType = method.getReceiverType();
 
         if (receiver instanceof ClassNameNode && ((ClassNameNode) receiver).getElement().toString().equals(Packing.class.getName())) {
             // Packing statements don't change the store

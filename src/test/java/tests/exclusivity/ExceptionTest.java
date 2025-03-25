@@ -18,7 +18,7 @@ public class ExceptionTest extends PropertyCheckerTest {
     public ExceptionTest(List<File> testFiles) {
         super(
                 testFiles,
-                "",
+                "tests/property/lattice_simple",
                 "tests/exclusivity/exception");
     }
 
