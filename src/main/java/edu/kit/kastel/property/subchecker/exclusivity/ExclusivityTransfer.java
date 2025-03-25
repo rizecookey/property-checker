@@ -1,11 +1,10 @@
 package edu.kit.kastel.property.subchecker.exclusivity;
 
-import com.sun.source.tree.*;
-
+import com.sun.source.tree.ExpressionTree;
+import com.sun.source.tree.MethodTree;
 import edu.kit.kastel.property.packing.PackingClientTransfer;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.Unique;
 import edu.kit.kastel.property.subchecker.exclusivity.rules.*;
-
 import edu.kit.kastel.property.util.Packing;
 import org.checkerframework.dataflow.analysis.RegularTransferResult;
 import org.checkerframework.dataflow.analysis.TransferInput;
@@ -92,7 +91,7 @@ public class ExclusivityTransfer extends PackingClientTransfer<ExclusivityValue,
 
         processPostconditions(n, store, method, invocationTree);
 
-        return new RegularTransferResult<>(null, store, true);
+        return addExceptionalStores(n, in, new RegularTransferResult<>(null, store, true));
     }
 
     @Override

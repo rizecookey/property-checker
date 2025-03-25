@@ -22,7 +22,7 @@ public class ExceptionTest {
         try {
             obj.foo();
         } catch (Exception e) {
-            // :: error: packing.method.invocation.invalid :: error: simple.method.invocation.invalid
+            // :: error: packing.method.invocation.invalid :: error: simple.method.invocation.invalid :: error: exclusivity.type.invalidated
             obj.foo();
         }
     }

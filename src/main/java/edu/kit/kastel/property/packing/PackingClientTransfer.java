@@ -133,8 +133,10 @@ public abstract class PackingClientTransfer<
 
     @Override
     public TransferResult<V, S> visitMethodInvocation(MethodInvocationNode n, TransferInput<V, S> in) {
-        TransferResult<V, S> result = super.visitMethodInvocation(n, in);
+        return addExceptionalStores(n, in, super.visitMethodInvocation(n, in));
+    }
 
+    protected TransferResult<V, S> addExceptionalStores(MethodInvocationNode n, TransferInput<V, S> in, TransferResult<V, S> result) {
         if (n.getBlock() instanceof ExceptionBlock eb) {
             Map<TypeMirror, S> exceptionalStores = new HashMap<>();
             S excStore = in.getRegularStore().copy();
@@ -146,7 +148,6 @@ public abstract class PackingClientTransfer<
 
             return new RegularTransferResult<>(result.getResultValue(), result.getRegularStore(), exceptionalStores);
         }
-
         return result;
     }
 
