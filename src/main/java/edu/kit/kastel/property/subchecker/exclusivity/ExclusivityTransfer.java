@@ -2,6 +2,7 @@ package edu.kit.kastel.property.subchecker.exclusivity;
 
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.MethodTree;
+import com.sun.tools.javac.code.Symbol;
 import edu.kit.kastel.property.packing.PackingClientTransfer;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.Unique;
 import edu.kit.kastel.property.subchecker.exclusivity.rules.*;
@@ -15,7 +16,6 @@ import org.checkerframework.javacutil.AnnotationBuilder;
 import org.checkerframework.javacutil.TreeUtils;
 
 import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.ExecutableElement;
 
 public class ExclusivityTransfer extends PackingClientTransfer<ExclusivityValue, ExclusivityStore, ExclusivityTransfer> {
 
@@ -75,8 +75,13 @@ public class ExclusivityTransfer extends PackingClientTransfer<ExclusivityValue,
         ExclusivityStore store = in.getRegularStore();
         ExpressionTree invocationTree = n.getTree();
         MethodAccessNode target = n.getTarget();
-        ExecutableElement method = target.getMethod();
+        Symbol.MethodSymbol method = (Symbol.MethodSymbol) target.getMethod();
         Node receiver = target.getReceiver();
+
+        if (method.owner.toString().equals("java.lang.Enum")) {
+            // nothing to check
+            return super.visitMethodInvocation(n, in);
+        }
 
         if (receiver instanceof ClassNameNode && ((ClassNameNode) receiver).getElement().toString().equals(Packing.class.getName())) {
             // Packing statements don't change the store

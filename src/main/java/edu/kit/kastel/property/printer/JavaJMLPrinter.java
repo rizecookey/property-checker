@@ -235,7 +235,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
                                     "//@ public static invariant_free packed <: %s ==> %s;",
                                     containingClassName,
                                     getPackedCondition(
-                                            propertyFactory.getAnnotatedType(field).getAnnotationInHierarchy(propertyFactory.getInitialized()),
+                                            propertyFactory.getAnnotatedType(field).getEffectiveAnnotationInHierarchy(propertyFactory.getInitialized()),
                                             field.getSimpleName().toString())));
                             printlnAligned(String.format(
                                     "//@ public static invariant_free \\invariant_free_for(%s);",
@@ -245,7 +245,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
                                     "//@ public invariant_free packed <: %s ==> %s;",
                                     containingClassName,
                                     getPackedCondition(
-                                            propertyFactory.getAnnotatedType(field).getAnnotationInHierarchy(propertyFactory.getInitialized()),
+                                            propertyFactory.getAnnotatedType(field).getEffectiveAnnotationInHierarchy(propertyFactory.getInitialized()),
                                             field.getSimpleName().toString())));
                             printlnAligned(String.format(
                                     "//@ public invariant_free \\invariant_free_for(%s);",
@@ -447,7 +447,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
                     AnnotatedTypeMirror paramType = method.getParameterTypes().get(i);
                     String paramName = paramNames.get(i);
 
-                    if (!AnnotationUtils.areSame(paramType.getAnnotationInHierarchy(getTop(factory)), getTop(factory))) {
+                    if (!AnnotationUtils.areSame(paramType.getEffectiveAnnotationInHierarchy(getTop(factory)), getTop(factory))) {
                         jmlContract.addClause(
                                 new Condition(ConditionType.ASSERTION, ConditionLocation.PRECONDITION, lattice.getPropertyAnnotation(paramType), paramName));
                     }
@@ -459,7 +459,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
                     GenericAnnotatedTypeFactory<?,?,?,?> factory = wellTypedness.getTypeFactory();
                     AnnotatedTypeMirror receiverType = factory.getMethodReturnType(enclMethod);
 
-                    if (AnnotationUtils.areSame(receiverType.getAnnotationInHierarchy(getTop(factory)), getTop(factory))) {
+                    if (AnnotationUtils.areSame(receiverType.getEffectiveAnnotationInHierarchy(getTop(factory)), getTop(factory))) {
                         continue;
                     }
 
@@ -482,7 +482,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
 
                     if (!(returnType instanceof AnnotatedExecutableType)
                             && returnType.getKind() != TypeKind.VOID
-                            && !AnnotationUtils.areSame(returnType.getAnnotationInHierarchy(getTop(factory)), getTop(factory))) {
+                            && !AnnotationUtils.areSame(returnType.getEffectiveAnnotationInHierarchy(getTop(factory)), getTop(factory))) {
                         boolean wt = wellTypedness.isWellTypedMethodResult(tree);
                         PropertyAnnotation pa = lattice.getPropertyAnnotation(returnType);
                         jmlContract.addClause(new Condition(wt, ConditionLocation.POSTCONDITION, pa, "\\result"));
@@ -794,7 +794,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
                     printlnAligned(String.format(
                             "//@ assume %s;",
                             getPackedCondition(
-                                    propertyFactory.getAnnotatedType(field).getAnnotationInHierarchy(propertyFactory.getInitialized()),
+                                    propertyFactory.getAnnotatedType(field).getEffectiveAnnotationInHierarchy(propertyFactory.getInitialized()),
                                     field.getSimpleName().toString())));
                 }
 
@@ -1190,7 +1190,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
                 PropertyAnnotationType pat = pa.getAnnotationType();
 
                 if (!pat.isTrivial()
-                        && !AnnotationUtils.areSame(requiredParamTypes.get(i).getAnnotationInHierarchy(getTop(factory)), getTop(factory))) {
+                        && !AnnotationUtils.areSame(requiredParamTypes.get(i).getEffectiveAnnotationInHierarchy(getTop(factory)), getTop(factory))) {
                     jmlContract.addClause(new Condition(ConditionType.ASSERTION, ConditionLocation.PRECONDITION, pa, paramNames.get(i))
                             .toStringOr(trampolineBooleanParamName(paramNames.get(i), wellTypedness)));
                     jmlContract.addClause(new Condition(ConditionType.ASSUMPTION, ConditionLocation.PRECONDITION, pa, paramNames.get(i))
@@ -1230,7 +1230,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
 
             if (propertyMethodType.getReturnType().getKind() != TypeKind.VOID && !isConstructor(tree)) {
                 AnnotatedTypeMirror returnType = wellTypedness.getTypeFactory().getMethodReturnType(tree);
-                AnnotationMirror anno = returnType.getAnnotationInHierarchy(getTop(wellTypedness.getTypeFactory()));
+                AnnotationMirror anno = returnType.getEffectiveAnnotationInHierarchy(getTop(wellTypedness.getTypeFactory()));
 
                 if (anno != null && !AnnotationUtils.areSame(
                         anno,
@@ -1540,7 +1540,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
             AnnotatedTypeMirror type = factory.getAnnotatedTypeLhs(tree.getVariable());
 
             if (type instanceof AnnotatedExecutableType
-                    || AnnotationUtils.areSame(type.getAnnotationInHierarchy(getTop(factory)), getTop(factory))) {
+                    || AnnotationUtils.areSame(type.getEffectiveAnnotationInHierarchy(getTop(factory)), getTop(factory))) {
                 continue;
             }
 
@@ -1563,7 +1563,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
             AnnotatedTypeMirror type = factory.getAnnotatedTypeLhs(tree);
 
             if (type instanceof AnnotatedExecutableType
-                    || AnnotationUtils.areSame(type.getAnnotationInHierarchy(getTop(factory)), getTop(factory))) {
+                    || AnnotationUtils.areSame(type.getEffectiveAnnotationInHierarchy(getTop(factory)), getTop(factory))) {
                 continue;
             }
 

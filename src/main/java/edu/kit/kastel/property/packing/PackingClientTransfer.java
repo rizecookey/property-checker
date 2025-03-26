@@ -1,6 +1,7 @@
 package edu.kit.kastel.property.packing;
 
 import com.sun.source.tree.*;
+import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.tree.JCTree;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
@@ -159,6 +160,11 @@ public abstract class PackingClientTransfer<
 
     @Override
     protected void processPostconditions(Node invocationNode, S store, ExecutableElement executableElement, ExpressionTree invocationTree) {
+        if (executableElement instanceof Symbol.MethodSymbol meth && meth.owner.toString().equals("java.lang.Enum")) {
+            // nothing to check
+            return;
+        }
+
         ContractsFromMethod contractsUtils = analysis.getTypeFactory().getContractsFromMethod();
         Set<Contract.Postcondition> postconditions = contractsUtils.getPostconditions(executableElement);
         ExclusivityAnnotatedTypeFactory exclFactory;

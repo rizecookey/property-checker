@@ -157,6 +157,11 @@ public class PackingTransfer extends InitializationAbstractTransfer<CFValue, Pac
 
     @Override
     protected void processPostconditions(Node invocationNode, PackingStore store, ExecutableElement executableElement, ExpressionTree invocationTree) {
+        if (executableElement instanceof Symbol.MethodSymbol meth && meth.owner.toString().equals("java.lang.Enum")) {
+            // nothing to check
+            return;
+        }
+
         ContractsFromMethod contractsUtils = analysis.getTypeFactory().getContractsFromMethod();
         Set<Contract.Postcondition> postconditions = contractsUtils.getPostconditions(executableElement);
 

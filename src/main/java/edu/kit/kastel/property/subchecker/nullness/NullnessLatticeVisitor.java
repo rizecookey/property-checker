@@ -252,7 +252,8 @@ public class NullnessLatticeVisitor extends NullnessNoInitVisitor implements Coo
                             requiredArgs.get(idx),
                             passedArgs.get(idx),
                             "argument.type.incompatible", //$NON-NLS-1$
-                            paramNames.get(idx).toString(),
+                            // idx >= paramNames.size() is true if the called method has varargs
+                            idx >= paramNames.size() ? paramNames.getLast().toString() : paramNames.get(idx).toString(),
                             executableName.toString()),
                     () -> {
                         Tree leaf = getCurrentPath().getLeaf();
