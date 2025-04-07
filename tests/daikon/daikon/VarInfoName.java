@@ -2633,7 +2633,7 @@ public abstract @Interned class VarInfoName implements Serializable, Comparable<
     }
 
     /** Returns true iff some part of root is contained in this.goals. */
-    @EnsuresNonNullIf(result = true, expression = "getPart(#1")
+    @EnsuresNonNullIf(result = true, expression = "getPart(#1)")
     public boolean contains(VarInfoName root) {
       VarInfoName o = getPart(root);
       return (o != null);
