@@ -1,12 +1,12 @@
 package edu.kit.kastel.property.subchecker.exclusivity;
 
+import com.sun.source.tree.ParameterizedTypeTree;
 import com.sun.source.tree.Tree;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.BaseTypeValidator;
 import org.checkerframework.common.basetype.BaseTypeVisitor;
 import org.checkerframework.framework.source.DiagMessage;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
-import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.javacutil.AnnotationUtils;
 
 import javax.lang.model.element.AnnotationMirror;
@@ -21,6 +21,12 @@ public class ExclusivityValidator extends BaseTypeValidator
     public ExclusivityValidator(BaseTypeChecker checker, BaseTypeVisitor<?> visitor, ExclusivityAnnotatedTypeFactory atypeFactory) {
         super(checker, visitor, atypeFactory);
         this.atypeFactory = atypeFactory;
+    }
+
+    @Override
+    protected Void visitParameterizedType(AnnotatedTypeMirror.AnnotatedDeclaredType type, ParameterizedTypeTree tree) {
+        // nothing to check
+        return null;
     }
 
     @Override

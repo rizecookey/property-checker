@@ -6,6 +6,7 @@ import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnalysis;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityStore;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityValue;
+import edu.kit.kastel.property.util.TypeUtils;
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 import org.checkerframework.dataflow.cfg.node.MethodInvocationNode;
 import org.checkerframework.dataflow.cfg.node.Node;
@@ -54,7 +55,7 @@ public class TMethodInvocation extends AbstractTypeRule<MethodInvocationNode> {
         // "param_i = arg_i;"
         for (int i = 0; i < node.getTarget().getMethod().getParameters().size(); ++i) {
             VariableElement paramDecl = node.getTarget().getMethod().getParameters().get(i);
-            Node paramValue = node.getArgument(i);
+            Node paramValue = TypeUtils.getArgumentWithVarargs(node, i);
             AnnotationMirror paramTypeAnno = factory.getExclusivityAnnotation(factory.getAnnotatedType(paramDecl));
             if (sideEffectFree) {
                 new TAssign(store, factory, analysis).applyWithoutInvalidation(paramTypeAnno, paramValue);
