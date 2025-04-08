@@ -88,7 +88,7 @@ public class Lattice {
     }
 
     public PropertyAnnotation getPropertyAnnotation(AnnotatedTypeMirror mirror) {
-        PropertyAnnotation result = getPropertyAnnotation(mirror.getAnnotationInHierarchy(getTop()));
+        PropertyAnnotation result = getPropertyAnnotation(mirror.getEffectiveAnnotationInHierarchy(getTop()));
 
         // Replace @NonNull on primitives by @Nullable to avoid type error in JML translation
         if (TypesUtils.isPrimitive(mirror.getUnderlyingType()) && result.getAnnotationType().isNonNull()) {

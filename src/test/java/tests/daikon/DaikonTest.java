@@ -57,7 +57,7 @@ public class DaikonTest {
             "-Anomsgtext",
             "-Astubs=stubs/",
             "-nowarn",
-            "-Aflowdotdir=../flowdot",
+            //"-Aflowdotdir=../flowdot",
             "-APropertyChecker_inDir=" + new File(new File("tests"), testDir).getPath(),
             "-APropertyChecker_outDir=" + "../property-checker-out",
             "-APropertyChecker_lattices=" + lattices,

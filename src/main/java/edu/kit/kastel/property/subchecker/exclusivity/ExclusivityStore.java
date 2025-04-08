@@ -24,8 +24,8 @@ public class ExclusivityStore extends PackingClientStore<ExclusivityValue, Exclu
         ExclusivityValue oldValue = getValue(expr);
 
         return super.shouldInsert(expr, value, permitNondeterministic) &&
-                (oldValue == null || !factory.getQualifierHierarchy().isSubtypeQualifiersOnly(
-                factory.getExclusivityAnnotation(getValue(expr).getAnnotations()),
+                (oldValue == null || oldValue.getAnnotations().isEmpty() || !factory.getQualifierHierarchy().isSubtypeQualifiersOnly(
+                factory.getExclusivityAnnotation(oldValue.getAnnotations()),
                 factory.EXCL_BOTTOM));
     }
 }

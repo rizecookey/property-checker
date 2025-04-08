@@ -58,10 +58,10 @@ public class ExclusivityViewpointAdapter extends AbstractViewpointAdapter {
             result.addAnnotation(atypeFactory.UNIQUE);
             return result;
         } else if (declaredType.hasAnnotation(atypeFactory.UNIQUE)) {
-            result.addAnnotation(receiverType.getAnnotationInHierarchy(atypeFactory.UNIQUE));
+            result.addAnnotation(receiverType.getEffectiveAnnotationInHierarchy(atypeFactory.UNIQUE));
             return result;
         } else {
-            result.addAnnotation(declaredType.getAnnotationInHierarchy(atypeFactory.UNIQUE));
+            result.addAnnotation(declaredType.getEffectiveAnnotationInHierarchy(atypeFactory.UNIQUE));
             return result;
         }
     }

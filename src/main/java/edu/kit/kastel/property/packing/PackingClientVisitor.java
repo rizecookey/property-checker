@@ -142,6 +142,11 @@ public abstract class PackingClientVisitor<
     }
 
     protected final boolean isParam(Tree expr) {
+        if (methodTree == null) {
+            // We're in a initialization block; so there are no params
+            return false;
+        }
+
         if (expr instanceof IdentifierTree) {
             IdentifierTree ident = (IdentifierTree) expr;
             if (ident.getName().toString().equals("this")) {

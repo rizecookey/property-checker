@@ -111,13 +111,23 @@ public final class PropertyVisitor extends PackingVisitor {
 
         for (int i = 0; i < tree.getParameters().size(); ++i) {
             VariableTree param = tree.getParameters().get(i);
-            inputPackingTypes.get(tree)[i + 1] = atypeFactory.getAnnotatedType(param).getAnnotationInHierarchy(atypeFactory.getInitialized());
+            AnnotationMirror anno = atypeFactory.getAnnotatedType(param).getEffectiveAnnotationInHierarchy(atypeFactory.getInitialized());
+            if (anno == null) {
+                anno = atypeFactory.getInitialized();
+            }
+
+            inputPackingTypes.get(tree)[i + 1] = anno;
         }
 
         if (TreeUtils.isConstructor(tree)) {
-            outputPackingTypes.get(tree)[0] = getDeclaredConstructorResult(tree);
+            inputPackingTypes.get(tree)[0] = getDeclaredConstructorResult(tree);
         } else if (tree.getReceiverParameter() != null) {
-            inputPackingTypes.get(tree)[0] = atypeFactory.getAnnotatedType(tree.getReceiverParameter()).getAnnotationInHierarchy(atypeFactory.getInitialized());
+            AnnotationMirror anno = atypeFactory.getAnnotatedType(tree.getReceiverParameter()).getEffectiveAnnotationInHierarchy(atypeFactory.getInitialized());
+            if (anno == null) {
+                anno = atypeFactory.getInitialized();
+            }
+
+            inputPackingTypes.get(tree)[0] = anno;
         }
         return super.visitMethod(tree, p);
     }
@@ -132,7 +142,12 @@ public final class PropertyVisitor extends PackingVisitor {
     @Override
     protected void checkDefaultContract(VariableTree param, MethodTree methodTree, PackingStore exitStore) {
         int paramIdx = TypeUtils.getParameterIndex(methodTree, param);
-        outputPackingTypes.get(methodTree)[paramIdx] = atypeFactory.getAnnotatedTypeLhs(param).getAnnotationInHierarchy(atypeFactory.getInitialized());
+        AnnotationMirror anno = atypeFactory.getAnnotatedTypeLhs(param).getAnnotationInHierarchy(atypeFactory.getInitialized());
+        if (anno == null) {
+            anno = atypeFactory.getInitialized();
+        }
+
+        outputPackingTypes.get(methodTree)[paramIdx] = anno;
         super.checkDefaultContract(param, methodTree, exitStore);
     }
 

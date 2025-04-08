@@ -1046,6 +1046,11 @@ public class JavaJMLPrinter extends PrettyPrinter {
         }
     }
 
+    @Override
+    public void printTypeAnnotations(com.sun.tools.javac.util.List<JCAnnotation> trees) throws IOException {
+        // do nothing
+    }
+
     protected void printStaticInitializers() throws IOException {
         List<Union<StatementTree, VariableTree, BlockTree>> inits =
                 results.get(0).getStaticInitializers(enclClass.sym.getQualifiedName().toString());

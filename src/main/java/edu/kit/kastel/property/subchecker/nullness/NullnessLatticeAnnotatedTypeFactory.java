@@ -12,6 +12,7 @@ import edu.kit.kastel.property.packing.PackingFieldAccessSubchecker;
 import edu.kit.kastel.property.packing.PackingFieldAccessTreeAnnotator;
 import edu.kit.kastel.property.subchecker.lattice.CooperativeAnnotatedTypeFactory;
 import org.checkerframework.checker.nullness.*;
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
@@ -49,11 +50,17 @@ public class NullnessLatticeAnnotatedTypeFactory extends NullnessNoInitAnnotated
         Map<String, PropertyAnnotationType> annotationTypes = new HashMap<>();
         Map<Pair<String, String>, SubAnnotationRelation> relations = new HashMap<>();
         PropertyAnnotationType nonNull = new PropertyAnnotationType(NonNull.class, null, List.of(), "§subject§ != null", "true");
+        //TODO
+        PropertyAnnotationType monotonicNonNull = new PropertyAnnotationType(MonotonicNonNull.class, null, List.of(), "true", "true");
         PropertyAnnotationType nullable = new PropertyAnnotationType(Nullable.class, null, List.of(), "true", "true");
         annotationTypes.put("NonNull", nonNull);
+        annotationTypes.put("MonotonicNonNull", nonNull);
         annotationTypes.put("Nullable", nullable);
         relations.put(
-                Pair.of("NonNull", "Nullable"),
+                Pair.of("MonotonicNonNull", "Nullable"),
+                new SubAnnotationRelation(new PropertyAnnotation(nonNull, List.of()), new PropertyAnnotation(nullable, List.of()), "true"));
+        relations.put(
+                Pair.of("NonNull", "MonotonicNonNull"),
                 new SubAnnotationRelation(new PropertyAnnotation(nonNull, List.of()), new PropertyAnnotation(nullable, List.of()), "true"));
 
         this.lattice = new Lattice(this, "nullness", annotationTypes, relations, Map.of(), Map.of());
@@ -131,6 +138,35 @@ public class NullnessLatticeAnnotatedTypeFactory extends NullnessNoInitAnnotated
         return initFactory.isNotFullyInitializedReceiver(methodDeclTree);
     }
 
+    protected AnnotatedTypeMirror getAnnotatedTypeBeforeNoInit(JavaExpression expr, ExpressionTree tree) {
+        NullnessNoInitStore store = getStoreBefore(tree);
+        NullnessNoInitValue value = null;
+        if (CFAbstractStore.canInsertJavaExpression(expr)) {
+            value = store.getValue(expr);
+        }
+        Set<? extends AnnotationMirror> annos = null;
+        if (value != null) {
+            annos = value.getAnnotations();
+        } else {
+            // If there is no information in the store (possible if e.g., no refinement
+            // of the field has occurred), use top instead of automatically
+            // issuing a warning. This is not perfectly precise: for example,
+            // if jeExpr is a field it would be more precise to use the field's
+            // declared type rather than top. However, doing so would be unsound
+            // in at least three circumstances where the type of the field depends
+            // on the type of the receiver: (1) all fields in Nullness Checker,
+            // because of possibility that the receiver is under initialization,
+            // (2) polymorphic fields, and (3) fields whose type is a type variable.
+            // Using top here instead means that the method is always sound;
+            // a subclass can then override it with a more precise implementation.
+            annos = getQualifierHierarchy().getTopAnnotations();
+        }
+
+        AnnotatedTypeMirror res = AnnotatedTypeMirror.createType(expr.getType(), this, false);
+        res.addAnnotations(annos);
+        return res;
+    }
+
     @Override
     public AnnotatedTypeMirror getAnnotatedTypeBefore(JavaExpression expr, ExpressionTree tree) {
         PackingFieldAccessAnnotatedTypeFactory initFactory =
@@ -139,7 +175,7 @@ public class NullnessLatticeAnnotatedTypeFactory extends NullnessNoInitAnnotated
                                 PackingFieldAccessSubchecker.class);
         if (initFactory == null) {
             // init checker is deactivated.
-            return super.getAnnotatedTypeBefore(expr, tree);
+            return getAnnotatedTypeBeforeNoInit(expr, tree);
         }
         if (expr instanceof FieldAccess) {
             FieldAccess fa = (FieldAccess) expr;
@@ -153,12 +189,12 @@ public class NullnessLatticeAnnotatedTypeFactory extends NullnessNoInitAnnotated
             } else if (receiver instanceof ThisReference) {
                 receiverType = initFactory.getSelfType(tree);
             } else {
-                return super.getAnnotatedTypeBefore(expr, tree);
+                return getAnnotatedTypeBeforeNoInit(expr, tree);
             }
 
             if (initFactory.isInitializedForFrame(receiverType, declaringClass)) {
                 AnnotatedTypeMirror declared = getAnnotatedType(fa.getField());
-                AnnotatedTypeMirror refined = super.getAnnotatedTypeBefore(expr, tree);
+                AnnotatedTypeMirror refined = getAnnotatedTypeBeforeNoInit(expr, tree);
                 AnnotatedTypeMirror res = AnnotatedTypeMirror.createType(fa.getType(), this, false);
                 // If the expression is initialized, then by definition, it has at least its
                 // declared annotation.

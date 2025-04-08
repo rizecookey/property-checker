@@ -161,10 +161,10 @@ abstract class AbstractTypeRule<N extends Node> implements TypeRule {
             value = store.getValue((ThisNode) node);
         }
 
-        if (value != null) {
+        if (value != null && !value.getAnnotations().isEmpty()) {
             oldAnno = factory.getExclusivityAnnotation(value.getAnnotations());
         } else if (node.getTree() != null) {
-            oldAnno = factory.getExclusivityAnnotation(factory.getAnnotatedType(node.getTree()).getAnnotations());
+            oldAnno = factory.getExclusivityAnnotation(factory.getAnnotatedType(node.getTree()).getEffectiveAnnotations());
         } else {
             oldAnno = factory.MAYBE_ALIASED;
         }
