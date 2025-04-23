@@ -62,14 +62,10 @@ public final class ExclusivityVisitor extends PackingClientVisitor<ExclusivityAn
             MemberSelectTree lhsField = (MemberSelectTree) lhs;
             try {
                 IdentifierTree ident = (IdentifierTree) lhsField.getExpression();
-                // Field access is only allowed to fields of this, not other objects
-                if (!ident.getName().contentEquals("this")) {
-                    checker.reportError(node, "assignment.invalid-lhs");
-                }
                 // Field access is only allowed if this is not ReadOnly
                 if (atypeFactory.getAnnotatedType(ident).hasAnnotation(atypeFactory.READ_ONLY)) {
                     // T-Assign: lhs is local var OR this is modifiable
-                    checker.reportError(node, "assignment.this-not-writable");
+                    checker.reportError(node, "assignment.receiver-not-writable");
                 }
             } catch (ClassCastException e) {
                 // No field access to arbitrary expressions is allowed

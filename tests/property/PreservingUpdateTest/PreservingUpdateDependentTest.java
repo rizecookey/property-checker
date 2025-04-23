@@ -9,9 +9,9 @@ import org.checkerframework.checker.initialization.qual.*;
 public final class PreservingUpdateDependentTest {
 
     // :: error: interval.assignment.type.incompatible
-    @Dependable @Interval(min="1", max="this.intField0") int intField0 = 1;
+    @Dependable @Interval(min="1", max="this.intField1") int intField0 = 1;
     @Dependable @Interval(min="1", max="2") int intField1 = 1;
-    @Dependable @NonNull Object objField = new Object();
+    @NonNull Object objField = new Object();
 
     @NonMonotonic
     void nonPreservingAliased0(@MaybeAliased PreservingUpdateDependentTest this) {
@@ -20,7 +20,8 @@ public final class PreservingUpdateDependentTest {
     }
 
     @NonMonotonic
-    void nonPreservingAliased1(@MaybeAliased PreservingUpdateDependentTest this) {
+    void nonPreservingAliased1(@MaybeAliased PreservingUpdateDependentTest this, @MaybeAliased PreservingUpdateDependentTest other) {
+        other.objField = new Object();
         // :: error: initialization.write.committed.field
         this.intField1 = 0;
     }

@@ -209,11 +209,12 @@ public abstract class PackingClientVisitor<
 
             AnnotatedTypeMirror declType = atypeFactory.getAnnotatedTypeLhs(param);
 
+            // TODO: There's a better way of doing this.
+            if (paramExpr instanceof ThisReference && declType.getAnnotations().stream().anyMatch(a -> a.getAnnotationType().asElement().getSimpleName().contentEquals("NonNull"))) {
+                return;
+            }
+
             if (!typeHierarchy.isSubtype(currentType, declType)) {
-                // TODO: There's a better way of doing this.
-                if (paramExpr instanceof ThisReference && declType.getAnnotations().stream().anyMatch(a -> a.getAnnotationType().asElement().getSimpleName().contentEquals("NonNull"))) {
-                    return;
-                }
                 checker.reportError(
                         methodTree,
                         getContractPostconditionNotSatisfiedMessage(),
