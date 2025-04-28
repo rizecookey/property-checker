@@ -539,7 +539,7 @@ public class PackingVisitor
             }
             // Non-preserving assignments only allowed to fields of this, not other objects
             if (lhs instanceof MemberSelectTree && !((MemberSelectTree) lhs).getExpression().toString().equals("this")) {
-                checker.reportError(varTree, "assignment.invalid-lhs");
+                checker.reportError(varTree, "initialization.assignment.invalid-lhs");
             }
 
             if (enclMethod != null && atypeFactory.isMonotonicMethod(enclMethod)) {

@@ -32,7 +32,7 @@ class LeakThis {
     }
 
     void mthReadOnly(@UnknownInitialization(Object.class) @ReadOnly LeakThis this) {
-        // :: error: assignment.receiver-not-writable
+        // :: error: exclusivity.assignment.receiver-not-writable
         this.readOnly = this;
     }
 

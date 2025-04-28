@@ -200,18 +200,13 @@ public abstract class PackingClientVisitor<
             return true;
         }
 
-        String msg = "flowexpr.parameter.not.final";
-        if (this instanceof LatticeVisitor lv) {
-            msg = lv.getLattice().getIdent() + msg;
-        }
-
         Set<Element> parameters = new ArraySet<>(2);
         findParameters.scan(javaExpression, parameters);
         for (Element parameter : parameters) {
             if (!ElementUtils.isEffectivelyFinal(parameter)) {
                 checker.reportError(
                         methodDeclTree,
-                        msg,
+                        "flowexpr.parameter.not.final",
                         parameter.getSimpleName(),
                         javaExpression);
                 return false;
