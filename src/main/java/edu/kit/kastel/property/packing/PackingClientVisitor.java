@@ -4,21 +4,28 @@ import com.sun.source.tree.*;
 import com.sun.tools.javac.code.TargetType;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.tree.JCTree;
+import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityVisitor;
+import edu.kit.kastel.property.subchecker.lattice.LatticeVisitor;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.BaseTypeVisitor;
 import org.checkerframework.dataflow.cfg.node.ThisNode;
 import org.checkerframework.dataflow.expression.JavaExpression;
+import org.checkerframework.dataflow.expression.JavaExpressionScanner;
+import org.checkerframework.dataflow.expression.LocalVariable;
 import org.checkerframework.dataflow.expression.ThisReference;
 import org.checkerframework.framework.flow.CFAbstractStore;
 import org.checkerframework.framework.flow.CFAbstractValue;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.javacutil.AnnotationMirrorSet;
 import org.checkerframework.javacutil.AnnotationUtils;
+import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
+import org.plumelib.util.ArraySet;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import java.util.HashSet;
 import java.util.Set;
@@ -40,35 +47,6 @@ public abstract class PackingClientVisitor<
 
     protected PackingClientVisitor(BaseTypeChecker checker, @Nullable Factory typeFactory) {
         super(checker, typeFactory);
-    }
-
-    @Override
-    protected void checkPostcondition(MethodTree methodTree, AnnotationMirror annotation, JavaExpression expression) {
-        paramsInContract.add(expression);
-        CFAbstractStore<?, ?> exitStore = atypeFactory.getRegularExitStore(methodTree);
-        if (exitStore == null) {
-            // If there is no regular exitStore, then the method cannot reach the regular exit and
-            // there is no need to check anything.
-        } else {
-            CFAbstractValue<?> value = exitStore.getValue(expression);
-            AnnotationMirror inferredAnno = null;
-            if (value != null) {
-                AnnotationMirrorSet annos = value.getAnnotations();
-                inferredAnno = qualHierarchy.findAnnotationInSameHierarchy(annos, annotation);
-            }
-            if (!checkContract(expression, annotation, inferredAnno, exitStore)) {
-                // TODO: There's a better way of doing this.
-                if (expression.toString().equals("this") && annotation.getAnnotationType().asElement().getSimpleName().contentEquals("NonNull")) {
-                    return;
-                }
-                checker.reportError(
-                        methodTree,
-                        getContractPostconditionNotSatisfiedMessage(),
-                        methodTree.getName(),
-                        contractExpressionAndType(expression.toString(), inferredAnno),
-                        contractExpressionAndType(expression.toString(), annotation));
-            }
-        }
     }
 
     protected abstract AnnotationMirror defaultConstructorQualifier(Type classType);
@@ -189,16 +167,109 @@ public abstract class PackingClientVisitor<
         return "contracts.postcondition.not.satisfied";
     }
 
+    /**
+     * Scans a {@link JavaExpression} and adds all the parameters in the {@code JavaExpression} to
+     * the passed set.
+     */
+    private final JavaExpressionScanner<Set<Element>> findParameters =
+            new JavaExpressionScanner<Set<Element>>() {
+                @Override
+                protected Void visitLocalVariable(
+                        LocalVariable localVarExpr, Set<Element> parameters) {
+                    if (localVarExpr.getElement().getKind() == ElementKind.PARAMETER) {
+                        parameters.add(localVarExpr.getElement());
+                    }
+                    return super.visitLocalVariable(localVarExpr, parameters);
+                }
+            };
+
+    /**
+     * Check that the parameters used in {@code javaExpression} are effectively final for method
+     * {@code method}.
+     *
+     * @param methodDeclTree a method declaration
+     * @param javaExpression a Java expression
+     */
+    protected boolean checkParametersAreEffectivelyFinal(
+            MethodTree methodDeclTree, JavaExpression javaExpression) {
+        // Paremeters must be effectively final, so we can check their corresponding postcondition.
+        // For nullness, there is nothing to check. For exclusivity, reassigning parameters is allowed as long as this
+        // always preserves the parameter's postcondition, which is checked in the ExclusivityVisitor.
+
+        if (this instanceof ExclusivityVisitor || (this instanceof LatticeVisitor lv && lv.getLattice().getIdent().equals("nullness"))) {
+            return true;
+        }
+
+        String msg = "flowexpr.parameter.not.final";
+        if (this instanceof LatticeVisitor lv) {
+            msg = lv.getLattice().getIdent() + msg;
+        }
+
+        Set<Element> parameters = new ArraySet<>(2);
+        findParameters.scan(javaExpression, parameters);
+        for (Element parameter : parameters) {
+            if (!ElementUtils.isEffectivelyFinal(parameter)) {
+                checker.reportError(
+                        methodDeclTree,
+                        msg,
+                        parameter.getSimpleName(),
+                        javaExpression);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @Override
+    protected void checkPostcondition(MethodTree methodTree, AnnotationMirror annotation, JavaExpression expression) {
+        paramsInContract.add(expression);
+        if (!checkParametersAreEffectivelyFinal(methodTree, expression)) {
+            return;
+        }
+
+        CFAbstractStore<?, ?> exitStore = atypeFactory.getRegularExitStore(methodTree);
+        if (exitStore == null) {
+            // If there is no regular exitStore, then the method cannot reach the regular exit and
+            // there is no need to check anything.
+        } else {
+            CFAbstractValue<?> value = exitStore.getValue(expression);
+            AnnotationMirror inferredAnno = null;
+            if (value != null) {
+                AnnotationMirrorSet annos = value.getAnnotations();
+                inferredAnno = qualHierarchy.findAnnotationInSameHierarchy(annos, annotation);
+            }
+            if (!checkContract(expression, annotation, inferredAnno, exitStore)) {
+                // TODO: There's a better way of doing this.
+                if (expression.toString().equals("this") && annotation.getAnnotationType().asElement().getSimpleName().contentEquals("NonNull")) {
+                    return;
+                }
+                checker.reportError(
+                        methodTree,
+                        getContractPostconditionNotSatisfiedMessage(),
+                        methodTree.getName(),
+                        contractExpressionAndType(expression.toString(), inferredAnno),
+                        contractExpressionAndType(expression.toString(), annotation));
+            }
+        }
+    }
+
     protected void checkDefaultContract(VariableTree param, MethodTree methodTree, PackingClientStore<?, ?> exitStore) {
+        // Paremeters must be effectively final, so we can check their corresponding postcondition.
+        // For nullness, there is nothing to check. For exclusivity, reassigning parameters is allowed as long as this
+        // always preserves the parameter's postcondition, which is checked in the ExclusivityVisitor.
         JavaExpression paramExpr;
         if (param.getName().contentEquals("this")) {
             paramExpr = new ThisReference(((JCTree) param).type);
         } else {
             paramExpr = JavaExpression.fromVariableTree(param);
         }
-        if (!paramsInContract.contains(paramExpr)) {
-            Element paramElem = TreeUtils.elementFromDeclaration(param);
 
+        if (!paramsInContract.contains(paramExpr)) {
+            if (!checkParametersAreEffectivelyFinal(methodTree, paramExpr)) {
+                return;
+            }
+
+            Element paramElem = TreeUtils.elementFromDeclaration(param);
             AnnotatedTypeMirror currentType = atypeFactory.getAnnotatedType(param);
             if (exitStore != null) {
                 PackingClientValue<?> valueAfterMethod = exitStore.getValue(paramExpr);

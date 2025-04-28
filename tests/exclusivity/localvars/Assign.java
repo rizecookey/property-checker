@@ -14,7 +14,7 @@ final class Assign {
     }
 
     void assignParam(@Unique Assign this, @Unique Assign other) {
-        // :: error: assignment.parameter
+        // :: error: exclusivity.assignment.unique.parameter
         other = new Assign();
     }
 }

@@ -73,8 +73,11 @@ public final class ExclusivityVisitor extends PackingClientVisitor<ExclusivityAn
             }
             return p;
         } else if (isParam(lhs)) {
-            // Parameters must not be reassigned
-            checker.reportError(node, "assignment.parameter");
+            AnnotatedTypeMirror lhsType = atypeFactory.getAnnotatedType(lhs);
+            if (lhsType.hasEffectiveAnnotation(atypeFactory.UNIQUE)) {
+                // Unique parameters must not be reassigned
+                checker.reportError(node, "exclusivity.assignment.unique.parameter");
+            }
             return p;
         } else {
             // Local variable. Everything is checked by the transfer rules; nothing to do here.
