@@ -11,7 +11,6 @@ public class NullnessDefaultTest {
 
     // :: error: initialization.field.uninitialized
     @NonNull Object nonNullField;
-    // :: error: initialization.field.uninitialized
     @Nullable Object nullableField;
     // :: error: initialization.field.uninitialized
     Object defaultField;
