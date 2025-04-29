@@ -115,11 +115,16 @@ public abstract class PackingClientTransfer<
                         if (!packingFactory.isInitializedForFrame(receiverPackingType, fieldOwnerType)
                                 && (!adaptedType.getKind().isPrimitive() || uncommitPrimitiveFields())) {
                             adaptedType.clearAnnotations();
-                            adaptedType.addAnnotations(factory.getQualifierHierarchy().getTopAnnotations());
+                            // Special case: At the beginning of a constructor, fields have the default value null,
+                            // which we can consider @Unique
+                            if (TreeUtils.isConstructor(methodDeclTree) && factory instanceof ExclusivityAnnotatedTypeFactory exclFactory) {
+                                adaptedType.addAnnotation(exclFactory.UNIQUE);
+                            } else {
+                                adaptedType.addAnnotations(factory.getQualifierHierarchy().getTopAnnotations());
+                            }
                         }
 
                         V value = analysis.createAbstractValue(adaptedType);
-
                         initStore.insertValue(fieldAccess, value);
                     }
                 }

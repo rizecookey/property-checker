@@ -5,14 +5,15 @@ import com.sun.source.util.TreePath;
 import com.sun.tools.javac.tree.JCTree;
 import edu.kit.kastel.property.packing.qual.Dependable;
 import edu.kit.kastel.property.packing.qual.NonMonotonic;
+import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.nullness.NullnessLatticeAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.nullness.NullnessLatticeSubchecker;
 import org.checkerframework.checker.initialization.InitializationAbstractAnnotatedTypeFactory;
 import org.checkerframework.checker.initialization.InitializationChecker;
 import org.checkerframework.checker.initialization.InitializationFieldAccessTreeAnnotator;
-import org.checkerframework.checker.initialization.qual.HoldsForDefaultValue;
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.dataflow.cfg.node.*;
@@ -24,8 +25,6 @@ import org.checkerframework.framework.flow.CFAbstractAnalysis;
 import org.checkerframework.framework.flow.CFAbstractStore;
 import org.checkerframework.framework.flow.CFAbstractValue;
 import org.checkerframework.framework.flow.CFValue;
-import org.checkerframework.framework.qual.MonotonicQualifier;
-import org.checkerframework.framework.qual.PolymorphicQualifier;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
 import org.checkerframework.framework.type.QualifierHierarchy;
@@ -137,17 +136,12 @@ public class PackingAnnotatedTypeFactory
             GenericAnnotatedTypeFactory<?, ?, ?, ?> factory,
             CFAbstractValue<?> value,
             VariableElement var) {
-        AnnotatedTypeMirror declType = factory.getAnnotatedType(var);
-        AnnotationMirror declAnno = declType.getEffectiveAnnotationInHierarchy(factory.getQualifierHierarchy().getTopAnnotations().first());
-        List<? extends AnnotationMirror> metaAnnos = declAnno.getAnnotationType().asElement().getAnnotationMirrors();
-
-        // Skip default-value, monotonic, polymorphic, and top qualifiers
-        if (AnnotationUtils.containsSameByClass(metaAnnos, HoldsForDefaultValue.class)
-                || AnnotationUtils.containsSameByClass(metaAnnos, MonotonicQualifier.class)
-                || AnnotationUtils.containsSameByClass(metaAnnos, PolymorphicQualifier.class)) {
+        // Exclusivity checker considers unassigned fields with default value null unique
+        if (value == null && factory instanceof ExclusivityAnnotatedTypeFactory) {
             return true;
         }
 
+        AnnotatedTypeMirror declType = factory.getAnnotatedType(var);
         AnnotatedTypeMirror refType;
         if (value != null) {
             refType = AnnotatedTypeMirror.createType(declType.getUnderlyingType(), factory, false);
@@ -161,6 +155,11 @@ public class PackingAnnotatedTypeFactory
         }
         if (refType instanceof AnnotatedTypeMirror.AnnotatedArrayType) {
             factory.addDefaultAnnotations(((AnnotatedTypeMirror.AnnotatedArrayType) refType).getComponentType());
+        }
+
+        // MonotonicNonNull fields may be null
+        if (declType.hasAnnotation(MonotonicNonNull.class) && refType.hasAnnotation(Nullable.class)) {
+            return true;
         }
 
         return factory.getTypeHierarchy().isSubtype(refType, declType);

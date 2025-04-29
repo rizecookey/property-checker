@@ -9,9 +9,17 @@ import org.checkerframework.dataflow.qual.*;
 
 public class NullnessDefaultTest {
 
+    // :: error: initialization.static.field.uninitialized
+    static @NonNull Object staticNonNullField;
+    static @Nullable Object staticNullableField;
+    static @MonotonicNonNull Object staticMonotonicNonNullField;
+    // :: error: initialization.static.field.uninitialized
+    static Object staticDefaultField;
+
     // :: error: initialization.field.uninitialized
     @NonNull Object nonNullField;
     @Nullable Object nullableField;
+    @MonotonicNonNull Object monotonicNonNullField;
     // :: error: initialization.field.uninitialized
     Object defaultField;
     

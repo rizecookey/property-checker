@@ -10,6 +10,8 @@ import edu.kit.kastel.property.lattice.SubAnnotationRelation;
 import edu.kit.kastel.property.packing.PackingFieldAccessAnnotatedTypeFactory;
 import edu.kit.kastel.property.packing.PackingFieldAccessSubchecker;
 import edu.kit.kastel.property.packing.PackingFieldAccessTreeAnnotator;
+import edu.kit.kastel.property.packing.qual.Dependable;
+import edu.kit.kastel.property.packing.qual.NonMonotonic;
 import edu.kit.kastel.property.subchecker.lattice.CooperativeAnnotatedTypeFactory;
 import org.checkerframework.checker.nullness.*;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
@@ -26,7 +28,9 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.LiteralTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
+import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.Pair;
+import org.checkerframework.javacutil.TreeUtils;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
@@ -108,6 +112,11 @@ public class NullnessLatticeAnnotatedTypeFactory extends NullnessNoInitAnnotated
     }
 
     @Override
+    protected NullnessNoInitAnalysis createFlowAnalysis() {
+        return new NullnessLatticeAnalysis(checker, this);
+    }
+
+    @Override
     public NullnessNoInitTransfer createFlowTransferFunction(CFAbstractAnalysis<NullnessNoInitValue, NullnessNoInitStore, NullnessNoInitTransfer> analysis) {
         return new NullnessLatticeTransfer((NullnessNoInitAnalysis) analysis);
     }
@@ -165,6 +174,22 @@ public class NullnessLatticeAnnotatedTypeFactory extends NullnessNoInitAnnotated
         AnnotatedTypeMirror res = AnnotatedTypeMirror.createType(expr.getType(), this, false);
         res.addAnnotations(annos);
         return res;
+    }
+
+    public boolean isDependableField(ExpressionTree tree) {
+        return isDependableField(TreeUtils.elementFromUse(tree));
+    }
+
+    public boolean isDependableField(Element el) {
+        return AnnotationUtils.containsSameByClass(el.asType().getAnnotationMirrors(), Dependable.class);
+    }
+
+    public boolean isMonotonicMethod(MethodTree tree) {
+        return isMonotonicMethod(TreeUtils.elementFromDeclaration(tree));
+    }
+
+    public boolean isMonotonicMethod(Element el) {
+        return !AnnotationUtils.containsSameByClass(getDeclAnnotations(el), NonMonotonic.class);
     }
 
     @Override
