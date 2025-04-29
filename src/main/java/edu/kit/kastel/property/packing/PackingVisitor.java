@@ -86,6 +86,7 @@ public class PackingVisitor
     protected void reportMethodInvocabilityError(
             MethodInvocationTree tree, AnnotatedTypeMirror found, AnnotatedTypeMirror expected) {
         ExpressionTree recv = tree.getMethodSelect();
+        Element element = TreeUtils.elementFromTree(tree);
         if (recv instanceof MemberSelectTree && ((MemberSelectTree) recv).getExpression().toString().equals("this")
                 && canInferPackingStatement(
                 ((MemberSelectTree) recv).getExpression(),
@@ -93,6 +94,16 @@ public class PackingVisitor
                 expected.getAnnotationInHierarchy(atypeFactory.getInitialized()),
                 found.getAnnotationInHierarchy(atypeFactory.getInitialized()))) {
             return;
+        } else if (ElementUtils.hasReceiver(element)) {
+            // Implicit this
+
+            if (canInferPackingStatement(
+                    atypeFactory.getReceiverType(tree),
+                    tree,
+                    expected.getAnnotationInHierarchy(atypeFactory.getInitialized()),
+                    found.getAnnotationInHierarchy(atypeFactory.getInitialized()))) {
+                return;
+            }
         }
 
         checker.reportError(
@@ -159,17 +170,27 @@ public class PackingVisitor
             Tree stmtTree,
             AnnotationMirror varAnno,
             AnnotationMirror valAnno) {
+        return canInferPackingStatement(
+                atypeFactory.getTypeFactoryOfSubchecker(ExclusivityChecker.class).getAnnotatedType(varTree),
+                stmtTree == null ? varTree : stmtTree, varAnno, valAnno);
+    }
+
+    protected final boolean canInferPackingStatement(
+            AnnotatedTypeMirror type,
+            Tree stmtTree,
+            AnnotationMirror varAnno,
+            AnnotationMirror valAnno) {
         TypeMirror varFrame;
         if (atypeFactory.isInitialized(varAnno)) {
             // If an object is initialized up to its most specific known subclass and no function with a receiver type
             // @UnderInitialization was called, the object is @Initialized
-            if (atypeFactory.getStoreBefore(varTree).isHelperFunctionCalled()) {
+            if (atypeFactory.getStoreBefore(stmtTree).isHelperFunctionCalled()) {
                 return false;
             }
-            varFrame = ((JCTree) varTree).type;
+            varFrame = type.getUnderlyingType();
         } else {
             varFrame = atypeFactory.getTypeFrameFromAnnotation(varAnno);
-            boolean unique = atypeFactory.getTypeFactoryOfSubchecker(ExclusivityChecker.class).getAnnotatedType(varTree).hasAnnotation(Unique.class);
+            boolean unique = type.hasAnnotation(Unique.class);
             if (!unique) {
                 return false;
             }
@@ -184,7 +205,7 @@ public class PackingVisitor
 
         // Infer pack statement if possible
         if (types.isSubtype(varFrame, valFrame) && !atypeFactory.isUnknownInitialization(valAnno)) {
-            checkFieldsInitializedUpToFrame(varTree, varFrame);
+            checkFieldsInitializedUpToFrame(stmtTree, varFrame);
             // checkFieldsInitializedUpToFrame reports an error if necessary.
             // We return true to not report another error.
             inferPackStatement(stmtTree, varFrame);
@@ -687,6 +708,11 @@ public class PackingVisitor
                 // But if a field has been initialized by an inline initializer, that assignment respects the field's
                 // declared type.
                 uninitializedFields.removeIf(f -> initExitStore.isFieldAssigned(f));
+
+                // Static fields of superclasses are checked elsewhere. Remove them
+                if (staticFields) {
+                    uninitializedFields.removeIf(f -> !f.getEnclosingElement().equals(TreeUtils.elementFromTree(tree)));
+                }
 
                 // If we are checking initialization of a class's static fields or of a default constructor,
                 // we issue an error for every uninitialized field at the respective field declaration.

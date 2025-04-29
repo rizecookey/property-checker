@@ -8,11 +8,9 @@ import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityTransfer;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.ReadOnly;
 import edu.kit.kastel.property.util.TypeUtils;
-import org.checkerframework.dataflow.analysis.RegularTransferResult;
 import org.checkerframework.dataflow.analysis.TransferInput;
 import org.checkerframework.dataflow.analysis.TransferResult;
 import org.checkerframework.dataflow.cfg.UnderlyingAST;
-import org.checkerframework.dataflow.cfg.block.ExceptionBlock;
 import org.checkerframework.dataflow.cfg.node.*;
 import org.checkerframework.dataflow.expression.FieldAccess;
 import org.checkerframework.dataflow.expression.JavaExpression;
@@ -31,9 +29,7 @@ import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 public abstract class PackingClientTransfer<
@@ -143,7 +139,7 @@ public abstract class PackingClientTransfer<
     }
 
     protected TransferResult<V, S> addExceptionalStores(MethodInvocationNode n, TransferInput<V, S> in, TransferResult<V, S> result) {
-        if (n.getBlock() instanceof ExceptionBlock eb) {
+        /*if (n.getBlock() instanceof ExceptionBlock eb) {
             Map<TypeMirror, S> exceptionalStores = new HashMap<>();
             S excStore = in.getRegularStore().copy();
 
@@ -153,7 +149,7 @@ public abstract class PackingClientTransfer<
             eb.getExceptionalSuccessors().keySet().forEach(cause -> exceptionalStores.put(cause, excStore));
 
             return new RegularTransferResult<>(result.getResultValue(), result.getRegularStore(), exceptionalStores);
-        }
+        }*/
         return result;
     }
 

@@ -2,7 +2,9 @@ package edu.kit.kastel.property.packing;
 
 import edu.kit.kastel.property.config.Config;
 import org.apache.commons.io.FileUtils;
+import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
 import org.checkerframework.checker.initialization.InitializationChecker;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.framework.source.SupportedOptions;
 import org.checkerframework.javacutil.InternalUtils;
@@ -43,6 +45,11 @@ public abstract class PackingChecker extends InitializationChecker {
         NavigableSet<String> result = super.getSuppressWarningsPrefixes();
         result.add("packing");
         return result;
+    }
+
+    @Override
+    public void reportError(@Nullable Object source, @CompilerMessageKey String messageKey, Object... args) {
+        super.reportError(source, messageKey, args);
     }
 
     @Override
