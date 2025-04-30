@@ -523,22 +523,33 @@ public class PackingVisitor
 
         if (preservingAssignment) {
             for (BaseTypeChecker targetChecker : getChecker().getTargetCheckers()) {
-                CFAbstractStore<?, ?> store = targetChecker.getTypeFactory().getStoreAfter(getCurrentPath().getLeaf());
-                if (store == null) {
-                    preservingAssignment = false;
-                    break;
-                }
-                List<VariableElement> uninitFields = atypeFactory.getUninitializedFields(
-                        atypeFactory.getStoreAfter(getCurrentPath().getLeaf()),
-                        store,
-                        this.getCurrentPath(),
-                        ElementUtils.isStatic(TreeUtils.elementFromUse(lhs)),
-                        List.of()
-                );
+                if (lhs instanceof MemberSelectTree && ((MemberSelectTree) lhs).getExpression().toString().equals("this")) {
+                    CFAbstractStore<?, ?> store = targetChecker.getTypeFactory().getStoreAfter(getCurrentPath().getLeaf());
 
-                if (uninitFields.contains(TreeUtils.elementFromUse(lhs))) {
-                    preservingAssignment = false;
-                    break;
+                    if (store == null) {
+                        preservingAssignment = false;
+                        break;
+                    }
+                    List<VariableElement> uninitFields = atypeFactory.getUninitializedFields(
+                            atypeFactory.getStoreAfter(getCurrentPath().getLeaf()),
+                            store,
+                            this.getCurrentPath(),
+                            ElementUtils.isStatic(TreeUtils.elementFromUse(lhs)),
+                            List.of()
+                    );
+
+                    if (uninitFields.contains(TreeUtils.elementFromUse(lhs))) {
+                        preservingAssignment = false;
+                        break;
+                    }
+                } else {
+                    // Assignment is to a field of another object
+                    AnnotatedTypeMirror lhsType = targetChecker.getTypeFactory().getAnnotatedTypeLhs(lhs);
+                    AnnotatedTypeMirror rhsType = targetChecker.getTypeFactory().getAnnotatedType(valueExp);
+                    if (!targetChecker.getTypeFactory().getTypeHierarchy().isSubtype(rhsType, lhsType)) {
+                        preservingAssignment = false;
+                        break;
+                    }
                 }
             }
         }
@@ -561,6 +572,7 @@ public class PackingVisitor
             // Non-preserving assignments only allowed to fields of this, not other objects
             if (lhs instanceof MemberSelectTree && !((MemberSelectTree) lhs).getExpression().toString().equals("this")) {
                 checker.reportError(varTree, "initialization.assignment.invalid-lhs");
+                return false;
             }
 
             if (enclMethod != null && atypeFactory.isMonotonicMethod(enclMethod)) {
