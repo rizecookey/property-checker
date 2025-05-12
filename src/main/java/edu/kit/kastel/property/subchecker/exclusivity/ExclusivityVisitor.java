@@ -63,14 +63,14 @@ public final class ExclusivityVisitor extends PackingClientVisitor<ExclusivityAn
             // Field access is only allowed if this is not ReadOnly
             if (atypeFactory.getAnnotatedType(lhsField.getExpression()).hasAnnotation(atypeFactory.READ_ONLY)) {
                 // T-Assign: lhs is local var OR this is modifiable
-                checker.reportError(node, "exclusivity.assignment.receiver-not-writable");
+                checker.reportError(node, "assignment.receiver-not-writable");
             }
             return p;
         } else if (isParam(lhs)) {
             AnnotatedTypeMirror lhsType = atypeFactory.getAnnotatedType(lhs);
             if (lhsType.hasEffectiveAnnotation(atypeFactory.UNIQUE)) {
                 // Unique parameters must not be reassigned
-                checker.reportError(node, "exclusivity.assignment.unique.parameter");
+                checker.reportError(node, "assignment.unique.parameter");
             }
             return p;
         } else {
@@ -89,7 +89,7 @@ public final class ExclusivityVisitor extends PackingClientVisitor<ExclusivityAn
             if (!qualHierarchy.isSubtypeQualifiersOnly(
                     atypeFactory.getExclusivityAnnotation(atypeFactory.getAnnotatedType(objToPack)),
                     atypeFactory.UNIQUE)) {
-                checker.reportError(node, "exclusivity.packing.aliased");
+                checker.reportError(node, "packing.aliased");
             }
             return null;
         }
@@ -163,7 +163,7 @@ public final class ExclusivityVisitor extends PackingClientVisitor<ExclusivityAn
 
     @Override
     protected String getContractPostconditionNotSatisfiedMessage() {
-        return "exclusivity.postcondition.not.satisfied";
+        return "postcondition.not.satisfied";
     }
 
     @Override

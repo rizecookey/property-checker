@@ -234,9 +234,18 @@ public class PackingTransfer extends InitializationAbstractTransfer<CFValue, Pac
                         analysis,
                         paramType.getAnnotations(),
                         paramType.getUnderlyingType());
-                store.replaceValue(
-                        JavaExpression.fromNode(((ObjectCreationNode) invocationNode).getArgument(i++)),
-                        paramDefaultValue);
+                JavaExpression expr = JavaExpression.fromNode(((ObjectCreationNode) invocationNode).getArgument(i++));
+                CFValue oldValue = TypeUtils.isStoreExpression(expr) ? store.getValue(expr) : null;
+                if (oldValue != null && AnnotationUtils.containsSameByClass(paramDefaultValue.getAnnotations(), UnknownInitialization.class)) {
+                    // UnknownInit params cannot be (un-)packed
+                    store.insertValue(
+                            expr,
+                            paramDefaultValue.mostSpecific(oldValue, oldValue));
+                } else {
+                    store.replaceValue(
+                            expr,
+                            paramDefaultValue);
+                }
             }
         } else {
             throw new BugInCF(

@@ -121,7 +121,7 @@ public abstract class PackingClientVisitor<
 
     protected final boolean isParam(Tree expr) {
         if (methodTree == null) {
-            // We're in a initialization block; so there are no params
+            // We're in an initialization block; so there are no params
             return false;
         }
 
