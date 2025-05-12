@@ -206,6 +206,8 @@ import org.plumelib.util.RegexUtil;
 import org.plumelib.util.StringsPlume;
 import typequals.prototype.qual.Prototype;
 
+import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
+
 /**
  * The {@link #main} method is the main entry point for the Daikon invariant detector. The {@link
  * #mainHelper} method is the entry point, when called programmatically.
@@ -2198,7 +2200,7 @@ public final class Daikon {
 
   /** Outputs FileIO progress information. Uses global variable FileIO.data_trace_state. */
   public static class FileIOProgress extends Thread {
-    public FileIOProgress() {
+    public @MaybeAliased FileIOProgress() {
       setDaemon(true);
     }
 

@@ -35,6 +35,8 @@ import org.checkerframework.dataflow.qual.Pure;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 import typequals.prototype.qual.Prototype;
 
+import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
+
 // Outstanding NIS todo list
 //
 //  - Merging is slow when there are multiple children.
@@ -944,7 +946,7 @@ public class NIS {
     }
 
     /** Track Log the specified message. */
-    public void log(@UnknownInitialization(SupInv.class) SupInv this, String message) {
+    public void log(@Unique @UnknownInitialization(SupInv.class) SupInv this, String message) {
       if (Debug.logOn()) {
         Debug.log(suppressee.sup_class, ppt, vis, message);
       }

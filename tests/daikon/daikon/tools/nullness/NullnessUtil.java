@@ -5,6 +5,7 @@ package daikon.tools.nullness;
 import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.dataflow.qual.Pure;
 
 /**
  * Utility class for the Nullness Checker.
@@ -68,6 +69,7 @@ public final class NullnessUtil {
    * @param ref a reference of @Nullable type
    * @return the argument, casted to have the type qualifier @NonNull
    */
+  @Pure
   public static @EnsuresNonNull("#1") <T extends @Nullable Object> @NonNull T castNonNull(T ref) {
     assert ref != null : "Misuse of castNonNull: called with a null argument";
     return (@NonNull T) ref;
@@ -83,6 +85,7 @@ public final class NullnessUtil {
    * @return the argument, with each array level casted to {@code @NonNull}
    * @see #castNonNull(Object)
    */
+  @Pure
   public static @EnsuresNonNull("#1") <T extends @Nullable Object>
       @NonNull T @NonNull [] castNonNullDeep(T @Nullable [] arr) {
     return (@NonNull T[]) castNonNullDeepArray(arr);
@@ -98,6 +101,7 @@ public final class NullnessUtil {
    * @return the argument, with each array level casted to {@code @NonNull}
    * @see #castNonNull(Object)
    */
+  @Pure
   public static <T extends @Nullable Object> @NonNull T @NonNull [][] castNonNullDeep(
       T @Nullable [] @Nullable [] arr) {
     return (@NonNull T[][]) castNonNullDeepArray(arr);
@@ -113,6 +117,7 @@ public final class NullnessUtil {
    * @return the argument, with each array level casted to {@code @NonNull}
    * @see #castNonNull(Object)
    */
+  @Pure
   public static <T extends @Nullable Object> @NonNull T @NonNull [][][] castNonNullDeep(
       T @Nullable [] @Nullable [] @Nullable [] arr) {
     return (@NonNull T[][][]) castNonNullDeepArray(arr);
@@ -128,6 +133,7 @@ public final class NullnessUtil {
    * @return the argument, with each array level casted to {@code @NonNull}
    * @see #castNonNull(Object)
    */
+  @Pure
   public static @EnsuresNonNull("#1") <T extends @Nullable Object>
       @NonNull T @NonNull [][][][] castNonNullDeep(
           T @Nullable [] @Nullable [] @Nullable [] @Nullable [] arr) {
@@ -144,6 +150,7 @@ public final class NullnessUtil {
    * @return the argument, with each array level casted to {@code @NonNull}
    * @see #castNonNull(Object)
    */
+  @Pure
   public static @EnsuresNonNull("#1") <T extends @Nullable Object>
       @NonNull T @NonNull [][][][][] castNonNullDeep(
           T @Nullable [] @Nullable [] @Nullable [] @Nullable [] @Nullable [] arr) {
@@ -158,6 +165,7 @@ public final class NullnessUtil {
    * @param arr an array that contains no null elements at any level
    * @return the argument, with each array level casted to {@code @NonNull}
    */
+  @Pure
   private static <T extends @Nullable Object> @NonNull T @NonNull [] castNonNullDeepArray(
       T @Nullable [] arr) {
     assert arr != null : "Misuse of castNonNullDeepArray: called with a null array argument";
@@ -173,6 +181,7 @@ public final class NullnessUtil {
    *
    * @param ref a value that might be an array, and if so should be null at all levels
    */
+  @Pure
   private static void castNonNullDeepIfArray(Object ref) {
     assert ref != null : "Misuse of castNonNullIfArray: called with a null argument";
     Class<?> comp = ref.getClass().getComponentType();

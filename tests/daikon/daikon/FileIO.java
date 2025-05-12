@@ -73,6 +73,8 @@ import org.plumelib.util.CollectionsPlume;
 import org.plumelib.util.FilesPlume;
 import org.plumelib.util.StringsPlume;
 
+import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
+
 /** File I/O utilities. */
 public final class FileIO {
 
@@ -2811,7 +2813,7 @@ public final class FileIO {
     }
 
     /** Initialize from the 'variable <em>name</em>' record. Scanner should be pointing at name. */
-    public VarDefinition(ParseState state, Scanner scanner) {
+    public @MaybeAliased VarDefinition(ParseState state, Scanner scanner) {
       this.state = state;
       this.parents = new ArrayList<VarParent>();
       name = need(scanner, "name");

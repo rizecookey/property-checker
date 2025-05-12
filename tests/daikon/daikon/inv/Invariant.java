@@ -50,6 +50,8 @@ import org.plumelib.util.MathPlume;
 import typequals.prototype.qual.NonPrototype;
 import typequals.prototype.qual.Prototype;
 
+import org.checkerframework.dataflow.qual.Pure;
+
 /**
  * Base implementation for Invariant objects. Intended to be subclassed but not to be directly
  * instantiated. Rules/assumptions for invariants:
@@ -2067,6 +2069,7 @@ public abstract class Invariant implements Serializable, Cloneable // but don't 
    * @return whether or not it logged anything
    */
   @FormatMethod
+  @Pure
   public boolean log(
       @UnknownInitialization(Invariant.class) @NonPrototype Invariant this,
       String format,

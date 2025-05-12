@@ -39,6 +39,8 @@ import org.checkerframework.dataflow.qual.Pure;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 import org.plumelib.util.StringsPlume;
 
+import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
+
 // This class is deprecated.  It should be removed as soon as Daikon no
 // longer supports the old decl format.
 
@@ -2507,7 +2509,7 @@ public abstract @Interned class VarInfoName implements Serializable, Comparable<
      * @param root the root of the tree to search
      * @param goal the goal to find
      */
-    public NodeFinder(VarInfoName root, VarInfoName goal) {
+    public @MaybeAliased NodeFinder(VarInfoName root, VarInfoName goal) {
       this.goal = goal;
       assert root.accept(this) != null;
     }
@@ -2759,7 +2761,7 @@ public abstract @Interned class VarInfoName implements Serializable, Comparable<
   public abstract static class BooleanAndVisitor extends AbstractVisitor<Boolean> {
     private boolean result;
 
-    protected BooleanAndVisitor(VarInfoName name) {
+    protected @MaybeAliased BooleanAndVisitor(VarInfoName name) {
       result = (name.accept(this) != null);
     }
 
@@ -2854,7 +2856,7 @@ public abstract @Interned class VarInfoName implements Serializable, Comparable<
    * post-state.
    */
   public static class ElementsFinder extends AbstractVisitor<Elements> {
-    public ElementsFinder(VarInfoName name) {
+    public @MaybeAliased ElementsFinder(VarInfoName name) {
       elems = name.accept(this);
     }
 
@@ -3049,7 +3051,7 @@ public abstract @Interned class VarInfoName implements Serializable, Comparable<
    * element. All methods return null; to obtain the result, call nodes().
    */
   public static class InorderFlattener extends AbstractVisitor<NoReturnValue> {
-    public InorderFlattener(VarInfoName root) {
+    public @MaybeAliased InorderFlattener(VarInfoName root) {
       root.accept(this);
     }
 
@@ -3151,7 +3153,7 @@ public abstract @Interned class VarInfoName implements Serializable, Comparable<
   // Quantification for formatting in ESC or Simplify
 
   public static class SimpleNamesVisitor extends AbstractVisitor<NoReturnValue> {
-    public SimpleNamesVisitor(VarInfoName root) {
+    public @MaybeAliased SimpleNamesVisitor(VarInfoName root) {
       assert root != null;
       simples = new HashSet<String>();
       root.accept(this);
@@ -3221,7 +3223,7 @@ public abstract @Interned class VarInfoName implements Serializable, Comparable<
    * a[] or a[i..j]).
    */
   public static class QuantifierVisitor extends AbstractVisitor<NoReturnValue> {
-    public QuantifierVisitor(VarInfoName root) {
+    public @MaybeAliased QuantifierVisitor(VarInfoName root) {
       assert root != null;
       unquant = new HashSet<VarInfoName>();
       root.accept(this);

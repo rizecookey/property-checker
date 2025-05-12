@@ -45,7 +45,7 @@ public final class Config {
     public static final String SUBJECT_NAME = "subject";
 
     public static final String SPLIT = ",";
-	public static final boolean TEMP_DIR_DELETE_ON_EXIT_DEFAULT = true;
+	public static final boolean TEMP_DIR_DELETE_ON_EXIT_DEFAULT = false;
 
     public static String methodWellFormedness(WellFormednessCheckable wf) {
         return String.format("wf%s", wf.getPropertyAnnotationType().getName());

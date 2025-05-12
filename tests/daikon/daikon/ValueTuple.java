@@ -338,6 +338,7 @@ public final class ValueTuple implements Cloneable {
     return result;
   }
 
+  @Pure
   public void checkRep(@UnknownInitialization(ValueTuple.class) ValueTuple this) {
     assert vals.length == mods.length;
     for (int i = 0; i < vals.length; i++) {

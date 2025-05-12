@@ -19,7 +19,6 @@ public interface CooperativeAnnotatedTypeFactory {
         for (T chk : checkables) {
             Class<?>[] paramTypes = chk.getParameterTypes();
 
-            addMethods_label:
             if (paramTypes.length > 0 && paramTypes[0] == null) {
                 // null represents the any type, so we add a method for Object and all primitives.
 
@@ -32,18 +31,16 @@ public interface CooperativeAnnotatedTypeFactory {
                         chk.toString());
 
                 // Don't add methods for primitives for NonNull
-                if (chk instanceof PropertyAnnotationType.PropertyCheckable propChk && propChk.getPropertyAnnotationType().isNonNull()) {
-                    break addMethods_label;
-                }
-
-                for (Class<?> primitive : ClassUtils.PRIMITIVES) {
-                    paramTypes[0] = primitive;
-                    compiler.addMethod(
-                            methodName.apply(chk),
-                            chk.getCondition(),
-                            Arrays.stream(paramTypes).map(Class::getCanonicalName).toArray(String[]::new),
-                            chk.getParameterNames(),
-                            chk.toString());
+                if (!(chk instanceof PropertyAnnotationType.PropertyCheckable propChk && propChk.getPropertyAnnotationType().isNonNull())) {
+                    for (Class<?> primitive : ClassUtils.PRIMITIVES) {
+                        paramTypes[0] = primitive;
+                        compiler.addMethod(
+                                methodName.apply(chk),
+                                chk.getCondition(),
+                                Arrays.stream(paramTypes).map(Class::getCanonicalName).toArray(String[]::new),
+                                chk.getParameterNames(),
+                                chk.toString());
+                    }
                 }
             } else {
                 compiler.addMethod(

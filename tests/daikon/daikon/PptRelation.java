@@ -22,6 +22,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.qual.Pure;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
+import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
+
 /**
  * Class that builds and describes relations in the ppt hierarchy. Building the relationship is
  * specific to each type of parent/child relationship (eg, method to object, exit to combined exit,
@@ -84,8 +86,7 @@ public class PptRelation implements Serializable {
    * parent/child. As a side effect, the constructed PptRelation is stored in both the parent and
    * the child.
    */
-  private PptRelation(PptTopLevel parent, PptTopLevel child, PptRelationType rel_type) {
-
+  private @MaybeAliased PptRelation(PptTopLevel parent, PptTopLevel child, PptRelationType rel_type) {
     this.parent = parent;
     this.child = child;
     parent_to_child_map = new LinkedHashMap<>();

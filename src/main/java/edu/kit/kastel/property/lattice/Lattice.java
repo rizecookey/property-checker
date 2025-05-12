@@ -49,7 +49,6 @@ public class Lattice {
             Map<UnorderedPair<String>, List<Bound>> meets,
             Map<UnorderedPair<String>, List<Bound>> joins) {
         this.factory = factory;
-
         this.ident = ident;
         this.annotationTypes = annotationTypes;
         this.relations = relations;

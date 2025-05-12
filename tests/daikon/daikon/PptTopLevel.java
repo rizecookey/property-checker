@@ -117,6 +117,8 @@ import org.plumelib.util.CollectionsPlume;
 import org.plumelib.util.StringsPlume;
 import typequals.prototype.qual.Prototype;
 
+import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
+
 /**
  * All information about a single program point. A Ppt may also represent just part of the data: see
  * PptConditional.
@@ -453,7 +455,7 @@ public class PptTopLevel extends Ppt {
 
   @RequiresNonNull("var_infos")
   @EnsuresNonNull({"mbtracker", "views", "value_sets"})
-  private void init_vars(@UnderInitialization(Ppt.class) PptTopLevel this) {
+  private void init_vars(@Unique @UnderInitialization(Ppt.class) PptTopLevel this) {
 
     // debug_varinfo.log("initializing var_infos %s", Arrays.toString(var_infos));
     // debug_varinfo.tb();

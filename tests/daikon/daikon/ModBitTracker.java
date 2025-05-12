@@ -7,6 +7,8 @@ import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.signedness.qual.Signed;
+import org.checkerframework.dataflow.qual.Pure;
+import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
 
 // "ModBitTracker" is a poor name for this class, since it tracks
 // whether a value is missing, not whether it is modified.
@@ -64,7 +66,7 @@ public class ModBitTracker implements Serializable, Cloneable {
    *
    * @param num_vars number of variables to allocate space for
    */
-  public ModBitTracker(int num_vars) {
+  public @MaybeAliased ModBitTracker(int num_vars) {
     assert num_vars >= 0;
     this.num_vars = num_vars;
     modbits_arrays = new @Nullable BitSet[num_vars];
@@ -98,6 +100,7 @@ public class ModBitTracker implements Serializable, Cloneable {
   }
 
   /** Check the representation invariant. */
+  @Pure
   public void checkRep(@UnknownInitialization(ModBitTracker.class) ModBitTracker this) {
     assert index.length == num_vars;
     assert modbits_arrays.length == num_vars;

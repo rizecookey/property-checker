@@ -38,7 +38,7 @@ public class ExclusivityValidator extends BaseTypeValidator
 
         List<DiagMessage> msgList = !AnnotationUtils.areSame(typeAnno, atypeFactory.EXCL_BOTTOM)
                 ? Collections.emptyList()
-                : Collections.singletonList(new DiagMessage(Diagnostic.Kind.ERROR, "type.invalidated"));
+                : Collections.singletonList(new DiagMessage(Diagnostic.Kind.ERROR, "exclusivity.type.invalidated"));
 
         return DiagMessage.mergeLists(msgList, super.isValidStructurally(type));
     }

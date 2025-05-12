@@ -58,14 +58,14 @@ public class NullnessLatticeAnnotatedTypeFactory extends NullnessNoInitAnnotated
         PropertyAnnotationType monotonicNonNull = new PropertyAnnotationType(MonotonicNonNull.class, null, List.of(), "true", "true");
         PropertyAnnotationType nullable = new PropertyAnnotationType(Nullable.class, null, List.of(), "true", "true");
         annotationTypes.put("NonNull", nonNull);
-        annotationTypes.put("MonotonicNonNull", nonNull);
+        annotationTypes.put("MonotonicNonNull", monotonicNonNull);
         annotationTypes.put("Nullable", nullable);
         relations.put(
                 Pair.of("MonotonicNonNull", "Nullable"),
-                new SubAnnotationRelation(new PropertyAnnotation(nonNull, List.of()), new PropertyAnnotation(nullable, List.of()), "true"));
+                new SubAnnotationRelation(new PropertyAnnotation(monotonicNonNull, List.of()), new PropertyAnnotation(nullable, List.of()), "true"));
         relations.put(
                 Pair.of("NonNull", "MonotonicNonNull"),
-                new SubAnnotationRelation(new PropertyAnnotation(nonNull, List.of()), new PropertyAnnotation(nullable, List.of()), "true"));
+                new SubAnnotationRelation(new PropertyAnnotation(nonNull, List.of()), new PropertyAnnotation(monotonicNonNull, List.of()), "true"));
 
         this.lattice = new Lattice(this, "nullness", annotationTypes, relations, Map.of(), Map.of());
 

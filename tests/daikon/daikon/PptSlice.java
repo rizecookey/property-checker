@@ -19,6 +19,8 @@ import org.checkerframework.dataflow.qual.Pure;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 import org.plumelib.util.ArraysPlume;
 
+import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
+
 /**
  * A Slice is a view of some of the variables for a program point. A program point (that is,
  * PptTopLevel) does not directly contain invariants. Instead, slices contain the invariants that
@@ -50,6 +52,7 @@ public abstract class PptSlice extends Ppt {
   /** This is a slice of the 'parent' ppt. */
   public PptTopLevel parent;
 
+  @Pure
   public abstract int arity(@UnknownInitialization(PptSlice.class) PptSlice this);
 
   /**
@@ -60,7 +63,7 @@ public abstract class PptSlice extends Ppt {
   @SuppressWarnings("serial")
   public List<Invariant> invs;
 
-  PptSlice(PptTopLevel parent, VarInfo[] var_infos) {
+  @MaybeAliased PptSlice(PptTopLevel parent, VarInfo[] var_infos) {
     super(var_infos);
     this.parent = parent;
     invs = new ArrayList<Invariant>();
