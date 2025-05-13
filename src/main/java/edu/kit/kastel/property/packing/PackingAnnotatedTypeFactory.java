@@ -197,7 +197,7 @@ public class PackingAnnotatedTypeFactory
     protected void setSelfTypeInInitializationCode(
             Tree tree, AnnotatedTypeMirror.AnnotatedDeclaredType selfType, TreePath path) {
         MethodTree method = TreePathUtil.enclosingMethod(path);
-        if (isMonotonicMethod(method)) {
+        if (method == null || isMonotonicMethod(method)) {
             ClassTree enclosingClass = TreePathUtil.enclosingClass(path);
             Type classType = ((JCTree) enclosingClass).type;
             AnnotationMirror annotation;

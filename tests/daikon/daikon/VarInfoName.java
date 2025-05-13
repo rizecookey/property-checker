@@ -54,7 +54,7 @@ import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
  * classes are specific types of names, like applying a function to something. For example, "a" is a
  * name, and "sin(a)" is a name that is the name "a" with the function "sin" applied to it.
  */
-@SuppressWarnings({"nullness", "interning"}) // deprecated file
+@SuppressWarnings({"all"}) // deprecated file
 public abstract @Interned class VarInfoName implements Serializable, Comparable<VarInfoName> {
 
   /** Debugging Logger. */

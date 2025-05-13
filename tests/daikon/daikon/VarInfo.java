@@ -78,7 +78,7 @@ import org.plumelib.util.ArraysPlume;
  * comparability.
  */
 @SuppressWarnings({
-  "nullness", // nullness properties in this file are hairy; save for later
+  "nullness", "initialization", // nullness properties in this file are hairy; save for later
   "interning"
 })
 public final @Interned class VarInfo implements Cloneable, Serializable {

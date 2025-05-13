@@ -936,7 +936,7 @@ public class NIS {
     PptTopLevel ppt;
 
     /** Create an invariant definition for a suppressed invariant. */
-    public SupInv(NISuppressee suppressee, VarInfo[] vis, PptTopLevel ppt) {
+    public @MaybeAliased SupInv(NISuppressee suppressee, VarInfo[] vis, PptTopLevel ppt) {
       this.suppressee = suppressee;
       this.vis = vis;
       this.ppt = ppt;
@@ -946,7 +946,7 @@ public class NIS {
     }
 
     /** Track Log the specified message. */
-    public void log(@Unique @UnknownInitialization(SupInv.class) SupInv this, String message) {
+    public void log(@UnknownInitialization(SupInv.class) SupInv this, String message) {
       if (Debug.logOn()) {
         Debug.log(suppressee.sup_class, ppt, vis, message);
       }
