@@ -195,7 +195,7 @@ public final class FileIO {
    * should be used only if you can guarantee that new_decl_format will be once again set to a
    * non-null value before any code runs that depends on the fact that new_decl_format is non-null.
    */
-  @SuppressWarnings("nullness") // reinitialization
+  @SuppressWarnings("initialization") // reinitialization
   public static void resetNewDeclFormat() {
     FileIO.new_decl_format = null;
   }
@@ -1495,7 +1495,7 @@ public final class FileIO {
   public static @MonotonicNonNull ParseState data_trace_state = null;
 
   // The variable is only ever cleared at the end of a routine that set it.
-  @SuppressWarnings("nullness") // reinitialization
+  @SuppressWarnings("initialization") // reinitialization
   private static void clear_data_trace_state() {
     FileIO.data_trace_state = null;
   }
@@ -2702,8 +2702,7 @@ public final class FileIO {
    * Daikon developers manual. Specifics can also be found in the 'parse_[field]' methods of the
    * class (eg, parse_var_kind, parse_enclosing_var_name, etc).
    */
-  @SuppressWarnings(
-      "nullness") // undocumented class needs documentation before annotating with nullness
+  @SuppressWarnings("initialization") // undocumented class needs documentation before annotating with nullness
   public static class VarDefinition implements java.io.Serializable, Cloneable {
     static final long serialVersionUID = 20060524L;
 
@@ -3092,8 +3091,7 @@ public final class FileIO {
       E e = Enum.valueOf(enum_class, str.toUpperCase(Locale.ENGLISH));
       return e;
     } catch (Exception exception) {
-      @SuppressWarnings(
-          "nullness") // getEnumConstants returns non-null because enum_class is an enum class
+      @SuppressWarnings("nullness") // getEnumConstants returns non-null because enum_class is an enum class
       E @NonNull [] all = enum_class.getEnumConstants();
       StringJoiner msg = new StringJoiner(", ");
       for (E e : all) {

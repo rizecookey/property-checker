@@ -10,18 +10,20 @@ import org.checkerframework.checker.initialization.qual.*;
 
 public class PackingThisTest {
 
-    public PackingThisTest(PackingThisTest other) {}
+    public @MaybeAliased PackingThisTest(PackingThisTest other) {
+        unknownInit();
+    }
 
-    public void lateInit(@UnknownInitialization PackingThisTest this) {
+    public void lateInit(@UnknownInitialization(PackingThisTest.class) PackingThisTest this) {
         lateInitHelper();
         staticMethod(this);
     }
 
     @EnsuresInitialized("this")
     // :: error: packing.postcondition.not.satisfied
-    public void lateInitHelper(@UnknownInitialization PackingThisTest this) {}
+    public void lateInitHelper(@UnknownInitialization(PackingThisTest.class) PackingThisTest this) {}
 
-    public void unknownInit(@UnknownInitialization PackingThisTest this) {
+    public void unknownInit(@UnknownInitialization(PackingThisTest.class) PackingThisTest this) {
         // :: error: packing.argument.type.incompatible
         staticMethod(this);
     }

@@ -96,7 +96,6 @@ public class PackingVisitor
             return;
         } else if (ElementUtils.hasReceiver(element)) {
             // Implicit this
-
             if (canInferPackingStatement(
                     atypeFactory.getReceiverType(tree),
                     tree,
@@ -118,6 +117,8 @@ public class PackingVisitor
             MethodTree methodTree,
             AnnotationMirror varAnno,
             AnnotationMirror valAnno) {
+        VariableTree receiver = methodTree.getReceiverParameter();
+        boolean unique = receiver != null && receiver.getModifiers().getAnnotations().stream().anyMatch(anno -> anno.toString().equals("@Unique"));
         TypeMirror varFrame;
         if (atypeFactory.isInitialized(varAnno)) {
             // If an object is initialized up to its most specific known subclass and no function with a receiver type
@@ -132,15 +133,10 @@ public class PackingVisitor
                 }
                 varFrame = classType;
             } else {
-                VariableTree receiver = methodTree.getReceiverParameter();
-                if (receiver == null) {
-                    return false;
-                }
-                varFrame = ((JCTree) methodTree.getReceiverParameter()).type;
-                boolean unique = methodTree.getReceiverParameter().getModifiers().getAnnotations().stream().anyMatch(anno -> anno.toString().equals("@Unique"));
                 if (!unique) {
                     return false;
                 }
+                varFrame = ((JCTree) receiver).type;
             }
         } else {
             varFrame = atypeFactory.getTypeFrameFromAnnotation(varAnno);
@@ -155,7 +151,14 @@ public class PackingVisitor
         }
 
         // Infer pack statement if possible
-        if (types.isSubtype(varFrame, valFrame) && !atypeFactory.isUnknownInitialization(valAnno)) {
+        if (types.isSubtype(varFrame, valFrame)) {
+            // For monotonic methods or unique receivers,
+            // we may treat @UnknownInitialization(A) as equivalent to @UnderInitialization(A)
+            boolean monotonic = atypeFactory.isMonotonicMethod(methodTree);
+            if (!monotonic && !unique && atypeFactory.isUnknownInitialization(valAnno)) {
+                return false;
+            }
+
             checkFieldsInitializedUpToFrame(methodTree, varFrame);
             // checkFieldsInitializedUpToFrame reports an error if necessary.
             // We return true to not report another error.
@@ -207,6 +210,12 @@ public class PackingVisitor
 
         // Infer pack statement if possible
         if (types.isSubtype(varFrame, valFrame) && !atypeFactory.isUnknownInitialization(valAnno)) {
+            // For monotonic methods
+            // we may treat @UnknownInitialization(A) as equivalent to @UnderInitialization(A)
+            boolean monotonic = stmtTree instanceof MethodInvocationTree invocationTree && atypeFactory.isMonotonicMethod(TreeUtils.elementFromTree(invocationTree));
+            if (!monotonic && atypeFactory.isUnknownInitialization(valAnno)) {
+                return false;
+            }
             checkFieldsInitializedUpToFrame(stmtTree, varFrame);
             // checkFieldsInitializedUpToFrame reports an error if necessary.
             // We return true to not report another error.
@@ -659,7 +668,7 @@ public class PackingVisitor
                 // For a `var` declaration, TypeFromMemberVisitor#visitVariable already uses the
                 // type of the initializer for the variable type, so it would be redundant to check
                 // for compatibility here.
-                commonAssignmentCheck(tree, tree.getInitializer(), "assignment.type.incompatible");
+                commonAssignmentCheck(tree, tree.getInitializer(), "packing.assignment.type.incompatible");
             }
         } else {
             // commonAssignmentCheck validates the type of `tree`,
@@ -667,12 +676,13 @@ public class PackingVisitor
             validateTypeOf(tree);
         }
 
-        // @ReadOnly vars must not be @Initialized
+        // @ReadOnly fields must not be @Initialized
         ExclusivityAnnotatedTypeFactory exclFactory = getChecker().getTypeFactoryOfSubcheckerOrNull(ExclusivityChecker.class);
         AnnotatedTypeMirror exclType = exclFactory.getAnnotatedTypeLhs(tree);
         AnnotationMirror annotation = Objects.requireNonNullElse(variableType.getAnnotationInHierarchy(atypeFactory.getInitialized()), atypeFactory.getInitialized());
         AnnotationMirror exclAnnotation = exclFactory.getExclusivityAnnotation(exclType);
         if ((!atypeFactory.isUnknownInitialization(annotation) || !atypeFactory.getTypeFrameFromAnnotation(annotation).toString().equals("java.lang.Object"))
+                && !TreeUtils.isFieldAccess(tree)
                 && (exclAnnotation == null || AnnotationUtils.areSame(exclAnnotation, exclFactory.READ_ONLY))) {
             checker.reportError(tree, "type.invalid.readonly.init");
         }

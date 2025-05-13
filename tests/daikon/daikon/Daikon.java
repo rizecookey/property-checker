@@ -497,7 +497,7 @@ public final class Daikon {
    * A PptMap (mapping from String to PptTopLevel) that contains all the program points. Set in
    * mainHelper().
    */
-  @SuppressWarnings("nullness:initialization.static.field.uninitialized") // set in mainHelper()
+  @SuppressWarnings("initialization.static.field.uninitialized") // set in mainHelper()
   public static PptMap all_ppts;
 
   /** current invariant (used for debugging) */
@@ -947,7 +947,7 @@ public final class Daikon {
   }
 
   /** Cleans up static variables so that mainHelper can be called more than once. */
-  @SuppressWarnings("nullness") // reinitialization
+  @SuppressWarnings("initialization") // reinitialization
   public static void cleanup() {
 
     // Stop the thread that prints out progress information
@@ -1767,7 +1767,6 @@ public final class Daikon {
             "SecurityException while looking up get_proto() method in user-defined invariant class "
                 + invariantClassName);
       }
-      Invariant inv;
       try {
         @SuppressWarnings("nullness") // null argument is OK because get_proto_method is static
         Object inv_as_object = get_proto_method.invoke(null);
@@ -1786,12 +1785,12 @@ public final class Daikon {
                   + ": "
                   + inv_as_object);
         }
-        inv = (Invariant) inv_as_object;
+        Invariant inv = (Invariant) inv_as_object;
+        proto_invs.add(inv);
       } catch (Exception e) {
         throw new Daikon.UserError(
             e, "Exception while invoking " + invariantClassName + ".get_proto()");
       }
-      proto_invs.add(inv);
     }
 
     // Remove any elements that are not enabled

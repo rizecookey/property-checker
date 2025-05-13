@@ -279,7 +279,7 @@ public class PackingTransfer extends InitializationAbstractTransfer<CFValue, Pac
                 // be incompatible with the input types. If a parameter has no explicit output type, we use its input
                 // type as default, which is implemented above.
                 CFValue value = analysis.createSingleAnnotationValue(anno, je.getType());
-                if (atypeFactory.isSideEffectFree(executableElement)) {
+                if (atypeFactory.isSideEffectFree(executableElement) || ((PackingFieldAccessAnnotatedTypeFactory) atypeFactory).isMonotonicMethod(executableElement)) {
                     value = value.mostSpecific(store.getValue(je), value);
                 }
                 if (p.kind == Contract.Kind.CONDITIONALPOSTCONDITION) {

@@ -391,8 +391,8 @@ public class PptTopLevel extends Ppt {
 
   /** Contains invariants that represent a "joining" of two others: implications, and, or, etc. */
   @SuppressWarnings({
-    "nullness:assignment", // field won't be used until object is initialized
-    "nullness:argument" // field won't be used until object is initialized
+    "initialization:assignment", // field won't be used until object is initialized
+    "initialization:argument" // field won't be used until object is initialized
   })
   public PptSlice0 joiner_view = new PptSlice0(this);
 
@@ -445,8 +445,8 @@ public class PptTopLevel extends Ppt {
 
   // Used by DaikonSimple, InvMap, and tests.  Violates invariants.
   @SuppressWarnings(
-      "nullness:fields.uninitialized") // violates invariants; also uses helper function
-  public PptTopLevel(String name, VarInfo[] var_infos) {
+      "initialization:fields.uninitialized") // violates invariants; also uses helper function
+  public @MaybeAliased PptTopLevel(String name, VarInfo[] var_infos) {
     super(var_infos);
     this.name = name;
     ppt_name = new PptName(name);
@@ -455,7 +455,7 @@ public class PptTopLevel extends Ppt {
 
   @RequiresNonNull("var_infos")
   @EnsuresNonNull({"mbtracker", "views", "value_sets"})
-  private void init_vars(@Unique @UnderInitialization(Ppt.class) PptTopLevel this) {
+  private void init_vars(@UnderInitialization(Ppt.class) PptTopLevel this) {
 
     // debug_varinfo.log("initializing var_infos %s", Arrays.toString(var_infos));
     // debug_varinfo.tb();
@@ -502,7 +502,7 @@ public class PptTopLevel extends Ppt {
 
     for (VarInfo vi : var_infos) {
       // TODO: This should not be necessary, since initialization is now complete
-      @SuppressWarnings({"nullness:assignment"}) // initialization is now complete
+      @SuppressWarnings({"initialization"}) // initialization is now complete
       @Initialized PptTopLevel initializedThis = this;
       vi.ppt = initializedThis;
     }
