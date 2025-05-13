@@ -59,12 +59,6 @@ public class PackingFieldAccessTreeAnnotator extends InitializationFieldAccessTr
             return;
         }
 
-        if (fieldAccessFactory.getStoreBefore(tree) == null) {
-            type.clearAnnotations();
-            type.addAnnotations(factory.getQualifierHierarchy().getTopAnnotations());
-            return;
-        }
-
         // Don't adapt anything if "tree" is not actually a field access.
 
         // Don't adapt uses of the identifiers "this" or "super" that are not field accesses
@@ -79,6 +73,10 @@ public class PackingFieldAccessTreeAnnotator extends InitializationFieldAccessTr
 
         // Don't adapt method accesses.
         if (type instanceof AnnotatedTypeMirror.AnnotatedExecutableType) {
+            return;
+        }
+
+        if (fieldAccessFactory.getStoreBefore(tree) == null) {
             return;
         }
 
