@@ -60,7 +60,8 @@ public class PackingTransfer extends InitializationAbstractTransfer<CFValue, Pac
                         AnnotationBuilder.fromClass(atypeFactory.getElementUtils(), UnderInitialization.class));
                 boolean thisUnique = methodDeclTree.getReceiverParameter().getModifiers().getAnnotations().stream().anyMatch(anno -> anno.toString().equals("@Unique"));
 
-                if (atypeFactory.isUnknownInitialization(thisAnno) || !thisUnique) {
+                PackingChecker checker = ((PackingFieldAccessSubchecker) atypeFactory.getChecker()).getPackingChecker();
+                if (atypeFactory.isUnknownInitialization(thisAnno) || !thisUnique || !checker.shouldInferUnpack()) {
                     // Variables of type @UnknownInitialization or not of type @Unique must not be unpacked,
                     // so we use the input type in the initial store
                     initStore.initializeThisValue(thisAnno, thisType.getUnderlyingType());
@@ -146,6 +147,7 @@ public class PackingTransfer extends InitializationAbstractTransfer<CFValue, Pac
 
         return result;
     }
+
     public CFValue topValue(TypeMirror underlyingType) {
         return analysis.createSingleAnnotationValue(
                 analysis.getTypeFactory().getQualifierHierarchy().getTopAnnotations().first(),
@@ -194,7 +196,8 @@ public class PackingTransfer extends InitializationAbstractTransfer<CFValue, Pac
                             analysis,
                             receiverType.getAnnotations(),
                             receiverType.getUnderlyingType());
-                    if (atypeFactory.isSideEffectFree(executableElement) && TypeUtils.isStoreExpression(expr)) {
+                    if ((atypeFactory.isSideEffectFree(executableElement) || ((PackingFieldAccessAnnotatedTypeFactory) atypeFactory).isMonotonicMethod(executableElement))
+                            && TypeUtils.isStoreExpression(expr)) {
                         newVal = newVal.mostSpecific(store.getValue(expr), newVal);
                     }
                     store.replaceValue(expr, newVal);
@@ -210,7 +213,8 @@ public class PackingTransfer extends InitializationAbstractTransfer<CFValue, Pac
                             analysis,
                             paramType.getAnnotations(),
                             paramType.getUnderlyingType());
-                    if (atypeFactory.isSideEffectFree(executableElement) && TypeUtils.isStoreExpression(expr)) {
+                    if ((atypeFactory.isSideEffectFree(executableElement) || ((PackingFieldAccessAnnotatedTypeFactory) atypeFactory).isMonotonicMethod(executableElement))
+                            && TypeUtils.isStoreExpression(expr)) {
                         newVal = newVal.mostSpecific(store.getValue(expr), newVal);
                     }
                     store.replaceValue(expr, newVal);
@@ -240,7 +244,7 @@ public class PackingTransfer extends InitializationAbstractTransfer<CFValue, Pac
                     // UnknownInit params cannot be (un-)packed
                     store.insertValue(
                             expr,
-                            paramDefaultValue.mostSpecific(oldValue, oldValue));
+                            paramDefaultValue.mostSpecific(oldValue, paramDefaultValue));
                 } else {
                     store.replaceValue(
                             expr,

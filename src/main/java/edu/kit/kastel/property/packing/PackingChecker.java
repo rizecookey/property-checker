@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 
 @SupportedOptions({
         Config.INPUT_DIR_OPTION,
+        Config.NO_INFER_UNPACK_OPTION,
         "assumeInitialized"
 })
 public abstract class PackingChecker extends InitializationChecker {
@@ -66,6 +67,10 @@ public abstract class PackingChecker extends InitializationChecker {
 
     public String getInputDir() {
         return getOptionsNoSubcheckers().get(Config.INPUT_DIR_OPTION);
+    }
+
+    public boolean shouldInferUnpack() {
+        return !getBooleanOption(Config.NO_INFER_UNPACK_OPTION, false);
     }
 
     @SuppressWarnings("nls")

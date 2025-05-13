@@ -12,20 +12,20 @@ class LeakThis {
     @UnknownInitialization(Object.class) @MaybeAliased LeakThis aliased;
     @UnknownInitialization(Object.class) @Unique LeakThis unique;
 
-    // :: error: initialization.constructor.return.type.incompatible
+    // :: error: initialization.fields.uninitialized
     @UnknownInitialization(LeakThis.class) LeakThis() {
         this.readOnly = this;
         this.mthReadOnly();
     }
 
-    // :: error: initialization.constructor.return.type.incompatible
+    // :: error: initialization.fields.uninitialized
     @UnknownInitialization(LeakThis.class) LeakThis(boolean dummy) {
         this.unique = this;
         // :: error: exclusivity.type.invalidated
         this.mthUnique();
     }
 
-    // :: error: initialization.constructor.return.type.incompatible
+    // :: error: initialization.fields.uninitialized
     @UnknownInitialization(LeakThis.class) @MaybeAliased LeakThis(int dummy) {
         this.aliased = this;
         this.mthAliased();

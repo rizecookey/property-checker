@@ -58,6 +58,7 @@ import java.util.*;
     Config.QUAL_PKG_OPTION,
     Config.TRANSLATION_ONLY_OPTION,
     Config.NO_EXCLUSITIVY_OPTION,
+    Config.NO_INFER_UNPACK_OPTION,
     "assumeKeyFor",
     "assumeInitialized",
     "jspecifyNullMarkedAlias",

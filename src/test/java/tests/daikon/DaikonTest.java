@@ -62,6 +62,7 @@ public class DaikonTest {
             "-APropertyChecker_outDir=" + "../property-checker-out",
             "-APropertyChecker_lattices=" + lattices,
             "-APropertyChecker_qualPkg=" + "daikon_qual",
+            "-APropertyChecker_noInferUnpack=true",
             "-APropertyChecker_translationOnly=" + ObjectUtils.defaultIfNull(System.getProperty("translationOnly"), "false"));
 
     /** Run the tests. */

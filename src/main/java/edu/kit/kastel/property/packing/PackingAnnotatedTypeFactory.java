@@ -2,6 +2,7 @@ package edu.kit.kastel.property.packing;
 
 import com.sun.source.tree.*;
 import com.sun.source.util.TreePath;
+import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.tree.JCTree;
 import edu.kit.kastel.property.packing.qual.Dependable;
 import edu.kit.kastel.property.packing.qual.NonMonotonic;
@@ -195,7 +196,59 @@ public class PackingAnnotatedTypeFactory
     @Override
     protected void setSelfTypeInInitializationCode(
             Tree tree, AnnotatedTypeMirror.AnnotatedDeclaredType selfType, TreePath path) {
-        selfType.replaceAnnotation(createUnknownInitializationAnnotation(Object.class));
+        MethodTree method = TreePathUtil.enclosingMethod(path);
+        if (isMonotonicMethod(method)) {
+            ClassTree enclosingClass = TreePathUtil.enclosingClass(path);
+            Type classType = ((JCTree) enclosingClass).type;
+            AnnotationMirror annotation;
+
+            // If all fields are initialized-only, and they are all initialized,
+            // then:
+            //  - if the class is final, this is @Initialized
+            //  - otherwise, this is @UnderInitialization(CurrentClass) as
+            //    there might still be subclasses that need initialization.
+            if (areAllFieldsInitializedOnly(enclosingClass)) {
+                PackingStore initStore = getStoreBefore(tree);
+                List<CFAbstractStore<?, ?>> targetStores = new ArrayList<>();
+                for (BaseTypeChecker targetChecker : getChecker().getTargetCheckers()) {
+                    CFAbstractStore<?, ?> store = targetChecker.getTypeFactory().getStoreBefore(tree);
+                    if (store != null) {
+                        targetStores.add(store);
+                    }
+                }
+                if (initStore != null && !targetStores.isEmpty()) {
+                    if (classType.isFinal()) {
+                        annotation = INITIALIZED;
+                    } else {
+                        annotation = createUnderInitializationAnnotation(classType);
+                    }
+                    for (CFAbstractStore<?, ?> store : targetStores) {
+                        if (!getUninitializedFields(initStore, store, path, false, Collections.emptyList()).isEmpty()) {
+                            annotation = null;
+                            break;
+                        }
+                    }
+                } else if (initStore != null && getUninitializedFields(initStore, path, false, Collections.emptyList()).isEmpty()) {
+                    if (classType.isFinal()) {
+                        annotation = INITIALIZED;
+                    } else {
+                        annotation = createUnderInitializationAnnotation(classType);
+                    }
+                } else {
+                    annotation = null;
+                }
+            } else {
+                annotation = null;
+            }
+
+            if (annotation == null) {
+                annotation = getUnderInitializationAnnotationOfSuperType(classType);
+            }
+            selfType.replaceAnnotation(annotation);
+        } else {
+            //TODO do something more exact
+            selfType.replaceAnnotation(createUnknownInitializationAnnotation(Object.class));
+        }
     }
 
     @Override

@@ -45,7 +45,7 @@ public final class NullnessContractsTest {
         if (!arg.isFieldCommitted()) {
             arg.init();
         } else {
-            // :: error: contracts.precondition.not.satisfied
+            // :: error: exclusivity.contracts.precondition.not.satisfied
             arg.emptyInit();
         }
     }

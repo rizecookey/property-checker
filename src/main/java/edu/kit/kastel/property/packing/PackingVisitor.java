@@ -148,7 +148,8 @@ public class PackingVisitor
         TypeMirror valFrame = atypeFactory.getTypeFrameFromAnnotation(valAnno);
 
         // Infer unpack statement if possible
-        if (types.isSubtype(valFrame, varFrame) && !atypeFactory.isUnknownInitialization(valAnno)) {
+        if (getChecker().shouldInferUnpack()
+                && types.isSubtype(valFrame, varFrame) && !atypeFactory.isUnknownInitialization(valAnno)) {
             inferUnpackStatement(methodTree, varFrame);
             return true;
         }
@@ -198,7 +199,8 @@ public class PackingVisitor
         TypeMirror valFrame = atypeFactory.getTypeFrameFromAnnotation(valAnno);
 
         // Infer unpack statement if possible
-        if (types.isSubtype(valFrame, varFrame) && !atypeFactory.isUnknownInitialization(valAnno)) {
+        if (getChecker().shouldInferUnpack()
+                && types.isSubtype(valFrame, varFrame) && !atypeFactory.isUnknownInitialization(valAnno)) {
             inferUnpackStatement(stmtTree, varFrame);
             return true;
         }
