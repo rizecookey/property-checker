@@ -8,6 +8,7 @@ import com.sun.tools.javac.tree.TreeInfo;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.Unique;
+import edu.kit.kastel.property.subchecker.lattice.CooperativeChecker;
 import edu.kit.kastel.property.util.Assert;
 import edu.kit.kastel.property.util.Packing;
 import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
@@ -528,44 +529,54 @@ public class PackingVisitor
         return null;
     }
 
-    protected boolean isPreservingAssignment(ExpressionTree lhs, ExpressionTree valueExp) {
-        // An assignment to an undependable field is always allowed if it preserves the field's declared types.
-        boolean preservingAssignment = !atypeFactory.isDependableField(lhs);
+    protected List<String> isPreservingAssignment(ExpressionTree lhs, ExpressionTree valueExp) {
+        if (atypeFactory.isDependableField(lhs)) {
+            return List.of("packing.assignment.to.dependable");
+        }
 
-        if (preservingAssignment) {
-            for (BaseTypeChecker targetChecker : getChecker().getTargetCheckers()) {
-                if (lhs instanceof MemberSelectTree && ((MemberSelectTree) lhs).getExpression().toString().equals("this")) {
-                    CFAbstractStore<?, ?> store = targetChecker.getTypeFactory().getStoreAfter(getCurrentPath().getLeaf());
+        List<String> errors = new ArrayList<>();
 
-                    if (store == null) {
-                        preservingAssignment = false;
-                        break;
-                    }
-                    List<VariableElement> uninitFields = atypeFactory.getUninitializedFields(
-                            atypeFactory.getStoreAfter(getCurrentPath().getLeaf()),
-                            store,
-                            this.getCurrentPath(),
-                            ElementUtils.isStatic(TreeUtils.elementFromUse(lhs)),
-                            List.of()
-                    );
+        for (BaseTypeChecker targetChecker : getChecker().getTargetCheckers()) {
+            String err = "assignment.type.incompatible";
+            if (targetChecker instanceof CooperativeChecker coop) {
+                err = coop.getIdent() + "." + err;
+            } else if (targetChecker instanceof ExclusivityChecker excl) {
+                err = "exclusivity." + err;
+            } else {
+                throw new AssertionError();
+            }
 
-                    if (uninitFields.contains(TreeUtils.elementFromUse(lhs))) {
-                        preservingAssignment = false;
-                        break;
-                    }
-                } else {
-                    // Assignment is to a field of another object
-                    AnnotatedTypeMirror lhsType = targetChecker.getTypeFactory().getAnnotatedTypeLhs(lhs);
-                    AnnotatedTypeMirror rhsType = targetChecker.getTypeFactory().getAnnotatedType(valueExp);
-                    if (!targetChecker.getTypeFactory().getTypeHierarchy().isSubtype(rhsType, lhsType)) {
-                        preservingAssignment = false;
-                        break;
-                    }
+            if (lhs instanceof MemberSelectTree && ((MemberSelectTree) lhs).getExpression().toString().equals("this")) {
+                CFAbstractStore<?, ?> store = targetChecker.getTypeFactory().getStoreAfter(getCurrentPath().getLeaf());
+
+                if (store == null) {
+                    errors.add(err);
+                    break;
+                }
+                List<VariableElement> uninitFields = atypeFactory.getUninitializedFields(
+                        atypeFactory.getStoreAfter(getCurrentPath().getLeaf()),
+                        store,
+                        this.getCurrentPath(),
+                        ElementUtils.isStatic(TreeUtils.elementFromUse(lhs)),
+                        List.of()
+                );
+
+                if (uninitFields.contains(TreeUtils.elementFromUse(lhs))) {
+                    errors.add(err);
+                    break;
+                }
+            } else {
+                // Assignment is to a field of another object
+                AnnotatedTypeMirror lhsType = targetChecker.getTypeFactory().getAnnotatedTypeLhs(lhs);
+                AnnotatedTypeMirror rhsType = targetChecker.getTypeFactory().getAnnotatedType(valueExp);
+                if (!targetChecker.getTypeFactory().getTypeHierarchy().isSubtype(rhsType, lhsType)) {
+                    errors.add(err);
+                    break;
                 }
             }
         }
 
-        return preservingAssignment;
+        return errors;
     }
 
     @Override
@@ -576,23 +587,27 @@ public class PackingVisitor
             ExpressionTree lhs = (ExpressionTree) varTree;
             AnnotatedTypeMirror xType = atypeFactory.getReceiverType(lhs);
 
-            if (isPreservingAssignment(lhs, valueExp)) {
+            List<String> assignmentErrs = isPreservingAssignment(lhs, valueExp);
+            if (assignmentErrs.isEmpty()) {
                 return true;
 
             }
             // Non-preserving assignments only allowed to fields of this, not other objects
             if (lhs instanceof MemberSelectTree && !((MemberSelectTree) lhs).getExpression().toString().equals("this")) {
                 checker.reportError(varTree, "initialization.assignment.invalid-lhs");
+                assignmentErrs.forEach(err -> checker.reportError(varTree, err));
                 return false;
             }
 
             if (enclMethod != null && atypeFactory.isMonotonicMethod(enclMethod)) {
                 checker.reportError(varTree, "initialization.nonmonotonic.write");
+                assignmentErrs.forEach(err -> checker.reportError(varTree, err));
                 return false;
             }
 
             if (atypeFactory.isUnknownInitialization(xType) || atypeFactory.isInitializedForFrame(xType, TreeInfo.symbol((JCTree) varTree).owner.type)) {
                 checker.reportError(varTree, "initialization.write.committed.field", varTree);
+                assignmentErrs.forEach(err -> checker.reportError(varTree, err));
                 return false;
             }
         }
