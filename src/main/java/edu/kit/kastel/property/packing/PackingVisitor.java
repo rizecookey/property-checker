@@ -539,7 +539,7 @@ public class PackingVisitor
         for (BaseTypeChecker targetChecker : getChecker().getTargetCheckers()) {
             String err = "assignment.type.incompatible";
             if (targetChecker instanceof CooperativeChecker coop) {
-                err = coop.getIdent() + "." + err;
+                err = coop.getLattice().getIdent() + "." + err;
             } else if (targetChecker instanceof ExclusivityChecker excl) {
                 err = "exclusivity." + err;
             } else {

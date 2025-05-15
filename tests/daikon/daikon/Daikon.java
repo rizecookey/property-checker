@@ -1785,8 +1785,7 @@ public final class Daikon {
                   + ": "
                   + inv_as_object);
         }
-        Invariant inv = (Invariant) inv_as_object;
-        proto_invs.add(inv);
+        proto_invs.add((Invariant) inv_as_object);
       } catch (Exception e) {
         throw new Daikon.UserError(
             e, "Exception while invoking " + invariantClassName + ".get_proto()");

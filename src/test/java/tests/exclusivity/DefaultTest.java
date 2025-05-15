@@ -18,12 +18,12 @@ public class DefaultTest extends PropertyCheckerTest {
     public DefaultTest(List<File> testFiles) {
         super(
                 testFiles,
-                "tests/property/lattice_simple",
-                "tests/exclusivity/exception");
+                "",
+                "tests/exclusivity/default");
     }
 
     @Parameters
     public static String[] getTestDirs() {
-        return new String[] {"exclusivity/exception"};
+        return new String[] {"exclusivity/default"};
     }
 }

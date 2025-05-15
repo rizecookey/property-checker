@@ -17,13 +17,13 @@ public final class PreservingUpdateTest {
 
     @NonMonotonic
     void nonPreservingAliased0(@MaybeAliased PreservingUpdateTest this) {
-        // :: error: initialization.write.committed.field
+        // :: error: initialization.write.committed.field :: error: interval.assignment.type.incompatible
         this.intField = 0;
     }
 
     @NonMonotonic
     void nonPreservingAliased1(@MaybeAliased PreservingUpdateTest this) {
-        // :: error: initialization.write.committed.field
+        // :: error: initialization.write.committed.field :: error: nullness.assignment.type.incompatible
         this.objField = null;
     }
 }
