@@ -4146,8 +4146,7 @@ public class PptTopLevel extends Ppt {
    * ppt to have its invariants recalculated.
    */
   @SuppressWarnings("nullness") // reinitialization
-  @EnsuresUnderInitialization(value="this", arg=Object.class)
-  public void clean_for_merge(@Initialized PptTopLevel this) {
+  public void clean_for_merge() {
     equality_view = null;
     for (int i = 0; i < var_infos.length; i++) {
       var_infos[i].equalitySet = null;
