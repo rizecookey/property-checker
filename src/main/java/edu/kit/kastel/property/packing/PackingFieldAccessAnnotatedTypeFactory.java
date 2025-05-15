@@ -188,6 +188,11 @@ public class PackingFieldAccessAnnotatedTypeFactory
                 p.replaceAnnotation(INITIALIZED);
             }
 
+            if (TypesUtils.isAnonymous(type)) {
+                //TODO fine for all current use cases, but generally unsound
+                p.replaceAnnotation(INITIALIZED);
+            }
+
             return null;
         }
     }

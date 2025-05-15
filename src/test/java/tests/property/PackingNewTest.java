@@ -27,11 +27,11 @@ public class PackingNewTest extends PropertyCheckerTest {
         super(
                 testFiles,
                 "",
-                "tests/property/PackingThisTest/");
+                "tests/property/PackingNewTest/");
     }
 
     @Parameters
     public static String[] getTestDirs() {
-        return new String[] {"property/PackingThisTest"};
+        return new String[] {"property/PackingNewTest"};
     }
 }
