@@ -391,8 +391,7 @@ public class PptTopLevel extends Ppt {
 
   /** Contains invariants that represent a "joining" of two others: implications, and, or, etc. */
   @SuppressWarnings({
-    "initialization:assignment", // field won't be used until object is initialized
-    "initialization:argument" // field won't be used until object is initialized
+    "initialization", // field won't be used until object is initialized
   })
   public PptSlice0 joiner_view = new PptSlice0(this);
 
@@ -412,7 +411,7 @@ public class PptTopLevel extends Ppt {
   public Set<VarInfo> redundant_invs_equality = new LinkedHashSet<>(0);
 
   @SuppressWarnings("fields.uninitialized") // todo: initialization and helper methods
-  public PptTopLevel(
+  public @MaybeAliased PptTopLevel(
       String name,
       PptType type,
       List<ParentRelation> parents,
@@ -4147,7 +4146,8 @@ public class PptTopLevel extends Ppt {
    * ppt to have its invariants recalculated.
    */
   @SuppressWarnings("nullness") // reinitialization
-  public void clean_for_merge() {
+  @EnsuresUnderInitialization(value="this", arg=Object.class)
+  public void clean_for_merge(@Initialized PptTopLevel this) {
     equality_view = null;
     for (int i = 0; i < var_infos.length; i++) {
       var_infos[i].equalitySet = null;

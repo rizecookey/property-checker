@@ -18,7 +18,7 @@ class ReferenceSplitting {
 
         x = new Foo();  // x is updated to @Unique
         a = x;          // x is updated to @ReadOnly
-        // :: error: initialization.nonmonotonic.write :: error: packing.assignment.to.dependable
+        // :: error: initialization.nonmonotonic.write :: error: exclusivity.assignment.type.incompatible
         this.field = x; // invalid, x is not @Unique anymore
     }
 }

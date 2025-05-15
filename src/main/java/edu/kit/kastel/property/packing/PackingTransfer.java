@@ -1,9 +1,6 @@
 package edu.kit.kastel.property.packing;
 
-import com.sun.source.tree.ExpressionTree;
-import com.sun.source.tree.MethodInvocationTree;
-import com.sun.source.tree.MethodTree;
-import com.sun.source.tree.NewClassTree;
+import com.sun.source.tree.*;
 import com.sun.tools.javac.code.Symbol;
 import edu.kit.kastel.property.util.ClassUtils;
 import edu.kit.kastel.property.util.Packing;
@@ -47,28 +44,38 @@ public class PackingTransfer extends InitializationAbstractTransfer<CFValue, Pac
         PackingStore initStore = super.initialStore(underlyingAST, parameters);
 
         // Add receiver value
-        if (underlyingAST instanceof UnderlyingAST.CFGMethod) {
-            UnderlyingAST.CFGMethod method = (UnderlyingAST.CFGMethod) underlyingAST;
+        if (underlyingAST instanceof UnderlyingAST.CFGMethod method) {
             MethodTree methodDeclTree = method.getMethod();
             if (TreeUtils.isConstructor(methodDeclTree)) {
                 TypeMirror thisType = TreeUtils.elementFromTree(method.getClassTree()).asType();
                 TypeMirror superType = TypesUtils.getSuperclass(thisType, atypeFactory.types);
                 initStore.initializeThisValue(atypeFactory.createUnderInitializationAnnotation(superType), thisType);
-            } else if (methodDeclTree.getReceiverParameter() != null) {
-                AnnotatedTypeMirror thisType = atypeFactory.getAnnotatedType(methodDeclTree.getReceiverParameter());
-                AnnotationMirror thisAnno = thisType.getAnnotationInHierarchy(
-                        AnnotationBuilder.fromClass(atypeFactory.getElementUtils(), UnderInitialization.class));
-                boolean thisUnique = methodDeclTree.getReceiverParameter().getModifiers().getAnnotations().stream().anyMatch(anno -> anno.toString().equals("@Unique"));
+            } else if (!ElementUtils.isStatic(TreeUtils.elementFromDeclaration(methodDeclTree))) {
+                VariableTree recvParam = methodDeclTree.getReceiverParameter();
+                boolean thisUnique;
+                AnnotationMirror thisAnno;
+                TypeMirror thisUnderlyingType;
+                if (recvParam != null) {
+                    AnnotatedTypeMirror thisType = atypeFactory.getAnnotatedType(recvParam);
+                    thisAnno = thisType.getAnnotationInHierarchy(
+                            AnnotationBuilder.fromClass(atypeFactory.getElementUtils(), UnderInitialization.class));
+                    thisUnique = recvParam.getModifiers().getAnnotations().stream().anyMatch(anno -> anno.toString().equals("@Unique"));
+                    thisUnderlyingType = thisType.getUnderlyingType();
+                } else {
+                    thisUnique = false;
+                    thisAnno = ((PackingFieldAccessAnnotatedTypeFactory) atypeFactory).getInitialized();
+                    thisUnderlyingType = TreeUtils.elementFromTree(method.getClassTree()).asType();
+                }
 
                 PackingChecker checker = ((PackingFieldAccessSubchecker) atypeFactory.getChecker()).getPackingChecker();
                 if (atypeFactory.isUnknownInitialization(thisAnno) || !thisUnique || !checker.shouldInferUnpack()) {
                     // Variables of type @UnknownInitialization or not of type @Unique must not be unpacked,
                     // so we use the input type in the initial store
-                    initStore.initializeThisValue(thisAnno, thisType.getUnderlyingType());
+                    initStore.initializeThisValue(thisAnno, thisUnderlyingType);
                 } else {
                     // Other variables may be unpacked. We make them @UnderInitialization(Object.class) in the initial
                     // store, so the programmer doesn't need to write the unpack statement explicitly.
-                    initStore.initializeThisValue(atypeFactory.createUnderInitializationAnnotation(Object.class), thisType.getUnderlyingType());
+                    initStore.initializeThisValue(atypeFactory.createUnderInitializationAnnotation(Object.class), thisUnderlyingType);
                 }
             }
         }

@@ -2503,9 +2503,9 @@ public final class FileIO {
       throws IOException {
 
     try {
-      Object obj = FilesPlume.readObject(file);
+      @MaybeAliased Object obj = FilesPlume.readObject(file);
       if (obj instanceof FileIO.SerialFormat) {
-        SerialFormat record = (SerialFormat) obj;
+        @MaybeAliased SerialFormat record = (SerialFormat) obj;
         if (use_saved_config) {
           Configuration.getInstance().overlap(record.config);
         }
@@ -2515,7 +2515,7 @@ public final class FileIO {
         return record.map;
       } else if (obj instanceof InvMap) {
         // System.err.printf("Restoring an InvMap%n");
-        InvMap invs = (InvMap) obj;
+        @MaybeAliased InvMap invs = (InvMap) obj;
         PptMap ppts = new PptMap();
         for (PptTopLevel ppt : invs.pptIterable()) {
           PptTopLevel nppt = new PptTopLevel(ppt.name, ppt.var_infos);
@@ -2702,7 +2702,7 @@ public final class FileIO {
    * Daikon developers manual. Specifics can also be found in the 'parse_[field]' methods of the
    * class (eg, parse_var_kind, parse_enclosing_var_name, etc).
    */
-  @SuppressWarnings("initialization") // undocumented class needs documentation before annotating with nullness
+  @SuppressWarnings({"nullness", "initialization"}) // undocumented class needs documentation before annotating with nullness
   public static class VarDefinition implements java.io.Serializable, Cloneable {
     static final long serialVersionUID = 20060524L;
 
@@ -3083,6 +3083,7 @@ public final class FileIO {
    * Looks up the next token as a member of enum_class. Throws Daikon.UserError if there is no token
    * or if it is not valid member of the class. Enums are presumed to be in in upper case.
    */
+  @SuppressWarnings("packing") // enum_class is an enum class
   public static <E extends Enum<E>> E parse_enum_val(
       ParseState state, Scanner scanner, Class<E> enum_class, String descr) {
 
