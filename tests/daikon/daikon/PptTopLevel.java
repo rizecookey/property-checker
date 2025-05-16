@@ -2930,7 +2930,7 @@ public class PptTopLevel extends Ppt {
    *
    * @param all_ppts all the program points
    */
-  @SuppressWarnings("nullness") // reinitialization if error occurs
+  @SuppressWarnings({"nullness","initialization"}) // reinitialization if error occurs
   public void mark_implied_via_simplify(PptMap all_ppts) {
     try {
       if (proverStack == null) {
@@ -4145,7 +4145,7 @@ public class PptTopLevel extends Ppt {
    * unless the merge is taking place over multiple ppts maps based on different data. This allows a
    * ppt to have its invariants recalculated.
    */
-  @SuppressWarnings("nullness") // reinitialization
+  @SuppressWarnings({"nullness","initialization"}) // reinitialization
   public void clean_for_merge() {
     equality_view = null;
     for (int i = 0; i < var_infos.length; i++) {

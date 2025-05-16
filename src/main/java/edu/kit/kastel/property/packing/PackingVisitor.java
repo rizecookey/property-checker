@@ -106,7 +106,7 @@ public class PackingVisitor
             }
         }
 
-        checker.reportError(
+       checker.reportError(
                 tree,
                 "packing.method.invocation.invalid",
                 TreeUtils.elementFromUse(tree),

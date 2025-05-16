@@ -205,7 +205,15 @@ public class PackingTransfer extends InitializationAbstractTransfer<CFValue, Pac
                             receiverType.getUnderlyingType());
                     if ((atypeFactory.isSideEffectFree(executableElement) || ((PackingFieldAccessAnnotatedTypeFactory) atypeFactory).isMonotonicMethod(executableElement))
                             && TypeUtils.isStoreExpression(expr)) {
-                        newVal = newVal.mostSpecific(store.getValue(expr), newVal);
+                        CFValue oldVal = store.getValue(expr);
+                        if (oldVal == null) {
+                            oldVal = new CFValue(
+                                    analysis,
+                                    AnnotationMirrorSet.singleton(((PackingFieldAccessAnnotatedTypeFactory) atypeFactory).getInitialized()),
+                                    receiverType.getUnderlyingType());
+                        }
+
+                        newVal = newVal.mostSpecific(oldVal, newVal);
                     }
                     store.replaceValue(expr, newVal);
                 }
