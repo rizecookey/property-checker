@@ -19,6 +19,8 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 
+import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
+
 /** A SessionManager is a component which handles the threading interaction with the Session. */
 public class SessionManager implements Closeable {
   /** The command to be performed (point of communication with worker thread). */
@@ -53,7 +55,7 @@ public class SessionManager implements Closeable {
     debug.fine(s);
   }
 
-  public SessionManager() {
+  public @MaybeAliased SessionManager() {
     debugln("Creating SessionManager");
     worker = new Worker();
     worker.setDaemon(true);
@@ -107,7 +109,7 @@ public class SessionManager implements Closeable {
   }
 
   /** Shutdown this session. No further commands may be executed. */
-  @SuppressWarnings("nullness") // nulling worker for fast failure (& for GC)
+  @SuppressWarnings({"nullness","initialization"}) // nulling worker for fast failure (& for GC)
   @EnsuresCalledMethods(value = "worker", methods = "close")
   @Override
   public void close(@GuardSatisfied SessionManager this) {

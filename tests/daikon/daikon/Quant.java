@@ -9,9 +9,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 
-import org.plumelib.util.ArraysPlume;
-import org.plumelib.util.Intern;
-import org.plumelib.util.FuzzyFloat;
+import org.checkerframework.org.plumelib.util.ArraysPlume;
+import org.checkerframework.org.plumelib.util.Intern;
+import org.checkerframework.org.plumelib.util.FuzzyFloat;
+
 
 import org.checkerframework.checker.interning.qual.Interned;
 import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
@@ -73,6 +74,7 @@ import org.checkerframework.dataflow.qual.SideEffectFree;
  * involved an illegal argument. To avoid this problem, it is generally better to use a Quant
  * library predicate rather than returning a value and then testing it externally.
  */
+@SuppressWarnings("all") // too complicated for Kukicha case study
 public final class Quant {
   private Quant() { throw new Error("do not instantiate"); }
 

@@ -24,6 +24,8 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
+
 /**
  * A session is a channel to the Simplify theorem-proving tool. Once a session is started, commands
  * may be applied to the session to make queries and manipulate its state.
@@ -86,7 +88,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
    * Initializes the simplify environment for interaction. Use {@code Cmd} objects to interact with
    * this Session.
    */
-  public Session() {
+  public @MaybeAliased Session() {
     // Note that this local variable shadows `this.trace_file`.
     PrintStream trace_file = null;
     try {
@@ -110,9 +112,10 @@ import org.checkerframework.checker.nullness.qual.Nullable;
       SessionManager.debugln("Session: exec ok");
 
       if (dkconfig_trace_input) {
-        File f;
-        while ((f = new File("simplify" + trace_count + ".in")).exists()) {
+        File f = new File("simplify" + trace_count + ".in");
+        while (f.exists()) {
           trace_count++;
+          f = new File("simplify" + trace_count + ".in");
         }
         trace_file = new PrintStream(new FileOutputStream(f));
       }

@@ -9,13 +9,15 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 
+import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
+
 public class MemMonitor implements Runnable {
 
   boolean keep_going;
   long max_mem_usage;
   String filename;
 
-  public MemMonitor(String filename) {
+  public @MaybeAliased MemMonitor(String filename) {
     this.filename = filename;
     try (PrintWriter fout = new PrintWriter(Files.newBufferedWriter(Paths.get(filename), UTF_8))) {
 

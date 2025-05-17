@@ -1875,11 +1875,11 @@ public final class FileIO {
     // non-leaves.
     if (Daikon.use_dataflow_hierarchy) {
 
-      // Rather than defining leaves as :::EXIT54 (numbered exit)
+      // Rather than defining leaves as EXIT54 (numbered exit)
       // program points define them as everything except
-      // ::EXIT (combined), :::ENTER, :::THROWS, :::OBJECT, ::GLOBAL
-      //  and :::CLASS program points.  This scheme ensures that arbitrarly
-      //  named program points such as :::POINT (used by convertcsv.pl)
+      // EXIT (combined), ENTER, THROWS, OBJECT, GLOBAL
+      //  and CLASS program points.  This scheme ensures that arbitrarly
+      //  named program points such as POINT (used by convertcsv.pl)
       //  will be treated as leaves.
 
       if (ppt.ppt_name.isEnterPoint()

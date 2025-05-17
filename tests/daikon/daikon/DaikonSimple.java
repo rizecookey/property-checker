@@ -37,7 +37,7 @@ import org.checkerframework.dataflow.qual.Pure;
  * By comparing the output from the two, we can find problems with the optimization implementation
  * by tracking the cause of the differences.
  */
-@SuppressWarnings("nullness") // not actively maintained
+@SuppressWarnings("all") // not actively maintained
 public class DaikonSimple {
 
   // logging information

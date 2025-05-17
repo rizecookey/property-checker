@@ -12,6 +12,8 @@ import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.qual.Pure;
 
+import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
+
 // This is a fake PptSlice for use with Implication invariants.
 
 // - The implication invariants at a program point are grouped into a
@@ -25,7 +27,7 @@ import org.checkerframework.dataflow.qual.Pure;
 public class PptSlice0 extends PptSlice {
   static final long serialVersionUID = 20020122L;
 
-  PptSlice0(PptTopLevel parent) {
+  @MaybeAliased PptSlice0(PptTopLevel parent) {
     super(parent, new VarInfo[0]);
   }
 

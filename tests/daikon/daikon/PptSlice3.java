@@ -23,6 +23,8 @@ import org.plumelib.util.Intern;
 import typequals.prototype.qual.Prototype;
 import typequals.prototype.qual.NonPrototype;
 
+import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
+
 /** Contains all of the invariants over a particular set of 3 variables. */
 public final class PptSlice3 extends PptSlice {
   static final long serialVersionUID = 20040921L;
@@ -33,7 +35,7 @@ public final class PptSlice3 extends PptSlice {
   public static final Logger debugMerge = Logger.getLogger("daikon.PptSlice.merge");
 
   /** Create a new PptSlice3. The var_infos must be in varinfo_index order. */
-  public PptSlice3(PptTopLevel parent, VarInfo[] var_infos) {
+  public @MaybeAliased PptSlice3(PptTopLevel parent, @MaybeAliased VarInfo @MaybeAliased [] var_infos) {
 
     super(parent, var_infos);
     assert var_infos.length == 3;
@@ -46,7 +48,7 @@ public final class PptSlice3 extends PptSlice {
     }
   }
 
-  PptSlice3(PptTopLevel parent, VarInfo var_info1, VarInfo var_info2, VarInfo var_info3) {
+  @MaybeAliased PptSlice3(PptTopLevel parent, VarInfo var_info1, VarInfo var_info2, VarInfo var_info3) {
     this(parent, new VarInfo[] {var_info1, var_info2, var_info3});
   }
 

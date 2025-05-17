@@ -2586,11 +2586,11 @@ public final class Daikon {
         p = ((PptConditional) ppt).parent;
       }
 
-      // Rather than defining leaves as :::GLOBAL or :::EXIT54 (numbered
+      // Rather than defining leaves as GLOBAL or EXIT54 (numbered
       // exit), we define them as everything except
-      // ::EXIT (combined), :::ENTER, :::THROWS, :::OBJECT
-      //  and :::CLASS program points.  This scheme ensures that arbitrarly
-      //  named program points such as :::POINT (used by convertcsv.pl)
+      // EXIT (combined), ENTER, THROWS, OBJECT
+      //  and CLASS program points.  This scheme ensures that arbitrarly
+      //  named program points such as POINT (used by convertcsv.pl)
       //  will be treated as leaves.
       if (p.ppt_name.isCombinedExitPoint()
           || p.ppt_name.isEnterPoint()

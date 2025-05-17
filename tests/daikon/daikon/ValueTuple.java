@@ -15,6 +15,8 @@ import org.plumelib.util.ArraysPlume;
 import org.plumelib.util.Intern;
 import org.plumelib.util.MathPlume;
 
+import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
+
 /**
  * This data structure holds a tuple of values for a particular program point. VarInfo objects can
  * use this to get the values of the variables they represent.
@@ -349,7 +351,7 @@ public final class ValueTuple implements Cloneable {
   }
 
   /** Default constructor that interns its argument. */
-  public ValueTuple(@Nullable @Interned Object[] vals, int[] mods) {
+  public @MaybeAliased ValueTuple(@Nullable @Interned Object[] vals, int[] mods) {
     this.vals = Intern.intern(vals);
     this.mods = Intern.intern(mods);
     checkRep();
@@ -363,7 +365,7 @@ public final class ValueTuple implements Cloneable {
    * @param check if true, require vals and mods to be interned
    */
   @SuppressWarnings("interning") // interning constructor
-  private ValueTuple(@Nullable Object[] vals, int[] mods, boolean check) {
+  private @MaybeAliased ValueTuple(@Nullable Object[] vals, int[] mods, boolean check) {
     assert !check || Intern.isInterned(vals);
     assert !check || Intern.isInterned(mods);
     this.vals = vals;

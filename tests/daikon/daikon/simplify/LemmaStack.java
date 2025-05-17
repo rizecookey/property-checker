@@ -17,6 +17,8 @@ import org.checkerframework.checker.mustcall.qual.MustCall;
 import org.checkerframework.checker.mustcall.qual.Owning;
 import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
 
+import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
+
 /**
  * A stack of Lemmas that shadows the stack of assumptions that Simplify keeps. Keeping this stack
  * is necessary if we're to be able to restart Simplify from where we left off after it hangs, but
@@ -93,6 +95,7 @@ import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
   /** Try to start Simplify. */
   @CreatesMustCallFor("this")
   @EnsuresNonNull("session")
+  @SuppressWarnings("all") // session field is initialized if non-null
   private void startProver(@UnknownInitialization LemmaStack this) throws SimplifyError {
     SessionManager session_try = SessionManager.attemptProverStartup();
     if (session != null) {
@@ -122,7 +125,7 @@ import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
   }
 
   /** Create a new LemmaStack. */
-  public LemmaStack() throws SimplifyError {
+  public @MaybeAliased LemmaStack() throws SimplifyError {
     startProver();
     lemmas = new Stack<Lemma>();
     if (daikon.inv.Invariant.dkconfig_simplify_define_predicates) {

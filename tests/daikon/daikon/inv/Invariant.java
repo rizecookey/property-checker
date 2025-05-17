@@ -44,13 +44,14 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.qual.Pure;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 import org.checkerframework.framework.qual.Unused;
-import org.plumelib.util.ArraysPlume;
-import org.plumelib.util.CollectionsPlume;
-import org.plumelib.util.MathPlume;
+import org.checkerframework.org.plumelib.util.ArraysPlume;
+import org.checkerframework.org.plumelib.util.CollectionsPlume;
+import org.checkerframework.org.plumelib.util.MathPlume;
 import typequals.prototype.qual.NonPrototype;
 import typequals.prototype.qual.Prototype;
 
 import org.checkerframework.dataflow.qual.Pure;
+import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
 
 /**
  * Base implementation for Invariant objects. Intended to be subclassed but not to be directly
@@ -465,13 +466,13 @@ public abstract class Invariant implements Serializable, Cloneable // but don't 
   // in the ppt.  Or, don't put too much work in the constructor and instead
   // have the caller do that.
   // The "ppt" argument can be null if this is a prototype invariant.
-  protected Invariant(PptSlice ppt) {
+  protected @MaybeAliased Invariant(PptSlice ppt) {
     this.ppt = ppt;
     checkMergeOverridden();
   }
 
-  @SuppressWarnings("nullness") // weakness in @Unused checking
-  protected @Prototype Invariant() {
+  @SuppressWarnings({"nullness","initialization"}) // weakness in @Unused checking
+  protected @MaybeAliased @Prototype Invariant() {
     this.ppt = null;
     checkMergeOverridden();
   }
@@ -749,7 +750,7 @@ public abstract class Invariant implements Serializable, Cloneable // but don't 
    *
    * @return a string representation of the variable names
    */
-  public final String varNames(@GuardSatisfied @NonPrototype Invariant this) {
+  public final @MaybeAliased String varNames(@GuardSatisfied @NonPrototype Invariant this) {
     return ppt.varNames();
   }
 
@@ -901,7 +902,7 @@ public abstract class Invariant implements Serializable, Cloneable // but don't 
    * @return standard "too few samples for to have interesting invariant" for the requested format
    */
   public String format_too_few_samples(
-      @GuardSatisfied @NonPrototype Invariant this, OutputFormat format, @Nullable String attempt) {
+      @GuardSatisfied @NonPrototype Invariant this, OutputFormat format, @MaybeAliased @Nullable String attempt) {
     if (format == OutputFormat.SIMPLIFY) {
       return "(AND)";
     } else if (format == OutputFormat.JAVA

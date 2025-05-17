@@ -63,7 +63,7 @@ public abstract class PptSlice extends Ppt {
   @SuppressWarnings("serial")
   public List<Invariant> invs;
 
-  @MaybeAliased PptSlice(PptTopLevel parent, VarInfo[] var_infos) {
+  @MaybeAliased PptSlice(PptTopLevel parent, @MaybeAliased VarInfo @MaybeAliased [] var_infos) {
     super(var_infos);
     this.parent = parent;
     invs = new ArrayList<Invariant>();

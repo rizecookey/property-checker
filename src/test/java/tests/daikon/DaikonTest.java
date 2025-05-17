@@ -22,6 +22,7 @@ import org.checkerframework.framework.test.*;
 import org.junit.Test;
 
 import java.io.File;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -41,7 +42,6 @@ public class DaikonTest {
             //"lib/checker-qual-3.42.0-eisop3-SNAPSHOT.jar",
             "tests/daikon/lib/commons-exec-1.4.0.jar",
             "tests/daikon/lib/commons-lang3-3.15.0.jar",
-            "tests/daikon/lib/daikon-plumelib.jar",
             "tests/daikon/lib/hamcrest-core-1.3-Daikon.jar",
             "tests/daikon/lib/hashmap-util-0.0.1.jar",
             "tests/daikon/lib/java-getopt-1.0.14.0.1.jar",
@@ -49,6 +49,8 @@ public class DaikonTest {
             "tests/daikon/lib/junit-platform-console-standalone-1.9.0-Daikon.jar",
             "tests/daikon/lib/options-1.0.6.jar",
             "tests/daikon/lib/plume-util-1.9.3.jar",
+            "tests/daikon/lib/daikon-plumelib.jar",
+            "tests/daikon/lib/checker-framework/checker-3.42.0-eisop3-SNAPSHOT.jar",
             "tests/daikon/lib/reflection-util-1.1.3.jar"
     );
 
@@ -68,7 +70,7 @@ public class DaikonTest {
     /** Run the tests. */
     @Test
     public void run() {
-        List<File> testFiles = TestUtilities.findJavaFilesPerDirectory(resolveTestDirectory(), testDir).stream().flatMap(List::stream).toList();
+        List<File> testFiles = Arrays.stream(new File(resolveTestDirectory(), testDir + "/daikon").listFiles()).filter(f -> f.getName().endsWith(".java")).toList();
         boolean shouldEmitDebugInfo = TestUtilities.getShouldEmitDebugInfo();
         TestConfiguration config =
                 TestConfigurationBuilder.buildDefaultConfiguration(

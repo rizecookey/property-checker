@@ -15,6 +15,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.qual.Pure;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 
+import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
+
 // Types of Ppt (program point) objects:
 //  Ppt:  abstract base class
 //  PptTopLevel:  pointed to by top-level PptMap object.  Contains all variables
@@ -41,7 +43,7 @@ public abstract class Ppt implements Serializable {
   // Not final:  modified by PptTopLevel.addVarInfos (which is called by
   // Daikon.create_orig_vars and PptTopLevel.create_derived_variables)
   // and also by PptSlice0.makeFakePrestate.
-  public VarInfo[] var_infos;
+  public @MaybeAliased VarInfo @MaybeAliased [] var_infos;
 
   protected Ppt(VarInfo[] var_infos) {
     this.var_infos = var_infos;

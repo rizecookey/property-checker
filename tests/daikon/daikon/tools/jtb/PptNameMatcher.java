@@ -185,7 +185,7 @@ public class PptNameMatcher {
     // samples.calculator.Calculator.AbstractOperandState, but
     // pptName.getFullClassName() can be a binary name such as
     // samples.calculator.Calculator$AbstractOperandState, at least for the
-    // :::OBJECT program point.  Is that a bug?
+    // OBJECT program point.  Is that a bug?
 
     // Furthermore, pptName.getMethodName may be null for a constructor.
 
