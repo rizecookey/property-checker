@@ -4004,11 +4004,11 @@ public class PptTopLevel extends Ppt {
 
       // Matching parent variable info.  Skip this slice if there isn't a
       // match for each variable (such as with an enter-exit relation).
-      VarInfo[] pvis = parent_vis(rel, cslice);
+      @MaybeAliased VarInfo @MaybeAliased [] pvis = parent_vis(rel, cslice);
       if (pvis == null) {
         continue;
       }
-      VarInfo[] pvis_sorted = pvis.clone();
+      @MaybeAliased VarInfo @MaybeAliased [] pvis_sorted = pvis.clone();
       Arrays.sort(pvis_sorted, VarInfo.IndexComparator.getInstance());
 
       // Create the parent slice
@@ -4234,11 +4234,11 @@ public class PptTopLevel extends Ppt {
 
       // Build the varlist for the parent.  If any variables are not present in
       // the parent, skip this slice
-      VarInfo[] pvis = parent_vis(rel, slice);
+      @MaybeAliased VarInfo @MaybeAliased [] pvis = parent_vis(rel, slice);
       if (pvis == null) {
         continue;
       }
-      VarInfo[] pvis_sorted = pvis.clone();
+      @MaybeAliased VarInfo @MaybeAliased [] pvis_sorted = pvis.clone();
       Arrays.sort(pvis_sorted, VarInfo.IndexComparator.getInstance());
 
       // Find the parent slice.  If it doesn't exist, there is nothing to do

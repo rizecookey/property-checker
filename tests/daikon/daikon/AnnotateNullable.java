@@ -16,6 +16,8 @@ import org.plumelib.options.Option;
 import org.plumelib.options.Options;
 import org.plumelib.reflection.Signatures;
 
+import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
+
 /**
  * AnnotateNullable reads a Daikon invariant file and determines which reference variables have seen
  * any null values. It writes to standard out an <a
@@ -305,7 +307,7 @@ public class AnnotateNullable {
     }
 
     // The formatted annotation for the return value with a leading space, or empty string
-    String return_annotation = (retvar == null ? "" : " " + get_annotation(ppt, retvar));
+    @MaybeAliased String return_annotation = (retvar == null ? "" : " " + get_annotation(ppt, retvar));
 
     // Look up the annotation for each parameter.
     List<String> names = new ArrayList<>();

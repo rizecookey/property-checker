@@ -65,7 +65,7 @@ public class PptSlice0 extends PptSlice {
     }
   }
 
-  @SuppressWarnings("nullness") // reinitialization
+  @SuppressWarnings({"nullness","initialization"}) // reinitialization
   private void reinitInvariantsSeen() {
     invariantsSeen = null;
     initInvariantsSeen();
