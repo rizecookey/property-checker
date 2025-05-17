@@ -152,6 +152,10 @@ public class PackingVisitor
         }
 
         // Infer pack statement if possible
+        if (varFrame.equals(valFrame) && ((Type) valFrame).isFinal()) {
+            inferPackStatement(methodTree, varFrame);
+            return true;
+        }
         if (types.isSubtype(varFrame, valFrame)) {
             // For monotonic methods or unique receivers,
             // we may treat @UnknownInitialization(A) as equivalent to @UnderInitialization(A)
@@ -210,13 +214,11 @@ public class PackingVisitor
         }
 
         // Infer pack statement if possible
+        if (varFrame.equals(valFrame) && ((Type) valFrame).isFinal()) {
+            inferPackStatement(stmtTree, varFrame);
+            return true;
+        }
         if (types.isSubtype(varFrame, valFrame) && !atypeFactory.isUnknownInitialization(valAnno)) {
-            // For monotonic methods
-            // we may treat @UnknownInitialization(A) as equivalent to @UnderInitialization(A)
-            boolean monotonic = stmtTree instanceof MethodInvocationTree invocationTree && atypeFactory.isMonotonicMethod(TreeUtils.elementFromTree(invocationTree));
-            if (!monotonic && atypeFactory.isUnknownInitialization(valAnno)) {
-                return false;
-            }
             checkFieldsInitializedUpToFrame(stmtTree, varFrame);
             // checkFieldsInitializedUpToFrame reports an error if necessary.
             // We return true to not report another error.

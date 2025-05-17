@@ -17,6 +17,7 @@ import org.checkerframework.checker.nullness.*;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.PolyNull;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.dataflow.expression.FieldAccess;
 import org.checkerframework.dataflow.expression.JavaExpression;
@@ -55,14 +56,23 @@ public class NullnessLatticeAnnotatedTypeFactory extends NullnessNoInitAnnotated
         Map<Pair<String, String>, SubAnnotationRelation> relations = new HashMap<>();
         PropertyAnnotationType nonNull = new PropertyAnnotationType(NonNull.class, null, List.of(), "§subject§ != null", "true");
         //TODO
+        PropertyAnnotationType polyNull = new PropertyAnnotationType(PolyNull.class, null, List.of(), "true", "true");
+        //TODO
         PropertyAnnotationType monotonicNonNull = new PropertyAnnotationType(MonotonicNonNull.class, null, List.of(), "true", "true");
         PropertyAnnotationType nullable = new PropertyAnnotationType(Nullable.class, null, List.of(), "true", "true");
         annotationTypes.put("NonNull", nonNull);
+        annotationTypes.put("PolyNull", polyNull);
         annotationTypes.put("MonotonicNonNull", monotonicNonNull);
         annotationTypes.put("Nullable", nullable);
         relations.put(
+                Pair.of("PolyNull", "Nullable"),
+                new SubAnnotationRelation(new PropertyAnnotation(polyNull, List.of()), new PropertyAnnotation(nullable, List.of()), "true"));
+        relations.put(
                 Pair.of("MonotonicNonNull", "Nullable"),
                 new SubAnnotationRelation(new PropertyAnnotation(monotonicNonNull, List.of()), new PropertyAnnotation(nullable, List.of()), "true"));
+        relations.put(
+                Pair.of("NonNull", "PolyNull"),
+                new SubAnnotationRelation(new PropertyAnnotation(nonNull, List.of()), new PropertyAnnotation(polyNull, List.of()), "true"));
         relations.put(
                 Pair.of("NonNull", "MonotonicNonNull"),
                 new SubAnnotationRelation(new PropertyAnnotation(nonNull, List.of()), new PropertyAnnotation(monotonicNonNull, List.of()), "true"));

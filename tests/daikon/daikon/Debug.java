@@ -11,6 +11,8 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.plumelib.util.ArraysPlume;
 
+import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
+
 /**
  * Debug class used with the logger to create standardized output. It can be setup to track
  * combinations of classes, program points, and variables. The most common class to track is an
@@ -165,7 +167,7 @@ public final class Debug {
    * from vis that is on the debugTrackVar list. Essentially this creates a debug object that will
    * print if any of the variables in vis are being tracked (and c and ppt match).
    */
-  public Debug(Class<?> c, Ppt ppt, VarInfo[] vis) {
+  public @MaybeAliased Debug(Class<?> c, Ppt ppt, VarInfo[] vis) {
     set(c, ppt, vis);
   }
 
@@ -188,7 +190,7 @@ public final class Debug {
    * from vis that is on the debugTrackVar list. Essentially this creates a debug object that will
    * print if any of the variables in vis are being tracked (and c and ppt match).
    */
-  public Debug(Class<?> c, Ppt ppt, List<VarInfo> vis) {
+  public @MaybeAliased Debug(Class<?> c, Ppt ppt, List<VarInfo> vis) {
 
     VarInfo v = visTracked(vis);
     if (v != null) {
@@ -204,7 +206,7 @@ public final class Debug {
    * Looks for each of the variables in vis in the DebugTrackVar list. If any match, returns that
    * variable. Returns null if there are no matches.
    */
-  public @Nullable VarInfo visTracked(@UnknownInitialization Debug this, List<VarInfo> vis) {
+  public @Nullable VarInfo visTracked(List<VarInfo> vis) {
 
     for (VarInfo v : vis) {
       Set<VarInfo> evars = null;
@@ -461,7 +463,7 @@ public final class Debug {
    */
   // 3-argument form
   public static boolean log(
-      Class<?> inv_class, @UnknownInitialization(PptTopLevel.class) Ppt ppt, String msg) {
+      Class<?> inv_class, Ppt ppt, String msg) {
 
     return log(inv_class, ppt, ppt.var_infos, msg);
   }
@@ -480,7 +482,7 @@ public final class Debug {
   // 4-argument form
   public static boolean log(
       @Nullable Class<?> inv_class,
-      @Nullable @UnknownInitialization(PptTopLevel.class) Ppt ppt,
+      @Nullable Ppt ppt,
       VarInfo @Nullable [] vis,
       String msg) {
 
@@ -567,7 +569,7 @@ public final class Debug {
 
   /** Returns whether or not the specified ppt matches the ppts being tracked. */
   public static boolean ppt_match(
-      @Nullable @UnknownInitialization(daikon.PptTopLevel.class) Ppt ppt) {
+      @Nullable Ppt ppt) {
 
     if (debugTrackPpt.length > 0) {
       return (ppt != null) && strContainsElem(ppt.name(), debugTrackPpt);

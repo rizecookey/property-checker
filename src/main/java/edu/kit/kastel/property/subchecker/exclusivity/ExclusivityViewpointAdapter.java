@@ -24,8 +24,7 @@ public class ExclusivityViewpointAdapter extends AbstractViewpointAdapter {
 
     @Override
     protected AnnotationMirror combineAnnotationWithAnnotation(
-            AnnotationMirror receiverAnnotation, AnnotationMirror declaredAnnotation
-    ) {
+            AnnotationMirror receiverAnnotation, AnnotationMirror declaredAnnotation) {
         if (AnnotationUtils.areSame(declaredAnnotation, atypeFactory.UNIQUE)) {
             return receiverAnnotation;
         } else {
@@ -36,16 +35,15 @@ public class ExclusivityViewpointAdapter extends AbstractViewpointAdapter {
     @Override
     protected AnnotatedTypeMirror combineAnnotationWithType(
             AnnotationMirror receiverAnnotation, AnnotatedTypeMirror declaredType) {
-        AnnotatedTypeMirror result = AnnotatedTypeMirror.createType(
-                declaredType.getUnderlyingType(), atypeFactory, declaredType.isDeclaration());
+        AnnotatedTypeMirror result = super.combineAnnotationWithType(receiverAnnotation, declaredType);
         if (declaredType.getPrimitiveKind() != null) {
-            result.addAnnotation(atypeFactory.UNIQUE);
+            result.replaceAnnotation(atypeFactory.UNIQUE);
             return result;
         } else if (declaredType.hasAnnotation(atypeFactory.UNIQUE)) {
-            result.addAnnotation(receiverAnnotation);
+            result.replaceAnnotation(receiverAnnotation);
             return result;
         } else {
-            result.addAnnotation(declaredType.getAnnotationInHierarchy(atypeFactory.UNIQUE));
+            result.replaceAnnotation(declaredType.getEffectiveAnnotationInHierarchy(atypeFactory.UNIQUE));
             return result;
         }
     }
@@ -53,18 +51,16 @@ public class ExclusivityViewpointAdapter extends AbstractViewpointAdapter {
     @Override
     protected AnnotatedTypeMirror combineTypeWithType(
             AnnotatedTypeMirror receiverType, AnnotatedTypeMirror declaredType) {
-        AnnotatedTypeMirror result = AnnotatedTypeMirror.createType(
-                declaredType.getUnderlyingType(), atypeFactory, declaredType.isDeclaration());
+        AnnotatedTypeMirror result = super.combineTypeWithType(receiverType, declaredType);
         if (TypesUtils.isPrimitive(declaredType.getUnderlyingType())) {
-            result.addAnnotation(atypeFactory.UNIQUE);
-            return result;
+            result.replaceAnnotation(atypeFactory.UNIQUE);
         } else if (declaredType.hasAnnotation(atypeFactory.UNIQUE)) {
-            result.addAnnotation(receiverType.getEffectiveAnnotationInHierarchy(atypeFactory.UNIQUE));
-            return result;
+            result.replaceAnnotation(receiverType.getEffectiveAnnotationInHierarchy(atypeFactory.UNIQUE));
         } else {
-            result.addAnnotation(declaredType.getEffectiveAnnotationInHierarchy(atypeFactory.UNIQUE));
-            return result;
+            result.replaceAnnotation(declaredType.getEffectiveAnnotationInHierarchy(atypeFactory.UNIQUE));
         }
+
+        return result;
     }
 
     @Override

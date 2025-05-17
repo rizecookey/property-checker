@@ -23,6 +23,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 import org.checkerframework.dataflow.qual.Pure;
 
+import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
+
 /**
  * This is the main class for Chicory which transforms the class files of a program to instrument it
  * for Daikon. The instrumentation uses the javaagent switch to java (which allows classes to be
@@ -350,14 +352,13 @@ public class Chicory {
     terminate = System.getProperty(traceLimTermString);
 
     // Run Daikon if we're in online mode
-    StreamRedirectThread daikon_err = null;
-    StreamRedirectThread daikon_out = null;
+    @MaybeAliased StreamRedirectThread daikon_err = null;
+    @MaybeAliased StreamRedirectThread daikon_out = null;
     if (daikon_online) {
       runDaikon();
 
-      StreamRedirectThread tmp_daikon_err =
-          new StreamRedirectThread("stderr", daikon_proc.getErrorStream(), System.err);
-      daikon_err = tmp_daikon_err;
+      daikon_err =
+        new StreamRedirectThread("stderr", daikon_proc.getErrorStream(), System.err);
       daikon_err.start();
 
       @NonNull InputStream daikonStdOut = daikon_proc.getInputStream();
@@ -383,7 +384,7 @@ public class Chicory {
 
           if (line.contains("DaikonChicoryOnlinePort=")) {
             String portStr = line.replaceFirst(".*DaikonChicoryOnlinePort=", "");
-            daikon_port = Integer.decode(portStr);
+            daikon_port = Integer.decode(portStr).intValue();
             System.out.println("GOT PORT STRING " + daikon_port);
             break;
           }

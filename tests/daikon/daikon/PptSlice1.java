@@ -121,7 +121,7 @@ public final class PptSlice1 extends PptSlice {
   // These accessors are for abstract methods declared in Ppt
   /** Returns the number of (non-missing) samples observed at this slice. */
   @Override
-  public int num_samples(@UnknownInitialization @GuardSatisfied PptSlice1 this) {
+  public int num_samples(@GuardSatisfied PptSlice1 this) {
     if (parent == null || var_infos == null) { // handle not-yet-initialized slices
       return 0;
     }

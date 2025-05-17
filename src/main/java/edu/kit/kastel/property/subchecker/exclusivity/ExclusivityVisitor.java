@@ -48,6 +48,12 @@ public final class ExclusivityVisitor extends PackingClientVisitor<ExclusivityAn
     }
 
     @Override
+    public Void visitEnhancedForLoop(EnhancedForLoopTree tree, Void p) {
+        //TODO
+        return null;
+    }
+
+    @Override
     public Void visitAssignment(AssignmentTree node, Void p) {
         // TODO Not thread-safe :-)
         atypeFactory.useIFlowAfter(node);

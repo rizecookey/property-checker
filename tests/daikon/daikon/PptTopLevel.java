@@ -3661,7 +3661,6 @@ public class PptTopLevel extends Ppt {
       }
     }
     int num_tracevars = mbtracker.num_vars();
-    // warning: shadows field of same name
     @Nullable Object[] vals = new Object[num_tracevars];
     int[] mods = new int[num_tracevars];
     ValueTuple vt = ValueTuple.makeUninterned(vals, mods);
