@@ -7,6 +7,9 @@ import java.io.PrintStream;
 import java.text.DecimalFormat;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import edu.kit.kastel.property.subchecker.lattice.daikon_qual.*;
+import edu.kit.kastel.property.checker.qual.*;
+
 /** Prints all the invariant pairs, including pairs containing identical invariants. */
 public class PrintAllVisitor extends DepthFirstVisitor {
 
@@ -35,7 +38,7 @@ public class PrintAllVisitor extends DepthFirstVisitor {
 
   /** Prints the pair of program points, and all the invariants contained within them. */
   @Override
-  public void visit(PptNode node) {
+  public void visit(@NonNullNode PptNode node) {
     // Empty the string buffer
     bufOutput.setLength(0);
 
@@ -67,7 +70,7 @@ public class PrintAllVisitor extends DepthFirstVisitor {
 
   /** Prints a pair of invariants. Includes the type of the invariants and their relationship. */
   @Override
-  public void visit(InvNode node) {
+  public void visit(@NonNullNode InvNode node) {
 
     if (HUMAN_OUTPUT) {
       printHumanOutput(node);
@@ -107,7 +110,7 @@ public class PrintAllVisitor extends DepthFirstVisitor {
    * readable. The format resembles cvs diff with '+' and '-' signs for the differing invariants.
    * There is no information on justification or invariant type.
    */
-  public void printHumanOutput(InvNode node) {
+  public void printHumanOutput(@NonNullNode InvNode node) {
 
     Invariant inv1 = node.getInv1();
     Invariant inv2 = node.getInv2();

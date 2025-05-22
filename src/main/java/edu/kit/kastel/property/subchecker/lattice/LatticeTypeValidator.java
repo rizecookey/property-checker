@@ -29,6 +29,7 @@ import org.checkerframework.framework.type.AnnotatedTypeFactory;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedArrayType;
 import org.checkerframework.javacutil.AnnotationUtils;
+import org.checkerframework.javacutil.TypesUtils;
 
 import javax.lang.model.element.AnnotationMirror;
 
@@ -44,7 +45,7 @@ public final class LatticeTypeValidator extends BaseTypeValidator {
     @Override
     public boolean isValid(AnnotatedTypeMirror type, Tree tree) {
         LatticeAnnotatedTypeFactory factory = getPropertyAnnotatedTypeFactory();
-        AnnotationMirror annotation = type.getAnnotationInHierarchy(factory.getTop());
+        AnnotationMirror annotation = type.getEffectiveAnnotationInHierarchy(factory.getTop());
         
         EvaluatedPropertyAnnotation epa = factory.getLattice()
                 .getEvaluatedPropertyAnnotation(annotation);
@@ -73,11 +74,20 @@ public final class LatticeTypeValidator extends BaseTypeValidator {
         }
 
         Class<?> expectedSubjectType = epa.getAnnotationType().getSubjectType();
+
+        if (expectedSubjectType == null) {
+            // any
+            return true;
+        }
+
+        if (expectedSubjectType.getName().equals("java.lang.Object") && !TypesUtils.isPrimitive(type.getUnderlyingType())) {
+            return true;
+        }
+
         Class<?> actualSubjectType = ClassUtils.classOrPrimitiveForName(
                 ((Type) type.getUnderlyingType()).asElement().toString(), getLatticeSubchecker());
 
-        if (actualSubjectType != null && expectedSubjectType != null
-                && !expectedSubjectType.isAssignableFrom(actualSubjectType)) {
+        if (actualSubjectType != null && !expectedSubjectType.isAssignableFrom(actualSubjectType)) {
             reportInvalidType(type, tree);
             return false;
         }
@@ -88,8 +98,8 @@ public final class LatticeTypeValidator extends BaseTypeValidator {
     public boolean dependsOnlyOnAbstractState(AnnotatedTypeMirror type, AnnotatedTypeMirror exclType, Tree tree) {
         LatticeAnnotatedTypeFactory factory = getPropertyAnnotatedTypeFactory();
         ExclusivityAnnotatedTypeFactory exclFactory = getLatticeSubchecker().getExclusivityFactory();
-        AnnotationMirror annotation = type.getAnnotationInHierarchy(factory.getTop());
-        AnnotationMirror exclAnnotation = exclType.getAnnotationInHierarchy(exclFactory.READ_ONLY);
+        AnnotationMirror annotation = type.getEffectiveAnnotationInHierarchy(factory.getTop());
+        AnnotationMirror exclAnnotation = exclType.getEffectiveAnnotationInHierarchy(exclFactory.READ_ONLY);
         
         PropertyAnnotation pa = factory.getLattice().getPropertyAnnotation(annotation);
         

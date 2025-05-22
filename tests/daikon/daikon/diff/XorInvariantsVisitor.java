@@ -4,6 +4,9 @@ import daikon.inv.Invariant;
 import java.io.PrintStream;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import edu.kit.kastel.property.subchecker.lattice.daikon_qual.*;
+import edu.kit.kastel.property.checker.qual.*;
+
 /**
  * <B>XorInvariantsVisitor</B> is a visitor that performs a standard Diff on two PptMaps, that is,
  * finds the set of Invariants in the XOR set of two PptMaps. However, while those XOR Invariants
@@ -22,12 +25,12 @@ public class XorInvariantsVisitor extends PrintDifferingInvariantsVisitor {
   }
 
   @Override
-  public void visit(PptNode node) {
+  public void visit(@NonNullNode PptNode node) {
     super.visit(node);
   }
 
   @Override
-  public void visit(InvNode node) {
+  public void visit(@NonNullNode InvNode node) {
     Invariant inv1 = node.getInv1();
     Invariant inv2 = node.getInv2();
     // do nothing if they are unique

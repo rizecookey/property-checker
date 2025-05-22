@@ -143,13 +143,11 @@ public class PackingAnnotatedTypeFactory
         }
 
         AnnotatedTypeMirror declType = factory.getAnnotatedType(var);
-        AnnotatedTypeMirror refType;
+        AnnotatedTypeMirror refType = declType.deepCopy();
         if (value != null) {
-            refType = AnnotatedTypeMirror.createType(declType.getUnderlyingType(), factory, false);
-            refType.addAnnotations(value.getAnnotations());
+            refType.replaceAnnotations(value.getAnnotations());
         } else {
-            refType = AnnotatedTypeMirror.createType(declType.getUnderlyingType(), factory, false);
-            refType.addAnnotations(factory.getQualifierHierarchy().getTopAnnotations());
+            refType.replaceAnnotations(factory.getQualifierHierarchy().getTopAnnotations());
         }
         if (refType instanceof AnnotatedTypeMirror.AnnotatedDeclaredType) {
             ((AnnotatedTypeMirror.AnnotatedDeclaredType) refType).getTypeArguments().forEach(arg -> factory.addDefaultAnnotations(arg));

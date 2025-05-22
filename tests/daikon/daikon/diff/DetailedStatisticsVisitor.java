@@ -7,9 +7,13 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.dataflow.qual.Pure;
 import org.checkerframework.dataflow.qual.SideEffectFree;
 import org.plumelib.util.ArraysPlume;
 import org.plumelib.util.StringsPlume;
+
+import edu.kit.kastel.property.subchecker.lattice.daikon_qual.*;
+import edu.kit.kastel.property.checker.qual.*;
 
 /**
  * Computes statistics about the differences between the sets of invariants. The statistics can be
@@ -77,7 +81,7 @@ public class DetailedStatisticsVisitor extends DepthFirstVisitor {
   }
 
   @Override
-  public void visit(InvNode node) {
+  public void visit(@NonNullNode InvNode node) {
     Invariant inv1 = node.getInv1();
     Invariant inv2 = node.getInv2();
     if (shouldAddFrequency(inv1, inv2)) {
@@ -89,7 +93,7 @@ public class DetailedStatisticsVisitor extends DepthFirstVisitor {
    * Adds the difference between the two invariants to the appropriate entry in the frequencies
    * table.
    */
-  private void addFrequency(@Nullable Invariant inv1, @Nullable Invariant inv2) {
+  private void addFrequency(@NonNullIfNull("inv2") @Nullable Invariant inv1, @NonNullIfNull("inv1") @Nullable Invariant inv2) {
     if (continuousJustification) {
       addFrequencyContinuous(inv1, inv2);
     } else {
@@ -101,7 +105,7 @@ public class DetailedStatisticsVisitor extends DepthFirstVisitor {
    * Treats justification as a binary value. The table entry is incremented by 1 regardless of the
    * difference in justifications.
    */
-  private void addFrequencyBinary(@Nullable Invariant inv1, @Nullable Invariant inv2) {
+  private void addFrequencyBinary(@NonNullIfNull("inv2") @Nullable Invariant inv1, @NonNullIfNull("inv1") @Nullable Invariant inv2) {
     int arity = determineArity(inv1, inv2);
     int relationship = determineRelationship(inv1, inv2);
     freq[arity][relationship]++;
@@ -111,16 +115,14 @@ public class DetailedStatisticsVisitor extends DepthFirstVisitor {
    * Treats justification as a continuous value. If one invariant is justified but the other is
    * unjustified, the table entry is incremented by the difference in justifications.
    */
-  private void addFrequencyContinuous(@Nullable Invariant inv1, @Nullable Invariant inv2) {
+  private void addFrequencyContinuous(@NonNullIfNull("inv2") @Nullable Invariant inv1, @NonNullIfNull("inv1") @Nullable Invariant inv2) {
     int arity = determineArity(inv1, inv2);
     int relationship = determineRelationship(inv1, inv2);
 
     switch (relationship) {
       case REL_SAME_JUST1_UNJUST2:
       case REL_SAME_UNJUST1_JUST2:
-        assert inv1 != null && inv2 != null
-            : "@AssumeAssertion(nullness)"; // application invariant about return value of
-        // determineRelationship
+        //assert inv1 != null && inv2 != null : "@AssumeAssertion(nullness)"; // application invariant about return value of determineRelationship
         freq[arity][relationship] += calculateConfidenceDifference(inv1, inv2);
         break;
       default:
@@ -142,10 +144,9 @@ public class DetailedStatisticsVisitor extends DepthFirstVisitor {
   }
 
   /** Returns the arity of the invariant pair. */
-  public static int determineArity(@Nullable Invariant inv1, @Nullable Invariant inv2) {
-
+  public static int determineArity(@NonNullIfNull("inv2") @Nullable Invariant inv1, @NonNullIfNull("inv1") @Nullable Invariant inv2) {
     // Set inv to a non-null invariant
-    @SuppressWarnings("nullness") // at least one argument is non-null
+    //@SuppressWarnings("nullness") // at least one argument is non-null
     @NonNull Invariant inv = (inv1 != null) ? inv1 : inv2;
 
     if (debug.isLoggable(Level.FINE)) {
@@ -169,11 +170,14 @@ public class DetailedStatisticsVisitor extends DepthFirstVisitor {
    * Returns the relationship between the two invariants. There are twelve possible relationships,
    * described at the beginning of this file.
    */
-  public static int determineRelationship(@Nullable Invariant inv1, @Nullable Invariant inv2) {
+  @Pure
+  @JMLClause("ensures \\result == REL_SAME_JUST1_JUST2 ==> inv1 != null && inv2 != null;")
+  @JMLClause("ensures \\result == REL_SAME_UNJUST1_UNJUST2 ==> inv1 != null && inv2 != null;")
+  public static int determineRelationship(@NonNullIfNull("inv2") @Nullable Invariant inv1, @NonNullIfNull("inv1") @Nullable Invariant inv2) {
     int relationship;
 
     if (inv1 == null) {
-      assert inv2 != null : "@AssumeAssertion(nullness): at least one argument is non-null";
+      //assert inv2 != null : "@AssumeAssertion(nullness): at least one argument is non-null";
       relationship = inv2.justified() ? REL_MISS_JUST2 : REL_MISS_UNJUST2;
     } else if (inv2 == null) {
       relationship = inv1.justified() ? REL_MISS_JUST1 : REL_MISS_UNJUST1;

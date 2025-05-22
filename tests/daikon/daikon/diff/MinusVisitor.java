@@ -7,6 +7,9 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 
+import edu.kit.kastel.property.subchecker.lattice.daikon_qual.*;
+import edu.kit.kastel.property.checker.qual.*;
+
 /** Computes A - B, where A and B are the two sets of invariants. */
 public class MinusVisitor extends DepthFirstVisitor {
 
@@ -15,7 +18,7 @@ public class MinusVisitor extends DepthFirstVisitor {
 
   /** If the first ppt is non-null, it should be part of the result. */
   @Override
-  public void visit(PptNode node) {
+  public void visit(@NonNullNode PptNode node) {
     PptTopLevel ppt1 = node.getPpt1();
     if (ppt1 != null) {
       result.addPpt(ppt1);
@@ -26,12 +29,9 @@ public class MinusVisitor extends DepthFirstVisitor {
 
   /** Possibly add the first invariant to the result set. */
   @Override
-  @SuppressWarnings(
-      "nullness:contracts.precondition.override" // visitor invariant, because the PptNode has
-  // already been visited
-  )
+  @SuppressWarnings("nullness:contracts.precondition.override") // visitor invariant, because the PptNode has already been visited
   @RequiresNonNull("currentPpt")
-  public void visit(InvNode node) {
+  public void visit(@NonNullNode InvNode node) {
     Invariant inv1 = node.getInv1();
     Invariant inv2 = node.getInv2();
     if (shouldAdd(inv1, inv2)) {

@@ -1,15 +1,17 @@
 package daikon.diff;
 
 import org.checkerframework.dataflow.qual.Pure;
-import org.plumelib.util.IPair;
+
+import edu.kit.kastel.property.subchecker.lattice.daikon_qual.*;
+import edu.kit.kastel.property.checker.qual.*;
 
 /** The root of the tree. All its children are PptNodes. */
-public class RootNode extends Node<Void, PptNode> {
+public class RootNode extends Node<Void, @NonNullNode PptNode> {
 
   /** Creates a new RootNode object. */
   @SuppressWarnings({"rawtypes", "unchecked"})
   public RootNode() {
-    super((IPair<Void, Void>) (IPair) IPair.of(new Object(), new Object()));
+    super(new Object(), new Object());
   }
 
   @Override

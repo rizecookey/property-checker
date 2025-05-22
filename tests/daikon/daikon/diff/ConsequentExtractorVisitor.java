@@ -9,6 +9,9 @@ import java.util.Iterator;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import edu.kit.kastel.property.subchecker.lattice.daikon_qual.*;
+import edu.kit.kastel.property.checker.qual.*;
+
 /**
  * <B>ConsequentExtractorVisitor</B> is a visitor that takes in RootNode tree used by the other
  * visitors in Diff and only modifies the first inv tree out of the pair of two inv trees (the
@@ -33,9 +36,8 @@ public class ConsequentExtractorVisitor extends DepthFirstVisitor {
   }
 
   @Override
-  public void visit(PptNode node) {
-    assert node.getPpt1() != null
-        : "@AssumeAssertion(nullness): method precondition: has a (non-null) consequent";
+  public void visit(@NonNullNode PptNode node) {
+    assert node.getPpt1() != null : "@AssumeAssertion(nullness): method precondition: has a (non-null) consequent";
     if (node.getPpt1() instanceof PptConditional) {
       return;
     }
@@ -69,7 +71,7 @@ public class ConsequentExtractorVisitor extends DepthFirstVisitor {
    * consequent to the list.
    */
   @Override
-  public void visit(InvNode node) {
+  public void visit(@NonNullNode InvNode node) {
     Invariant inv1 = node.getInv1();
     // do nothing if the invariant does not exist
     if (inv1 != null) {

@@ -1,0 +1,24 @@
+Non-null node property
+tests/daikon/daikon/diff/UnionVisitor.java:    @SuppressWarnings(
+tests/daikon/daikon/diff/UnionVisitor.java:  @SuppressWarnings(
+tests/daikon/daikon/diff/UnionVisitor.java:      assert inv2 != null : "@AssumeAssertion(nullness): at least one of inv1 and inv2 is non-null";
+tests/daikon/daikon/diff/XorVisitor.java:    @SuppressWarnings(
+tests/daikon/daikon/diff/DetailedStatisticsVisitor.java:    @SuppressWarnings("nullness") // at least one argument is non-null
+tests/daikon/daikon/diff/DetailedStatisticsVisitor.java:      assert inv2 != null : "@AssumeAssertion(nullness): at least one argument is non-null";
+
+JML
+tests/daikon/daikon/diff/MatchCountVisitor.java:      assert inv1 != null : "@AssumeAssertion(nullness): dependent: called determineRelationship()";
+tests/daikon/daikon/diff/MatchCountVisitor.java:      assert inv2 != null : "@AssumeAssertion(nullness): dependent: called determineRelationship()";
+tests/daikon/daikon/diff/DetailedStatisticsVisitor.java:            : "@AssumeAssertion(nullness)"; // application invariant about return value of
+
+Unnecessary
+tests/daikon/daikon/diff/MatchCountVisitor.java:    assert inv != null : "@AssumeAssertion(nullness): precondition";
+
+Unproven map stuff
+tests/daikon/daikon/diff/MultiDiffVisitor.java:        @SuppressWarnings("nullness") // map
+tests/daikon/daikon/diff/MultiDiffVisitor.java:        @SuppressWarnings("nullness") // map
+
+Unproven other
+tests/daikon/daikon/diff/ConsequentExtractorVisitor.java:        : "@AssumeAssertion(nullness): method precondition: has a (non-null) consequent";
+tests/daikon/daikon/diff/MinusVisitor.java:  @SuppressWarnings(
+tests/daikon/daikon/diff/XorVisitor.java:  @SuppressWarnings(

@@ -193,11 +193,11 @@ public class NullnessLatticeVisitor extends NullnessNoInitVisitor implements Coo
         // check that params not covered by explicit contract fulfill their input type
         VariableTree receiver = node.getReceiverParameter();
         if (receiver != null) {
-            result.methodOutputTypes.get(node)[0] = atypeFactory.getAnnotatedTypeLhs(receiver).getAnnotationInHierarchy(getLattice().getTop());
+            result.methodOutputTypes.get(node)[0] = atypeFactory.getAnnotatedTypeLhs(receiver).getEffectiveAnnotationInHierarchy(getLattice().getTop());
         }
         for (VariableTree param : node.getParameters()) {
             final int paramIdx = TypeUtils.getParameterIndex(node, param);
-            result.methodOutputTypes.get(node)[paramIdx] = atypeFactory.getAnnotatedTypeLhs(param).getAnnotationInHierarchy(getLattice().getTop());
+            result.methodOutputTypes.get(node)[paramIdx] = atypeFactory.getAnnotatedTypeLhs(param).getEffectiveAnnotationInHierarchy(getLattice().getTop());
         }
 
         super.visitMethod(node, p);

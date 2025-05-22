@@ -6,6 +6,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import edu.kit.kastel.property.subchecker.lattice.daikon_qual.*;
+import edu.kit.kastel.property.checker.qual.*;
+
 /** Prints the differing invariant pairs. */
 public class PrintDifferingInvariantsVisitor extends PrintAllVisitor {
 
@@ -18,7 +21,7 @@ public class PrintDifferingInvariantsVisitor extends PrintAllVisitor {
   }
 
   @Override
-  public void visit(InvNode node) {
+  public void visit(@NonNullNode InvNode node) {
     Invariant inv1 = node.getInv1();
     Invariant inv2 = node.getInv2();
     if (shouldPrint(inv1, inv2)) {

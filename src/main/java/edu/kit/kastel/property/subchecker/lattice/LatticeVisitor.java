@@ -124,7 +124,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         }
         final int paramIdx = TypeUtils.getParameterIndex(methodTree, param);
         if (!paramsInContract.contains(paramExpr)) {
-            result.methodOutputTypes.get(methodTree)[paramIdx] = atypeFactory.getAnnotatedTypeLhs(param).getAnnotationInHierarchy(atypeFactory.getTop());
+            result.methodOutputTypes.get(methodTree)[paramIdx] = atypeFactory.getAnnotatedTypeLhs(param).getEffectiveAnnotationInHierarchy(atypeFactory.getTop());
         }
         call(
                 () -> super.checkDefaultContract(param, methodTree, exitStore),

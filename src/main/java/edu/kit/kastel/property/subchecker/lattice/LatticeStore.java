@@ -62,7 +62,7 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 			FieldAccess otherFieldAccess = entry.getKey();
 			LatticeValue otherVal = entry.getValue();
 
-			if (factory.getLattice().getEvaluatedPropertyAnnotation(otherVal.getAnnotations().first()) == null) {
+			if (!otherVal.getAnnotations().isEmpty() && factory.getLattice().getEvaluatedPropertyAnnotation(otherVal.getAnnotations().first()) == null) {
 				fieldsToClear.add(otherFieldAccess);
 			}
 		}
@@ -73,7 +73,7 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 			LocalVariable localVar = entry.getKey();
 			LatticeValue localVal = entry.getValue();
 
-			if (factory.getLattice().getEvaluatedPropertyAnnotation(localVal.getAnnotations().first()) == null) {
+			if (!localVal.getAnnotations().isEmpty() && factory.getLattice().getEvaluatedPropertyAnnotation(localVal.getAnnotations().first()) == null) {
 				localVarsToClear.add(localVar);
 			}
 		}
@@ -108,8 +108,12 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 			Node arg = node.getArgument(i);
 			AnnotationMirror argAnno = exclFactory.getExclusivityAnnotation(
 					node.getTarget().getMethod().getParameters().get(i).asType().getAnnotationMirrors());
-			if (arg instanceof ThisNode && exclFactory.getQualifierHierarchy()
-					.isSubtypeQualifiersOnly(argAnno, exclFactory.MAYBE_ALIASED)) {
+			if (argAnno == null) {
+				// TODO Why is this null?
+				argAnno = exclFactory.MAYBE_ALIASED;
+			}
+			if (arg instanceof ThisNode &&
+					exclFactory.getQualifierHierarchy().isSubtypeQualifiersOnly(argAnno, exclFactory.MAYBE_ALIASED)) {
 				thisPassedAsArgument = true;
 				break;
 			}

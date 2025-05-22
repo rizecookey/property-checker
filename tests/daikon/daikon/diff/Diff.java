@@ -36,6 +36,8 @@ import org.plumelib.util.MPair;
 import org.plumelib.util.OrderedPairIterator;
 import org.plumelib.util.StringsPlume;
 
+import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
+
 /**
  * Diff is the main class for the invariant diff program. The invariant diff program outputs the
  * differences between two sets of invariants.
@@ -92,26 +94,26 @@ public final class Diff {
   private boolean examineAllPpts;
   private boolean ignoreNumberedExits;
 
-  public Diff() {
+  public @MaybeAliased Diff() {
     this(false, false);
   }
 
-  public Diff(boolean examineAllPpts) {
+  public @MaybeAliased Diff(boolean examineAllPpts) {
     this(examineAllPpts, false);
   }
 
-  public Diff(boolean examineAllPpts, Comparator<Invariant> c) {
+  public @MaybeAliased Diff(boolean examineAllPpts, Comparator<Invariant> c) {
     this(examineAllPpts, false);
     setAllInvComparators(c);
   }
 
-  public Diff(boolean examineAllPpts, boolean ignoreNumberedExits) {
+  public @MaybeAliased Diff(boolean examineAllPpts, boolean ignoreNumberedExits) {
     this.examineAllPpts = examineAllPpts;
     this.ignoreNumberedExits = ignoreNumberedExits;
     setAllInvComparators(new Invariant.ClassVarnameComparator());
   }
 
-  public Diff(
+  public @MaybeAliased Diff(
       boolean examineAllPpts,
       boolean ignoreNumberedExits,
       @Nullable @ClassGetName String invSortComparator1Classname,

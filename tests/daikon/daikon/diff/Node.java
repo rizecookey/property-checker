@@ -5,7 +5,10 @@ import java.util.Iterator;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.qual.Pure;
-import org.plumelib.util.IPair;
+
+import edu.kit.kastel.property.subchecker.lattice.daikon_qual.*;
+import edu.kit.kastel.property.checker.qual.*;
+import edu.kit.kastel.property.packing.qual.Dependable;
 
 /**
  * All nodes must subclass this class.
@@ -14,32 +17,23 @@ import org.plumelib.util.IPair;
  *     IPair<CONTENT,CONTENT>}
  * @param <CHILD> the type of the children; it is is ignored if there are no children
  */
-public abstract class Node<CONTENT extends @Nullable Object, CHILD> {
+public abstract class Node<CONTENT extends @Nullable Object, CHILD extends @NonNullNode Object> {
 
   /** The children of this node. */
   private List<CHILD> children = new ArrayList<>();
 
   /** Nonsensical for RootNode. */
-  private IPair<CONTENT, CONTENT> userObject;
+  private @Dependable IPair<CONTENT, CONTENT> userObject;
 
-  /**
-   * Creates a new Node.
-   *
-   * @param userObject the user object
-   */
-  protected Node(IPair<CONTENT, CONTENT> userObject) {
-    this.userObject = userObject;
-  }
-
-  protected Node(CONTENT left, CONTENT right) {
+  protected @NonNullNode Node(@NonNullIfNull("right") CONTENT left, @NonNullIfNull("left") CONTENT right) {
     this.userObject = IPair.of(left, right);
   }
 
-  public void add(CHILD newChild) {
+  public void add(@NonNullNode Node<CONTENT, CHILD> this, CHILD newChild) {
     children.add(newChild);
   }
 
-  public Iterator<CHILD> children() {
+  public Iterator<CHILD> children(@NonNullNode Node<CONTENT, CHILD> this) {
     return children.iterator();
   }
 
@@ -48,7 +42,7 @@ public abstract class Node<CONTENT extends @Nullable Object, CHILD> {
    *
    * @return the user object pair
    */
-  public IPair<CONTENT, CONTENT> getUserObject() {
+  public IPair<CONTENT, CONTENT> getUserObject(@NonNullNode Node<CONTENT, CHILD> this) {
     return userObject;
   }
 
@@ -58,7 +52,8 @@ public abstract class Node<CONTENT extends @Nullable Object, CHILD> {
    * @return the first element of the user object pair
    */
   @Pure
-  public CONTENT getUserLeft() {
+  @JMLClause("ensures \\result == first")
+  public CONTENT getUserLeft(@NonNullNode Node<CONTENT, CHILD> this) {
     return userObject.first;
   }
 
@@ -68,7 +63,8 @@ public abstract class Node<CONTENT extends @Nullable Object, CHILD> {
    * @return the second element of the user object pair
    */
   @Pure
-  public CONTENT getUserRight() {
+  @JMLClause("ensures \\result == second")
+  public CONTENT getUserRight(@NonNullNode Node<CONTENT, CHILD> this) {
     return userObject.second;
   }
 

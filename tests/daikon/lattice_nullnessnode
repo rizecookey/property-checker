@@ -1,0 +1,11 @@
+ident nullnessnode;
+
+annotation NullableNode() any :<==> "true" for "true";
+annotation NonNullNode() java.lang.Object :<==> "§subject§ instanceof Void || §subject§ instanceof daikon.diff.Node && ((daikon.diff.Node)§subject§).userObject.first != null || ((daikon.diff.Node)§subject§).userObject.second != null" for "true";
+annotation NonNullIfNull(Object value) java.lang.Object :<==> "§value§ != null || §subject§ != null" for "true";
+annotation NullnessNodeBottom() any :<==> "false" for "true";
+
+relation NonNullNode() <: NullableNode() :<==> "true";
+relation NonNullIfNull(value) <: NullableNode() :<==> "true";
+relation NullnessNodeBottom() <: NonNullNode() :<==> "true";
+relation NullnessNodeBottom() <: NonNullIfNull(obj) :<==> "true";

@@ -1,0 +1,885 @@
+tests/daikon/daikon/VarParent.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/simplify/Session.java:import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+tests/daikon/daikon/simplify/Session.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/simplify/Session.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/simplify/Session.java:          : "@AssumeAssertion(nullness): dependent: trace_file is non-null (set in constructor) if"
+tests/daikon/daikon/simplify/Session.java:        : "@AssumeAssertion(nullness): conditional: trace_file is non-null if"
+tests/daikon/daikon/simplify/LemmaStack.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
+tests/daikon/daikon/simplify/Lemma.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/simplify/SessionManager.java:import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+tests/daikon/daikon/simplify/SessionManager.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/simplify/SessionManager.java:import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+tests/daikon/daikon/simplify/SessionManager.java:  @SuppressWarnings({"nullness","initialization"}) // nulling worker for fast failure (& for GC)
+tests/daikon/daikon/simplify/SessionManager.java:    @SuppressWarnings("nullness") // tricky, but I think it's OK
+tests/daikon/daikon/simplify/SessionManager.java:              : "@AssumeAssertion(nullness): bug? might not be true if interrupted?";
+tests/daikon/daikon/simplify/SessionManager.java:      "nullness:contracts.precondition.override",
+tests/daikon/daikon/diff/MatchCountVisitor.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+tests/daikon/daikon/diff/MatchCountVisitor.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/diff/MatchCountVisitor.java:      assert inv1 != null : "@AssumeAssertion(nullness): dependent: called determineRelationship()";
+tests/daikon/daikon/diff/MatchCountVisitor.java:      assert inv2 != null : "@AssumeAssertion(nullness): dependent: called determineRelationship()";
+tests/daikon/daikon/diff/MatchCountVisitor.java:    assert inv != null : "@AssumeAssertion(nullness): precondition";
+tests/daikon/daikon/diff/PrintDifferingInvariantsVisitor.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/diff/Diff.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
+tests/daikon/daikon/diff/Diff.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/diff/UnionVisitor.java:import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+tests/daikon/daikon/diff/UnionVisitor.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/diff/UnionVisitor.java:import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+tests/daikon/daikon/diff/UnionVisitor.java:        "nullness") // application invariant: at least one of ppt1 and ppt2 is non-null
+tests/daikon/daikon/diff/UnionVisitor.java:      "nullness:contracts.precondition.override" // visitor invariant, because the PptNode has
+tests/daikon/daikon/diff/UnionVisitor.java:      assert inv2 != null : "@AssumeAssertion(nullness): at least one of inv1 and inv2 is non-null";
+tests/daikon/daikon/diff/MultiDiffVisitor.java:import org.checkerframework.checker.nullness.qual.KeyFor;
+tests/daikon/daikon/diff/MultiDiffVisitor.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/diff/MultiDiffVisitor.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/diff/MultiDiffVisitor.java:        @SuppressWarnings("nullness") // map
+tests/daikon/daikon/diff/MultiDiffVisitor.java:        @SuppressWarnings("nullness") // map
+tests/daikon/daikon/diff/XorVisitor.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+tests/daikon/daikon/diff/XorVisitor.java:import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+tests/daikon/daikon/diff/XorVisitor.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/diff/XorVisitor.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/diff/XorVisitor.java:import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+tests/daikon/daikon/diff/XorVisitor.java:        "nullness") // application invariant: at least one of ppt1 and ppt2 is non-null
+tests/daikon/daikon/diff/XorVisitor.java:      "nullness:contracts.precondition.override") // visitor invariant, because the PptNode
+tests/daikon/daikon/diff/InvNode.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/diff/InvNode.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/diff/PptNode.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/diff/XorInvariantsVisitor.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/diff/InvMap.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
+tests/daikon/daikon/diff/InvMap.java:import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+tests/daikon/daikon/diff/PrintAllVisitor.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/diff/MinusVisitor.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+tests/daikon/daikon/diff/MinusVisitor.java:import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+tests/daikon/daikon/diff/MinusVisitor.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/diff/MinusVisitor.java:import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+tests/daikon/daikon/diff/MinusVisitor.java:      "nullness:contracts.precondition.override" // visitor invariant, because the PptNode has
+tests/daikon/daikon/diff/Node.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/diff/DetailedStatisticsVisitor.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/diff/DetailedStatisticsVisitor.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/diff/DetailedStatisticsVisitor.java:            : "@AssumeAssertion(nullness)"; // application invariant about return value of
+tests/daikon/daikon/diff/DetailedStatisticsVisitor.java:    @SuppressWarnings("nullness") // at least one argument is non-null
+tests/daikon/daikon/diff/DetailedStatisticsVisitor.java:      assert inv2 != null : "@AssumeAssertion(nullness): at least one argument is non-null";
+tests/daikon/daikon/diff/ConsequentExtractorVisitor.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/diff/ConsequentExtractorVisitor.java:        : "@AssumeAssertion(nullness): method precondition: has a (non-null) consequent";
+tests/daikon/daikon/Daikon.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
+tests/daikon/daikon/Daikon.java:import org.checkerframework.checker.nullness.qual.KeyFor;
+tests/daikon/daikon/Daikon.java:import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+tests/daikon/daikon/Daikon.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/Daikon.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/Daikon.java:import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+tests/daikon/daikon/Daikon.java:    "nullness:contracts.precondition", // private field
+tests/daikon/daikon/Daikon.java:              "nullness" // ClassLoader.classes is non-null
+tests/daikon/daikon/Daikon.java:    "nullness:argument", // field is static, so object may be null
+tests/daikon/daikon/Daikon.java:        @SuppressWarnings("nullness") // null argument is OK because get_proto_method is static
+tests/daikon/daikon/Daikon.java:          @SuppressWarnings("nullness") // reinitialization
+tests/daikon/daikon/Daikon.java:  @SuppressWarnings("nullness:contracts.precondition")
+tests/daikon/daikon/Daikon.java:        : "@AssumeAssertion(nullness): read data, so new_decl_format is set";
+tests/daikon/daikon/PptSliceEquality.java:import static daikon.tools.nullness.NullnessUtil.castNonNullDeep;
+tests/daikon/daikon/PptSliceEquality.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+tests/daikon/daikon/PptSliceEquality.java:import org.checkerframework.checker.nullness.qual.KeyFor;
+tests/daikon/daikon/PptSliceEquality.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/PptSliceEquality.java:          assert rv != null : "@AssumeAssertion(nullness)";
+tests/daikon/daikon/PptSliceEquality.java:            assert dlog != null : "@AssumeAssertion(nullness): dependent: set if Debug.logOn()";
+tests/daikon/daikon/PptSliceEquality.java:          assert dlog != null : "@AssumeAssertion(nullness): dependent: set if Debug.logOn()";
+tests/daikon/daikon/VarInfo.java:import org.checkerframework.checker.nullness.qual.*;
+tests/daikon/daikon/VarInfo.java://@SuppressWarnings({ "nullness", "initialization", "interning"})
+tests/daikon/daikon/VarInfo.java:      @SuppressWarnings("nullness") // error case, likely to crash later anyway
+tests/daikon/daikon/VarInfo.java:            : "@AssumeAssertion(nullness): dependent: result_vardef was copied from vi and their"
+tests/daikon/daikon/VarInfo.java:        assert enclosing_var != null : "@AssumeAssertion(nullness)";
+tests/daikon/daikon/VarInfo.java:      @SuppressWarnings("nullness") // derived: is_static_constant == true
+tests/daikon/daikon/VarInfo.java:          : "@AssumeAssertion(nullness): dependent: is_static_constant";
+tests/daikon/daikon/VarInfo.java:        assert var.enclosing_var != null : "@AssumeAssertion(nullness): just tested";
+tests/daikon/daikon/PptSlice1.java:import static daikon.tools.nullness.NullnessUtil.castNonNullDeep;
+tests/daikon/daikon/PptSlice1.java:import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+tests/daikon/daikon/PptSlice1.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/PptSlice1.java:      @SuppressWarnings("nullness") // application invariant, see comment above
+tests/daikon/daikon/PptSlice1.java:            @SuppressWarnings("nullness")
+tests/daikon/daikon/ProglangType.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/ProglangType.java:                : "@AssumeAssertion(nullness): dependent: representation invariant of"
+tests/daikon/daikon/ProglangType.java:      // Avoid nullness warnings about elements of value_strings
+tests/daikon/daikon/ProglangType.java:      @SuppressWarnings("nullness")
+tests/daikon/daikon/VarInfoAux.java:import org.checkerframework.checker.nullness.qual.EnsuresKeyForIf;
+tests/daikon/daikon/VarInfoAux.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+tests/daikon/daikon/VarInfoAux.java:import org.checkerframework.checker.nullness.qual.KeyFor;
+tests/daikon/daikon/VarInfoAux.java:import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+tests/daikon/daikon/VarInfoAux.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/VarInfoAux.java:            : "@AssumeAssertion(nullness): representation invariant of StreamTokenizer";
+tests/daikon/daikon/VarInfoAux.java:        : "@AssumeAssertion(nullness):  application invariant:  postcondition of intern(), which"
+tests/daikon/daikon/VarInfoAux.java:            : "@AssumeAssertion(nullness)"; // tok.type == '"' guarantees not null
+tests/daikon/daikon/DynComp.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
+tests/daikon/daikon/DynComp.java:import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+tests/daikon/daikon/DynComp.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/DynComp.java:import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+tests/daikon/daikon/ModBitTracker.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/ModBitTracker.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/ModBitTracker.java:      "nullness") // application invariant: index[varindex] is an index for a non-null BitSet in
+tests/daikon/daikon/ModBitTracker.java:    @SuppressWarnings("nullness") // application invariant: split_index is in range
+tests/daikon/daikon/ModBitTracker.java:      @SuppressWarnings("nullness") // application invariant: non-null up to index=num_sets
+tests/daikon/daikon/config/ParameterDoclet.java:import org.checkerframework.checker.nullness.qual.KeyFor;
+tests/daikon/daikon/config/ParameterDoclet.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/config/ParameterDoclet.java:@SuppressWarnings("nullness") // need help with this
+tests/daikon/daikon/config/ParameterDoclet.java:      @SuppressWarnings("nullness") // the field is static
+tests/daikon/daikon/config/ParameterDoclet.java:      "nullness:method.invocation" // when methods such as printError() are called, the receiver
+tests/daikon/daikon/config/ParameterDoclet.java8:import org.checkerframework.checker.nullness.qual.KeyFor;
+tests/daikon/daikon/config/ParameterDoclet.java8:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/config/ParameterDoclet.java8:      @SuppressWarnings("nullness") // the field is static
+tests/daikon/daikon/config/ParameterDoclet.java11:import org.checkerframework.checker.nullness.qual.KeyFor;
+tests/daikon/daikon/config/ParameterDoclet.java11:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/config/ParameterDoclet.java11:@SuppressWarnings("nullness") // need help with this
+tests/daikon/daikon/config/ParameterDoclet.java11:      @SuppressWarnings("nullness") // the field is static
+tests/daikon/daikon/config/ParameterDoclet.java11:      "nullness:method.invocation" // when methods such as printError() are called, the receiver
+tests/daikon/daikon/config/Configuration.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/config/Configuration.java:          @SuppressWarnings("nullness") // static method, so null first arg is OK: valueOf()
+tests/daikon/daikon/config/Configuration.java:    "nullness:argument", // field is static, so object may be null
+tests/daikon/daikon/config/InvariantDoclet.java11:import org.checkerframework.checker.nullness.qual.KeyFor;
+tests/daikon/daikon/config/InvariantDoclet.java11:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/config/InvariantDoclet.java11:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/config/InvariantDoclet.java11:  "nullness", // need help with this
+tests/daikon/daikon/config/InvariantDoclet.java11:          @SuppressWarnings("nullness") // f has boolean type, so result is non-null Boolean
+tests/daikon/daikon/config/InvariantDoclet.java11:      "nullness:method.invocation" // when methods such as printError() are called, the receiver
+tests/daikon/daikon/config/InvariantDoclet.java:import org.checkerframework.checker.nullness.qual.KeyFor;
+tests/daikon/daikon/config/InvariantDoclet.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/config/InvariantDoclet.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/config/InvariantDoclet.java:  "nullness", // need help with this
+tests/daikon/daikon/config/InvariantDoclet.java:          @SuppressWarnings("nullness") // f has boolean type, so result is non-null Boolean
+tests/daikon/daikon/config/InvariantDoclet.java:      "nullness:method.invocation" // when methods such as printError() are called, the receiver
+tests/daikon/daikon/config/InvariantDoclet.java8:import org.checkerframework.checker.nullness.qual.KeyFor;
+tests/daikon/daikon/config/InvariantDoclet.java8:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/config/InvariantDoclet.java8:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/config/InvariantDoclet.java8:          @SuppressWarnings("nullness") // f has boolean type, so result is non-null Boolean
+tests/daikon/daikon/PptSlice.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+tests/daikon/daikon/PptSlice.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/PptSlice.java:import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+tests/daikon/daikon/DiscReasonMap.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
+tests/daikon/daikon/DiscReasonMap.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/DiscReasonMap.java:      @SuppressWarnings("nullness") // because invInfo.vars() != null
+tests/daikon/daikon/DiscReasonMap.java:    @SuppressWarnings("nullness") // map:  method precondition
+tests/daikon/daikon/PptTopLevel.java:import static daikon.tools.nullness.NullnessUtil.castNonNullDeep;
+tests/daikon/daikon/PptTopLevel.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
+tests/daikon/daikon/PptTopLevel.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+tests/daikon/daikon/PptTopLevel.java:import org.checkerframework.checker.nullness.qual.KeyFor;
+tests/daikon/daikon/PptTopLevel.java:import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+tests/daikon/daikon/PptTopLevel.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/PptTopLevel.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/PptTopLevel.java:import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+tests/daikon/daikon/PptTopLevel.java:          : "@AssumeAssertion(nullness): dependent: non-null if use_equality_optimization==true";
+tests/daikon/daikon/PptTopLevel.java:        assert this.var_infos[ii].derived != null : "@AssumeAssertion(nullness)";
+tests/daikon/daikon/PptTopLevel.java:    @SuppressWarnings("nullness") // dependent: if inv is non-null, then slice is non-null
+tests/daikon/daikon/PptTopLevel.java:  @SuppressWarnings("nullness:contracts.precondition") // private field
+tests/daikon/daikon/PptTopLevel.java:    assert equality_view != null : "@AssumeAssertion(nullness): application invariant";
+tests/daikon/daikon/PptTopLevel.java:  @SuppressWarnings({"nullness","initialization"}) // reinitialization if error occurs
+tests/daikon/daikon/PptTopLevel.java:  @SuppressWarnings("nullness:contracts.precondition") // private field
+tests/daikon/daikon/PptTopLevel.java:      assert cv != null : "@AssumeAssertion(nullness): if pv is non-null, cv must be non-null";
+tests/daikon/daikon/PptTopLevel.java:          @SuppressWarnings("nullness")
+tests/daikon/daikon/PptTopLevel.java:  @SuppressWarnings({"nullness","initialization"}) // reinitialization
+tests/daikon/daikon/PptTopLevel.java:        assert inv_map != null : "@AssumeAssertion(nullness) : dependent: cnt_inv_classes is true";
+tests/daikon/daikon/PptTopLevel.java:          @SuppressWarnings("nullness") // limited side effects don't affect inv_map field
+tests/daikon/daikon/Quant.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+tests/daikon/daikon/Quant.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/Quant.java:import org.checkerframework.checker.nullness.qual.PolyNull;
+tests/daikon/daikon/FileIO.java:import static daikon.tools.nullness.NullnessUtil.castNonNullDeep;
+tests/daikon/daikon/FileIO.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
+tests/daikon/daikon/FileIO.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+tests/daikon/daikon/FileIO.java:import org.checkerframework.checker.nullness.qual.KeyFor;
+tests/daikon/daikon/FileIO.java:import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+tests/daikon/daikon/FileIO.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/FileIO.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/FileIO.java:import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+tests/daikon/daikon/FileIO.java:      "nullness:contracts.conditional.postcondition" // readLine() assertion is ensured by call to
+tests/daikon/daikon/FileIO.java:            "nullness") // server_dir is a directory; this was checked when the variable was set
+tests/daikon/daikon/FileIO.java:              : "@AssumeAssertion(nullness): dependent: RecordType.SAMPLE";
+tests/daikon/daikon/FileIO.java:              : "@AssumeAssertion(nullness): dependent: RecordType.SAMPLE";
+tests/daikon/daikon/FileIO.java:            : "@AssumeAssertion(nullness): dependent: set if debugPrintDtrace is true";
+tests/daikon/daikon/FileIO.java:            assert state.ppt != null : "@AssumeAssertion(nullness)";
+tests/daikon/daikon/FileIO.java:        @SuppressWarnings("nullness") // thrown exception always has a detail message
+tests/daikon/daikon/FileIO.java:        @SuppressWarnings("nullness") // nonce_exists is true, so readLine() returns non-null
+tests/daikon/daikon/FileIO.java:    @SuppressWarnings({"UnusedVariable", "nullness:contracts.precondition"})
+tests/daikon/daikon/FileIO.java:          : "@AssumeAssertion(nullness): dependent: set if debugPrintDtrace is true";
+tests/daikon/daikon/FileIO.java:          : "@AssumeAssertion(nullness): dependent: set if debugPrintDtrace is true";
+tests/daikon/daikon/FileIO.java:            : "@AssumeAssertion(nullness): dependent: set if debugPrintDtrace is true";
+tests/daikon/daikon/FileIO.java:          : "@AssumeAssertion(nullness): dependent: set if debugPrintDtrace is true";
+tests/daikon/daikon/FileIO.java:      assert ppt.var_infos[i].derived != null : "@AssumeAssertion(nullness): application invariant";
+tests/daikon/daikon/FileIO.java:            : "@AssumeAssertion(nullness): InvMap.readObject() sets FileIO.new_decl_format";
+tests/daikon/daikon/FileIO.java:  @SuppressWarnings({"nullness", "initialization"}) // undocumented class needs documentation before annotating with nullness
+tests/daikon/daikon/FileIO.java:      @SuppressWarnings("nullness") // getEnumConstants returns non-null because enum_class is an enum class
+tests/daikon/daikon/PrintInvariants.java:import org.checkerframework.checker.nullness.qual.KeyFor;
+tests/daikon/daikon/PrintInvariants.java:import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+tests/daikon/daikon/PrintInvariants.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/PrintInvariants.java:import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+tests/daikon/daikon/PrintInvariants.java:                  : "@AssumeAssertion(nullness):  application invariant:  if discReasonSetup"
+tests/daikon/daikon/PrintInvariants.java:          : "@AssumeAssertion(nullness): flush() does not affect any global variables";
+tests/daikon/daikon/PrintInvariants.java:            assert di != null : "@AssumeAssertion(nullness)";
+tests/daikon/daikon/PrintInvariants.java:                : "@AssumeAssertion(nullness)"; // parent.parent_ppt_name is a key in all_ppts
+tests/daikon/daikon/PrintInvariants.java:          : "@AssumeAssertion(nullness)"; // application invariant; see comment above
+tests/daikon/daikon/Global.java:import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+tests/daikon/daikon/PptSlice0.java:import static daikon.tools.nullness.NullnessUtil.castNonNullDeep;
+tests/daikon/daikon/PptSlice0.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+tests/daikon/daikon/PptSlice0.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/PptSlice0.java:  @SuppressWarnings({"nullness","initialization"}) // reinitialization
+tests/daikon/daikon/Ppt.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/PptSlice3.java:import static daikon.tools.nullness.NullnessUtil.castNonNullDeep;
+tests/daikon/daikon/PptSlice3.java:import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+tests/daikon/daikon/PptSlice3.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/PptSlice3.java:      @SuppressWarnings("nullness") // application invariant, see comment above
+tests/daikon/daikon/PptSlice3.java:            @SuppressWarnings("nullness")
+tests/daikon/daikon/chicory/DTraceWriter.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/chicory/DTraceWriter.java:@SuppressWarnings("nullness")
+tests/daikon/daikon/chicory/ChicoryTest.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/chicory/DeclReader.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/chicory/RootInfo.java:@SuppressWarnings("nullness") // to do
+tests/daikon/daikon/chicory/RootInfo.java:    // the root needs no name, etc. but set them to preserve nullness property
+tests/daikon/daikon/chicory/ClassInfo.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
+tests/daikon/daikon/chicory/ClassInfo.java:import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+tests/daikon/daikon/chicory/ClassInfo.java:                : "@AssumeAssertion(nullness): member of method_infos have"
+tests/daikon/daikon/chicory/ThisObjInfo.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/chicory/MethodInfo.java:import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+tests/daikon/daikon/chicory/MethodInfo.java:import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+tests/daikon/daikon/chicory/MethodInfo.java:@SuppressWarnings("nullness") // to do.  member field is tricky.
+tests/daikon/daikon/chicory/DaikonVariableInfo.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/chicory/DaikonVariableInfo.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/chicory/DaikonVariableInfo.java:import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+tests/daikon/daikon/chicory/DaikonVariableInfo.java:      assert cinfo.clazz != null : "@AssumeAssertion(nullness): need to check justification";
+tests/daikon/daikon/chicory/DaikonVariableInfo.java:                : "@AssumeAssertion(nullness): member of method_infos have"
+tests/daikon/daikon/chicory/DaikonVariableInfo.java:                    : "@AssumeAssertion(nullness): member of"
+tests/daikon/daikon/chicory/DaikonVariableInfo.java:    @SuppressWarnings("nullness") // method precondition
+tests/daikon/daikon/chicory/DaikonVariableInfo.java:                @SuppressWarnings("nullness") // the field is static, so null is OK as argument
+tests/daikon/daikon/chicory/PureMethodInfo.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/chicory/PureMethodInfo.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/chicory/PureMethodInfo.java:    @SuppressWarnings("nullness") // not a class initializer, so meth != null
+tests/daikon/daikon/chicory/PureMethodInfo.java:        @SuppressWarnings("nullness") // argVals is declared Nullable
+tests/daikon/daikon/chicory/ListInfo.java:    @SuppressWarnings("nullness") // We just verified (or set) arrayVal in code above.
+tests/daikon/daikon/chicory/ChicoryPremain.java:import static daikon.tools.nullness.NullnessUtil.castNonNull;
+tests/daikon/daikon/chicory/ChicoryPremain.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+tests/daikon/daikon/chicory/ChicoryPremain.java:import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+tests/daikon/daikon/chicory/ChicoryPremain.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/chicory/ChicoryPremain.java:import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+tests/daikon/daikon/chicory/ChicoryPremain.java:  @SuppressWarnings("nullness") // dependent:  pureMethods is non-null if doPurity is true
+tests/daikon/daikon/chicory/Runtime.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
+tests/daikon/daikon/chicory/Runtime.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/chicory/Runtime.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/chicory/Runtime.java:      "nullness:initialization.static.field.uninitialized" // initialized and used in generated
+tests/daikon/daikon/chicory/Runtime.java:  @SuppressWarnings("nullness:initialization.static.field.uninitialized" // Set in
+tests/daikon/daikon/chicory/Runtime.java:  @SuppressWarnings("nullness:initialization.static.field.uninitialized" // Set in
+tests/daikon/daikon/chicory/Runtime.java:        @SuppressWarnings("nullness") // map: key was put in map by enter()
+tests/daikon/daikon/chicory/Runtime.java:      @SuppressWarnings("nullness") // unannotated: java.net.Socket is not yet annotated
+tests/daikon/daikon/chicory/FieldInfo.java:import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+tests/daikon/daikon/chicory/FieldInfo.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/chicory/FieldInfo.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/chicory/FieldInfo.java:        "nullness") // Object declares no fields, so clazz != object and so superclass != null
+tests/daikon/daikon/chicory/FieldInfo.java:      @SuppressWarnings("nullness") // clazz != object and so superclass != null
+tests/daikon/daikon/chicory/StaticObjInfo.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/chicory/ComparabilityProvider.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/chicory/Instrument.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/chicory/Instrument.java:@SuppressWarnings("nullness")
+tests/daikon/daikon/chicory/DeclWriter.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+tests/daikon/daikon/chicory/DeclWriter.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/chicory/DeclWriter.java:@SuppressWarnings("nullness") // to do
+tests/daikon/daikon/MergeInvariants.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/MergeInvariants.java:  @SuppressWarnings("nullness:contracts.precondition") // private field
+tests/daikon/daikon/MergeInvariants.java:          : "@AssumeAssertion(nullness): inv_files is non-empty, so for-loop body executed";
+tests/daikon/daikon/MergeInvariants.java:        : "@AssumeAssertion(nullness): correlated: ppt.has_splitters() == child.has_splitters(),"
+tests/daikon/daikon/DaikonSimple.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/Quantify.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/Quantify.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/Quantify.java:                "nullness") // if variable is a sequence (is it?), then index is non-null
+tests/daikon/daikon/Quantify.java:                "nullness") // if variable is a sequence (is it?), then index is non-null
+tests/daikon/daikon/Quantify.java:    @SuppressWarnings("nullness:return") // possible application invariant?
+tests/daikon/daikon/PptConditional.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/PptConditional.java:    @SuppressWarnings({"nullness","initialization","exclusivity"}) // won't be used until it's fully initialized
+tests/daikon/daikon/dcomp/DCInstrument.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+tests/daikon/daikon/dcomp/DCInstrument.java:import org.checkerframework.checker.nullness.qual.KeyFor;
+tests/daikon/daikon/dcomp/DCInstrument.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/dcomp/DCInstrument.java:@SuppressWarnings({"nullness"}) //
+tests/daikon/daikon/dcomp/BuildJDK.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/dcomp/BuildJDK.java:      @SuppressWarnings("nullness:assignment") // https://tinyurl.com/cfissue/3224
+tests/daikon/daikon/dcomp/BuildJDK.java:        @SuppressWarnings("nullness:argument") // null instruction list is ok for abstract
+tests/daikon/daikon/dcomp/Premain.java:      @SuppressWarnings("nullness:argument") // DynComp guarantees decl_file is non null
+tests/daikon/daikon/dcomp/DCRuntime.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/dcomp/DCRuntime.java:import org.checkerframework.checker.nullness.qual.PolyNull;
+tests/daikon/daikon/dcomp/DCRuntime.java:@SuppressWarnings({"nullness", "interning"}) // tricky code, skip for now
+tests/daikon/daikon/dcomp/DcompTest.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+tests/daikon/daikon/dcomp/DcompTest.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/dcomp/DcompTest.java:  "nullness", // uninitialized fields default to null
+tests/daikon/daikon/dcomp/TagEntry.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/dcomp/Instrument.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/dcomp/Instrument.java:  @SuppressWarnings("nullness") // bug: java.lang.instrument is not yet annotated
+tests/daikon/daikon/Debug.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/Debug.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/Debug.java:      @SuppressWarnings("nullness") // getPackage(): invariant class always has a package
+tests/daikon/daikon/Debug.java:      @SuppressWarnings("nullness") // getPackage(): invariant class always has a package
+tests/daikon/daikon/PptMap.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+tests/daikon/daikon/PptMap.java:import org.checkerframework.checker.nullness.qual.KeyFor;
+tests/daikon/daikon/PptMap.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/PptMap.java:  @SuppressWarnings("nullness") // postcondition: linked maps
+tests/daikon/daikon/PptRelation.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/PptSlice2.java:import static daikon.tools.nullness.NullnessUtil.castNonNullDeep;
+tests/daikon/daikon/PptSlice2.java:import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+tests/daikon/daikon/PptSlice2.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/PptSlice2.java:      @SuppressWarnings("nullness") // application invariant, see comment above
+tests/daikon/daikon/PptSlice2.java:            @SuppressWarnings("nullness")
+tests/daikon/daikon/ValueTuple.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+tests/daikon/daikon/ValueTuple.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/ValueTuple.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/ValueTuple.java:  @SuppressWarnings("nullness") // postcondition: array expression
+tests/daikon/daikon/ValueTuple.java:      "nullness:contracts.conditional.postcondition" // dependent: vals[i] is non-null if mods[i] !=
+tests/daikon/daikon/ValueTuple.java:    @SuppressWarnings("nullness") // context: precondition requires that the value isn't missing
+tests/daikon/daikon/derive/ValueAndModified.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/derive/Derivation.java:import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+tests/daikon/daikon/derive/Derivation.java:import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+tests/daikon/daikon/derive/binary/SequenceScalarIntersectionFactory.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/derive/binary/SequenceScalarIntersectionFactory.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/derive/binary/SequencesPredicateFactory.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/derive/binary/SequenceScalarSubscript.java:    assert result != null : "@AssumeAssertion(nullness): foo[] has enclosing_var foo";
+tests/daikon/daikon/derive/binary/SequenceScalarSubscript.java:  @SuppressWarnings("nullness")
+tests/daikon/daikon/derive/binary/SequenceScalarSubscript.java:  @SuppressWarnings("nullness")
+tests/daikon/daikon/derive/binary/SequenceScalarSubscript.java:  @SuppressWarnings("nullness")
+tests/daikon/daikon/derive/binary/SequenceScalarSubscript.java:  @SuppressWarnings("nullness")
+tests/daikon/daikon/derive/binary/SequencesConcatFactory.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/derive/binary/BinaryDerivationFactory.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/derive/binary/SequencesPredicateFactoryFloat.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/derive/binary/SequencesJoinFactoryFloat.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/derive/binary/SequenceFloatIntersectionFactory.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/derive/binary/SequenceFloatIntersectionFactory.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/derive/binary/SequenceFloatSubscript.java:    assert result != null : "@AssumeAssertion(nullness): foo[] has enclosing_var foo";
+tests/daikon/daikon/derive/binary/SequenceFloatSubscript.java:  @SuppressWarnings("nullness")
+tests/daikon/daikon/derive/binary/SequenceFloatSubscript.java:  @SuppressWarnings("nullness")
+tests/daikon/daikon/derive/binary/SequenceFloatSubscript.java:  @SuppressWarnings("nullness")
+tests/daikon/daikon/derive/binary/SequenceFloatSubscript.java:  @SuppressWarnings("nullness")
+tests/daikon/daikon/derive/binary/SequenceScalarUnionFactory.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/derive/binary/SequenceScalarUnionFactory.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/derive/binary/SequenceSubsequence.java:  @SuppressWarnings("nullness")
+tests/daikon/daikon/derive/binary/SequenceStringIntersectionFactory.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/derive/binary/SequenceStringIntersectionFactory.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/derive/binary/SequenceFloatUnionFactory.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/derive/binary/SequenceFloatUnionFactory.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/derive/binary/SequencesJoinFactory.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/derive/binary/SequenceScalarSubscriptFactory.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/derive/binary/SequenceFloatSubscriptFactory.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/derive/binary/SequenceStringSubscriptFactory.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/derive/binary/SequenceStringSubscript.java:    assert result != null : "@AssumeAssertion(nullness): foo[] has enclosing_var foo";
+tests/daikon/daikon/derive/binary/SequenceStringSubscript.java:  @SuppressWarnings("nullness")
+tests/daikon/daikon/derive/binary/SequenceStringSubscript.java:  @SuppressWarnings("nullness")
+tests/daikon/daikon/derive/binary/SequenceStringSubscript.java:  @SuppressWarnings("nullness")
+tests/daikon/daikon/derive/binary/SequenceStringSubscript.java:  @SuppressWarnings("nullness")
+tests/daikon/daikon/derive/binary/SequenceStringUnionFactory.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/derive/binary/SequenceStringUnionFactory.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/derive/ternary/SequenceScalarArbitrarySubsequenceFactory.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/derive/ternary/SequenceStringArbitrarySubsequenceFactory.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/derive/ternary/SequenceFloatArbitrarySubsequenceFactory.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/derive/ternary/TernaryDerivationFactory.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/derive/unary/SequenceLengthFactory.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/derive/unary/SequenceInitialFactory.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/derive/unary/SequenceInitialFactoryFloat.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/derive/unary/SequenceMinMaxSumFactory.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/derive/unary/UnaryDerivationFactory.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/derive/unary/StringLengthFactory.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/derive/unary/SequenceLength.java:  @SuppressWarnings("nullness")
+tests/daikon/daikon/PptName.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+tests/daikon/daikon/PptName.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/PptName.java:      assert method != null; // for nullness checker
+tests/daikon/daikon/inv/InvDef.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/InvDef.java:        @SuppressWarnings("nullness") // static method, so null first arg is OK: swap_class()
+tests/daikon/daikon/inv/InvariantInfo.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/Invariant.java:import static daikon.tools.nullness.NullnessUtil.castNonNullDeep;
+tests/daikon/daikon/inv/Invariant.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+tests/daikon/daikon/inv/Invariant.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/Invariant.java:  @SuppressWarnings({"nullness","initialization"}) // weakness in @Unused checking
+tests/daikon/daikon/inv/Invariant.java:      "nullness") // tricky control flow, need to mark get_ni_suppressions as @Pure if that's true
+tests/daikon/daikon/inv/Equality.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/AndJoiner.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/Joiner.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/DummyInvariant.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoString/StringLessEqual.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoString/StringLessEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoString/StringEqual.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoString/StringEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoString/StringGreaterEqual.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoString/StringGreaterEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoString/StdString.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoString/StdString.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoString/StringNonEqual.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoString/StringNonEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoString/StringLessThan.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoString/StringLessThan.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoString/StringGreaterThan.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoString/StringGreaterThan.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoScalar/LinearBinaryCore.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoScalar/IntGreaterThan.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoScalar/IntGreaterThan.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoScalar/IntLessEqual.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoScalar/IntLessEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoScalar/FloatGreaterThan.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoScalar/FloatGreaterThan.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoScalar/FloatLessEqual.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoScalar/FloatLessEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoScalar/FloatNonEqual.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoScalar/FloatNonEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoScalar/LinearBinaryCoreFloat.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoScalar/FloatLessThan.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoScalar/FloatLessThan.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoScalar/IntNonEqual.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoScalar/IntNonEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoScalar/FloatEqual.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoScalar/FloatEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoScalar/NumericInt.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoScalar/NumericInt.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoScalar/IntEqual.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoScalar/IntEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoScalar/LinearBinaryFloat.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoScalar/LinearBinaryFloat.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoScalar/LinearBinaryFloat.java:  @SuppressWarnings("nullness") // circular initialization
+tests/daikon/daikon/inv/binary/twoScalar/LinearBinaryFloat.java:  @SuppressWarnings("nullness") // circular initialization
+tests/daikon/daikon/inv/binary/twoScalar/IntGreaterEqual.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoScalar/IntGreaterEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoScalar/IntLessThan.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoScalar/IntLessThan.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoScalar/LinearBinary.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoScalar/LinearBinary.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoScalar/LinearBinary.java:  @SuppressWarnings("nullness") // circular initialization
+tests/daikon/daikon/inv/binary/twoScalar/LinearBinary.java:  @SuppressWarnings("nullness") // circular initialization
+tests/daikon/daikon/inv/binary/twoScalar/NumericFloat.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoScalar/NumericFloat.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoScalar/FloatGreaterEqual.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoScalar/FloatGreaterEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseNumericFloat.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseNumericFloat.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseFloatLessThan.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseFloatLessThan.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/SeqSeqIntGreaterThan.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/SeqSeqFloatLessThan.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseLinearBinary.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseLinearBinary.java:  @SuppressWarnings("nullness") // circular initialization
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseLinearBinary.java:  @SuppressWarnings("nullness") // circular initialization
+tests/daikon/daikon/inv/binary/twoSequence/SubSet.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoSequence/SubSet.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseIntEqual.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseIntEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/SeqSeqStringLessThan.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseFloatEqual.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseFloatEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/SeqSeqFloatLessEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/SeqSeqFloatGreaterEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseIntGreaterThan.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseIntGreaterThan.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseFloatGreaterThan.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseFloatGreaterThan.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/SubSequence.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoSequence/SubSequence.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseFloatGreaterEqual.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseFloatGreaterEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseIntLessThan.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseIntLessThan.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/SuperSequenceFloat.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoSequence/SuperSequenceFloat.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseStringEqual.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseStringEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/SeqSeqFloatEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/SeqSeqIntLessEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseNumericInt.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseNumericInt.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseIntGreaterEqual.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseIntGreaterEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseFloatLessEqual.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseFloatLessEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/SuperSet.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoSequence/SuperSet.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/SeqSeqIntLessThan.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/SeqSeqFloatGreaterThan.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/SubSequenceFloat.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoSequence/SubSequenceFloat.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/SubSetFloat.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoSequence/SubSetFloat.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseIntLessEqual.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseIntLessEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/SeqSeqStringGreaterThan.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseStringGreaterEqual.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseStringGreaterEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/SeqSeqIntGreaterEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/SeqSeqStringLessEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/SeqSeqStringGreaterEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseStringGreaterThan.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseStringGreaterThan.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/SeqSeqIntEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseLinearBinaryFloat.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseLinearBinaryFloat.java:  @SuppressWarnings("nullness") // circular initialization
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseLinearBinaryFloat.java:  @SuppressWarnings("nullness") // circular initialization
+tests/daikon/daikon/inv/binary/twoSequence/SuperSequence.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoSequence/SuperSequence.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseStringLessEqual.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseStringLessEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/SeqSeqStringEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseString.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseString.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseStringLessThan.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoSequence/PairwiseStringLessThan.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/twoSequence/SuperSetFloat.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/binary/twoSequence/SuperSetFloat.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/sequenceString/MemberString.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/BinaryInvariant.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/BinaryInvariant.java:        @SuppressWarnings("nullness") // static method, so null first arg is OK: swap_class()
+tests/daikon/daikon/inv/binary/sequenceScalar/SeqIntEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/sequenceScalar/SeqFloatLessEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/sequenceScalar/SeqFloatEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/sequenceScalar/SeqFloatLessThan.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/sequenceScalar/SeqIntGreaterThan.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/sequenceScalar/SeqIntLessEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/sequenceScalar/Member.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/sequenceScalar/SeqFloatGreaterThan.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/sequenceScalar/MemberFloat.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/sequenceScalar/SeqFloatGreaterEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/sequenceScalar/SeqIntGreaterEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/binary/sequenceScalar/SeqIntLessThan.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/ternary/threeScalar/FunctionBinary.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/ternary/threeScalar/FunctionBinaryFloat.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/ternary/threeScalar/LinearTernaryCoreFloat.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/ternary/threeScalar/LinearTernaryCoreFloat.java:@SuppressWarnings({"nullness", // ***** TEMPORARY:  def_points is confused (is packed initially with non-nulls at beginning, but is not all non-nulls; and later may not be packed); needs review/refactoring/rewriting
+tests/daikon/daikon/inv/ternary/threeScalar/LinearTernary.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/ternary/threeScalar/LinearTernary.java:  @SuppressWarnings("nullness") // circular initialization
+tests/daikon/daikon/inv/ternary/threeScalar/LinearTernaryCore.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/ternary/threeScalar/LinearTernaryCore.java:@SuppressWarnings({"nullness", // ***** TEMPORARY:  def_points is confused (is packed initially with non-nulls at beginning, but is not all non-nulls; and later may not be packed); needs review/refactoring/rewriting
+tests/daikon/daikon/inv/ternary/threeScalar/LinearTernaryFloat.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/ternary/threeScalar/LinearTernaryFloat.java:  @SuppressWarnings("nullness") // circular initialization
+tests/daikon/daikon/inv/filter/DerivedVariableFilter.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/filter/DerivedVariableFilter.java:          : "@AssumeAssertion(nullness): dependent: nullness is indicated by boolean variable isOn";
+tests/daikon/daikon/inv/filter/DerivedVariableFilter.java:    assert class_re != null : "@AssumeAssertion(nullness):  only called when filter is active";
+tests/daikon/daikon/inv/filter/DerivedVariableFilter.java:          : "@AssumeAssertion(nullness): limited side effects don't affect this field";
+tests/daikon/daikon/inv/filter/ParentFilter.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/filter/ParentFilter.java:      @SuppressWarnings("nullness") // at this point, pvis contains only non-null elements
+tests/daikon/daikon/inv/filter/ObviousFilter.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+tests/daikon/daikon/inv/filter/ObviousFilter.java:  @SuppressWarnings("nullness") // condition hidden in local variable
+tests/daikon/daikon/inv/filter/InvariantFilters.java:import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+tests/daikon/daikon/inv/filter/InvariantFilters.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/Implication.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+tests/daikon/daikon/inv/Implication.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/Implication.java:    "nullness:override.receiver", // sound overriding, not expressible in Checker Framework
+tests/daikon/daikon/inv/Implication.java:    @SuppressWarnings("nullness:method.invocation")
+tests/daikon/daikon/inv/unary/scalar/LowerBoundFloat.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/scalar/LowerBoundFloat.java:  @SuppressWarnings("nullness") // circular initialization
+tests/daikon/daikon/inv/unary/scalar/RangeFloat.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/scalar/UpperBoundFloat.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/scalar/UpperBoundFloat.java:  @SuppressWarnings("nullness") // circular initialization
+tests/daikon/daikon/inv/unary/scalar/UpperBound.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/scalar/UpperBound.java:  @SuppressWarnings("nullness") // circular initialization
+tests/daikon/daikon/inv/unary/scalar/OneOfFloat.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/unary/scalar/OneOfFloat.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/scalar/NonZero.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/scalar/OneOfScalar.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/unary/scalar/OneOfScalar.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/scalar/NonModulus.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/unary/scalar/NonModulus.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/scalar/NonModulus.java:    @SuppressWarnings("nullness") // super.merge does not return null
+tests/daikon/daikon/inv/unary/scalar/NonZeroFloat.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/scalar/LowerBound.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/scalar/LowerBound.java:  @SuppressWarnings("nullness") // circular initialization
+tests/daikon/daikon/inv/unary/scalar/Modulus.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/unary/scalar/Modulus.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/scalar/Modulus.java:    @SuppressWarnings("nullness") // super.merge does not return null
+tests/daikon/daikon/inv/unary/scalar/RangeInt.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/scalar/CompleteOneOfScalar.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/unary/scalar/CompleteOneOfScalar.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/scalar/CompleteOneOfScalar.java:    @SuppressWarnings("nullness") // super.merge does not return null
+tests/daikon/daikon/inv/unary/string/PrintableString.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/string/OneOfString.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/unary/string/OneOfString.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/string/CompleteOneOfString.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/unary/string/CompleteOneOfString.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/string/CompleteOneOfString.java:    @SuppressWarnings("nullness") // super.merge does not return null
+tests/daikon/daikon/inv/unary/stringsequence/CommonStringSequence.java:import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+tests/daikon/daikon/inv/unary/stringsequence/CommonStringSequence.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/unary/stringsequence/CommonStringSequence.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/stringsequence/CommonStringSequence.java:    @SuppressWarnings("nullness") // super.merge does not return null
+tests/daikon/daikon/inv/unary/stringsequence/OneOfStringSequence.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/unary/stringsequence/OneOfStringSequence.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/stringsequence/OneOfStringSequence.java:      @SuppressWarnings("nullness")
+tests/daikon/daikon/inv/unary/stringsequence/OneOfStringSequence.java:      @SuppressWarnings("nullness")
+tests/daikon/daikon/inv/unary/stringsequence/EltOneOfString.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/unary/stringsequence/EltOneOfString.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/stringsequence/EltOneOfString.java:        assert collection != null : "@AssumeAssertion(nullness)";
+tests/daikon/daikon/inv/unary/sequence/EltwiseIntGreaterThan.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/sequence/SeqIndexIntGreaterThan.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/unary/sequence/SeqIndexIntGreaterThan.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/sequence/EltRangeInt.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/sequence/EltOneOf.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/unary/sequence/EltOneOf.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/sequence/EltwiseFloatGreaterThan.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/sequence/EltwiseFloatLessEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/sequence/EltwiseFloatEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/sequence/EltwiseIntLessThan.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/sequence/EltLowerBound.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/sequence/EltLowerBound.java:  @SuppressWarnings("nullness") // circular initialization
+tests/daikon/daikon/inv/unary/sequence/SeqIndexFloatNonEqual.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/unary/sequence/SeqIndexFloatNonEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/sequence/EltUpperBound.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/sequence/EltUpperBound.java:  @SuppressWarnings("nullness") // circular initialization
+tests/daikon/daikon/inv/unary/sequence/EltwiseIntEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/sequence/EltRangeFloat.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/sequence/EltUpperBoundFloat.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/sequence/EltUpperBoundFloat.java:  @SuppressWarnings("nullness") // circular initialization
+tests/daikon/daikon/inv/unary/sequence/EltNonZeroFloat.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/unary/sequence/EltNonZeroFloat.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/sequence/SeqIndexIntLessThan.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/unary/sequence/SeqIndexIntLessThan.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/sequence/SeqIndexIntNonEqual.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/unary/sequence/SeqIndexIntNonEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/sequence/CommonFloatSequence.java:import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+tests/daikon/daikon/inv/unary/sequence/CommonFloatSequence.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/unary/sequence/CommonFloatSequence.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/sequence/CommonFloatSequence.java:    @SuppressWarnings("nullness") // super.merge does not return null
+tests/daikon/daikon/inv/unary/sequence/NoDuplicatesFloat.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/sequence/SeqIndexFloatLessEqual.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/unary/sequence/SeqIndexFloatLessEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/sequence/SeqIndexFloatGreaterThan.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/unary/sequence/SeqIndexFloatGreaterThan.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/sequence/OneOfSequence.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/unary/sequence/OneOfSequence.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/sequence/EltwiseFloatGreaterEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/sequence/EltLowerBoundFloat.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/sequence/EltLowerBoundFloat.java:  @SuppressWarnings("nullness") // circular initialization
+tests/daikon/daikon/inv/unary/sequence/EltwiseFloatLessThan.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/sequence/SeqIndexFloatEqual.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/unary/sequence/SeqIndexFloatEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/sequence/OneOfFloatSequence.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/unary/sequence/OneOfFloatSequence.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/sequence/SeqIndexFloatLessThan.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/unary/sequence/SeqIndexFloatLessThan.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/sequence/SeqIndexFloatGreaterEqual.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/unary/sequence/SeqIndexFloatGreaterEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/sequence/CommonSequence.java:import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+tests/daikon/daikon/inv/unary/sequence/CommonSequence.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/unary/sequence/CommonSequence.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/sequence/CommonSequence.java:    @SuppressWarnings("nullness") // super.merge does not return null
+tests/daikon/daikon/inv/unary/sequence/SeqIndexIntEqual.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/unary/sequence/SeqIndexIntEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/sequence/SeqIndexIntLessEqual.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/unary/sequence/SeqIndexIntLessEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/sequence/EltwiseIntGreaterEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/sequence/EltwiseIntLessEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/sequence/NoDuplicates.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/sequence/EltOneOfFloat.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/unary/sequence/EltOneOfFloat.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/sequence/SeqIndexIntGreaterEqual.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/unary/sequence/SeqIndexIntGreaterEqual.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/inv/unary/sequence/EltNonZero.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/inv/unary/sequence/EltNonZero.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/VarComparabilityImplicit.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+tests/daikon/daikon/VarComparabilityImplicit.java:import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+tests/daikon/daikon/VarComparabilityImplicit.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/VarComparabilityImplicit.java:      assert indexTypes != null : "@AssumeAssertion(nullness): dependent: not the unknown type";
+tests/daikon/daikon/suppress/NISuppressee.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/suppress/NISuppressee.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/suppress/NISuppressee.java:import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+tests/daikon/daikon/suppress/NISuppressee.java:      @SuppressWarnings({"nullness", "prototype"}) // reflective invocation is nullness-correct
+tests/daikon/daikon/suppress/NISuppressee.java:      @SuppressWarnings({"nullness", "prototype"}) // reflective invocation is nullness-correct
+tests/daikon/daikon/suppress/NIS.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
+tests/daikon/daikon/suppress/NIS.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+tests/daikon/daikon/suppress/NIS.java:import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+tests/daikon/daikon/suppress/NIS.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/suppress/NIS.java:import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+tests/daikon/daikon/suppress/NIS.java:            @SuppressWarnings("nullness") // map:  same keys in suppressor_map and
+tests/daikon/daikon/suppress/NIS.java:          : "@AssumeAssertion(nullness):  dependent:  this invariant's class can be suppressed, so"
+tests/daikon/daikon/suppress/NISuppressionSet.java:import static daikon.tools.nullness.NullnessUtil.castNonNullDeep;
+tests/daikon/daikon/suppress/NISuppressionSet.java:        : "@AssumeAssertion(nullness): haven't reasoned through the reason";
+tests/daikon/daikon/suppress/NISuppressor.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/suppress/NISuppressor.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/suppress/NISuppressor.java:      @SuppressWarnings({"nullness", "prototype"}) // reflective invocation is nullness-correct
+tests/daikon/daikon/suppress/NISuppressor.java:        @SuppressWarnings("nullness") // static method, so null first arg is OK: swap_class()
+tests/daikon/daikon/suppress/NISuppressor.java:        @SuppressWarnings({"nullness", "prototype"}) // reflective invocation is nullness-correct
+tests/daikon/daikon/suppress/NISuppressor.java:        @SuppressWarnings({"nullness", "prototype"}) // reflective invocation is nullness-correct
+tests/daikon/daikon/suppress/NISuppressor.java:        assert ppt.constants != null : "@AssumeAssertion(nullness)";
+tests/daikon/daikon/suppress/NISuppressor.java:        assert ppt.constants != null : "@AssumeAssertion(nullness)";
+tests/daikon/daikon/suppress/NISuppression.java:import static daikon.tools.nullness.NullnessUtil.castNonNullDeep;
+tests/daikon/daikon/suppress/NISuppression.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/suppress/NISuppression.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/suppress/NISuppression.java:      assert ppt.equality_view != null : "@AssumeAssertion(nullness): need to check justification";
+tests/daikon/daikon/suppress/NISuppression.java:              @SuppressWarnings("nullness")
+tests/daikon/daikon/suppress/NISuppression.java:      assert ppt.equality_view != null : "@AssumeAssertion(nullness): need to check justification";
+tests/daikon/daikon/AnnotateNullable.java:import org.checkerframework.checker.nullness.qual.KeyFor;
+tests/daikon/daikon/AnnotateNullable.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/AnnotateNullable.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/AnnotateNullable.java:      System.out.println("import org.checkerframework.checker.nullness.qual.Nullable;");
+tests/daikon/daikon/AnnotateNullable.java:      System.out.println("import org.checkerframework.checker.nullness.qual.NonNull;");
+tests/daikon/daikon/AnnotateNullable.java:      System.out.println("package org.checkerframework.checker.nullness.qual:");
+tests/daikon/daikon/AnnotateNullable.java:            "nullness") // map: retrieve class name from class Ppt name, with string manipulation
+tests/daikon/daikon/AnnotateNullable.java:      @SuppressWarnings("nullness") // map: class_map has entry per classname
+tests/daikon/daikon/AnnotateNullable.java:      //   annotation = "org.checkerframework.checker.nullness.qual." + annotation;
+tests/daikon/daikon/AnnotateNullable.java:    @SuppressWarnings("nullness") // Java method, so getMethodName() != null
+tests/daikon/daikon/AnnotateNullable.java:    @SuppressWarnings("nullness") // Java method, so getSignature() != null
+tests/daikon/daikon/VarInfoName.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+tests/daikon/daikon/VarInfoName.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/SplitDtrace.java:        assert stream != null : "@AssumeAssertion(nullness): just tested that one entry exists";
+tests/daikon/daikon/DynamicConstants.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+tests/daikon/daikon/DynamicConstants.java:import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+tests/daikon/daikon/DynamicConstants.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/DynamicConstants.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/DynamicConstants.java:import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+tests/daikon/daikon/DynamicConstants.java:      @SuppressWarnings("nullness") // reinitialization
+tests/daikon/daikon/DynamicConstants.java:    @SuppressWarnings("nullness") // non-missing value, so non-null val field
+tests/daikon/daikon/DynamicConstants.java:        assert con.val != null : "@AssumeAssertion(nullness): dependent: val != null when count>0";
+tests/daikon/daikon/DynamicConstants.java:          assert c1.val != null : "@AssumeAssertion(nullness): dependent: val != null when count>0";
+tests/daikon/daikon/DynamicConstants.java:          assert c2.val != null : "@AssumeAssertion(nullness): dependent: val != null when count>0";
+tests/daikon/daikon/DynamicConstants.java:                : "@AssumeAssertion(nullness): dependent: val != null when count>0";
+tests/daikon/daikon/DynamicConstants.java:                : "@AssumeAssertion(nullness): dependent: val != null when count>0";
+tests/daikon/daikon/DynamicConstants.java:                : "@AssumeAssertion(nullness): dependent: val != null when count>0";
+tests/daikon/daikon/DynamicConstants.java:      assert con1.val != null : "@AssumeAssertion(nullness)";
+tests/daikon/daikon/DynamicConstants.java:      assert con1.val != null : "@AssumeAssertion(nullness)";
+tests/daikon/daikon/DynamicConstants.java:              assert con2.val != null : "@AssumeAssertion(nullness)";
+tests/daikon/daikon/DynamicConstants.java:              assert con2.val != null : "@AssumeAssertion(nullness)";
+tests/daikon/daikon/DynamicConstants.java:        assert con.val != null : "@AssumeAssertion(nullness): dependent: val when count>0";
+tests/daikon/daikon/DynamicConstants.java:              : "@AssumeAssertion(nullness): dependent: val != null when count>0";
+tests/daikon/daikon/DynamicConstants.java:              : "@AssumeAssertion(nullness): dependent: val != null when count>0";
+tests/daikon/daikon/DynamicConstants.java:    assert con.val != null : "@AssumeAssertion(nullness)";
+tests/daikon/daikon/DynamicConstants.java:        : "@AssumeAssertion(nullness): instantiation of the given invariants always succeeds";
+tests/daikon/daikon/split/ReplaceStatement.java:        : "@AssumeAssertion(nullness) : initialization via helper method (visitor pattern)";
+tests/daikon/daikon/split/FileCompiler.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/split/FileCompiler.java:    @SuppressWarnings("nullness") // arguments are in range, so result array contains no nulls
+tests/daikon/daikon/split/FileCompiler.java:            "nullness") // Regex Checker imprecision: find() guarantees that group 1 exists
+tests/daikon/daikon/split/NameFixer.java:import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+tests/daikon/daikon/split/NameFixer.java:          : "@AssumeAssertion(nullness): dependent: because lastTokenMayBeMemberVar == true";
+tests/daikon/daikon/split/NameFixer.java:          : "@AssumeAssertion(nullness): dependent: because lastTokenMayBeMemberVar == true";
+tests/daikon/daikon/split/Splitter.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/split/PrefixRemover.java:import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+tests/daikon/daikon/split/OrigFixer.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+tests/daikon/daikon/split/OrigFixer.java:import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+tests/daikon/daikon/split/TokenReplacer.java:import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+tests/daikon/daikon/split/TokenReplacer.java:import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+tests/daikon/daikon/split/TokenReplacer.java:        : "@AssumeAssertion(nullness) : accept just set lastToken";
+tests/daikon/daikon/split/ThisFixer.java:import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+tests/daikon/daikon/split/Visitors.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/split/Visitors.java:        : "@AssumeAssertion(nullness): control flow: visitor pattern";
+tests/daikon/daikon/split/StatementReplacer.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/split/StatementReplacer.java:        @SuppressWarnings("nullness") // library: ParseException is not yet annotated
+tests/daikon/daikon/split/PrefixFixer.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+tests/daikon/daikon/split/PrefixFixer.java:import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+tests/daikon/daikon/split/SplitterObject.java:import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+tests/daikon/daikon/split/SplitterObject.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/split/SplitterExample.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
+tests/daikon/daikon/split/SplitterExample.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+tests/daikon/daikon/split/SplitterExample.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/split/SplitterExample.java:import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+tests/daikon/daikon/split/SplitterExample.java:@SuppressWarnings("nullness") // uses private fields, client code not analyzed
+tests/daikon/daikon/split/SplitterExample.java:      "nullness:contracts.precondition.override") // application invariant about private
+tests/daikon/daikon/split/SplitterList.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/split/PptSplitter.java:import static daikon.tools.nullness.NullnessUtil.castNonNullDeep;
+tests/daikon/daikon/split/PptSplitter.java:import org.checkerframework.checker.nullness.qual.KeyFor;
+tests/daikon/daikon/split/PptSplitter.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/split/PptSplitter.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/split/PptSplitter.java:import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+tests/daikon/daikon/split/PptSplitter.java:                  : "@AssumeAssertion(nullness):  dependent:  config var";
+tests/daikon/daikon/split/PptSplitter.java:          @SuppressWarnings("nullness") // map
+tests/daikon/daikon/split/PptSplitter.java:    @SuppressWarnings("nullness") // map: method precondition
+tests/daikon/daikon/split/misc/CallerContextSplitter.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+tests/daikon/daikon/split/misc/CallerContextSplitter.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/split/misc/CallerContextSplitter.java:import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+tests/daikon/daikon/split/misc/CallerContextSplitter.java:  @SuppressWarnings("nullness:return") // why is "new ...Splitter" @UnderInitialization?
+tests/daikon/daikon/split/misc/CallerContextSplitter.java:      "nullness:contracts.precondition.override") // application invariant about private
+tests/daikon/daikon/split/misc/ReturnTrueSplitter.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+tests/daikon/daikon/split/misc/ReturnTrueSplitter.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/split/misc/ReturnTrueSplitter.java:import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+tests/daikon/daikon/split/misc/ReturnTrueSplitter.java:  @SuppressWarnings("nullness:return") // why is "new ...Splitter" @UnderInitialization?
+tests/daikon/daikon/split/misc/ReturnTrueSplitter.java:      "nullness:contracts.precondition.override") // application invariant about private
+tests/daikon/daikon/split/SpinfoFile.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
+tests/daikon/daikon/split/SpinfoFile.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+tests/daikon/daikon/split/SpinfoFile.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/split/SpinfoFile.java:import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+tests/daikon/daikon/split/ContextSplitterFactory.java:import org.checkerframework.checker.nullness.qual.KeyFor;
+tests/daikon/daikon/split/ReplaceStatementMap.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/split/ArrayFixer.java:import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+tests/daikon/daikon/split/ArrayFixer.java:          : "@AssumeAssertion(nullness): dependent: because lastTokenMayBeIdentity == true";
+tests/daikon/daikon/split/ArrayFixer.java:          : "@AssumeAssertion(nullness): dependent: because lastTokenMayBeElements == true";
+tests/daikon/daikon/split/ArrayFixer.java:          : "@AssumeAssertion(nullness): dependent: because lastTokenMayBeIdentity == true";
+tests/daikon/daikon/split/SplitterFactory.java:import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+tests/daikon/daikon/split/SplitterFactory.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/split/SplitterFactory.java:import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+tests/daikon/daikon/split/SplitterFactory.java:                @SuppressWarnings("nullness") // dependent: because splitterExists() = true
+tests/daikon/daikon/tools/jtb/ClassOrInterfaceTypeDecorateVisitor.java:import org.checkerframework.checker.nullness.qual.KeyFor;
+tests/daikon/daikon/tools/jtb/Ast.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/tools/jtb/Ast.java:@SuppressWarnings({"rawtypes", "nullness"}) // not generics-correct
+tests/daikon/daikon/tools/jtb/AnnotateVisitor.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+tests/daikon/daikon/tools/jtb/AnnotateVisitor.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/tools/jtb/AnnotateVisitor.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/tools/jtb/AnnotateVisitor.java:              @SuppressWarnings("nullness")
+tests/daikon/daikon/tools/jtb/AnnotateVisitor.java:      @SuppressWarnings("nullness") // every expression is within a statement
+tests/daikon/daikon/tools/jtb/CollectFieldsVisitor.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
+tests/daikon/daikon/tools/jtb/CollectFieldsVisitor.java:import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+tests/daikon/daikon/tools/jtb/CollectFieldsVisitor.java:    @SuppressWarnings({"nullness"}) // not used until fully initialized
+tests/daikon/daikon/tools/jtb/CollectFieldsVisitor.java:      assert allNames != null : "@AssumeAssertion(nullness): flag indicates initialization";
+tests/daikon/daikon/tools/jtb/CollectFieldsVisitor.java:      assert ownedNames != null : "@AssumeAssertion(nullness): flag indicates initialization";
+tests/daikon/daikon/tools/jtb/CollectFieldsVisitor.java:      assert finalNames != null : "@AssumeAssertion(nullness): flag indicates initialization";
+tests/daikon/daikon/tools/jtb/CreateSpinfo.java:import org.checkerframework.checker.nullness.qual.KeyFor;
+tests/daikon/daikon/tools/jtb/CreateSpinfo.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/tools/jtb/PptNameMatcher.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/tools/jtb/PptNameMatcher.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/tools/jtb/PptNameMatcher.java:    @SuppressWarnings("nullness") // application invariant
+tests/daikon/daikon/tools/jtb/ConditionExtractor.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/tools/jtb/Annotation.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+tests/daikon/daikon/tools/jtb/Annotation.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/tools/TraceSelect.java:import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+tests/daikon/daikon/tools/TraceSelect.java:import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+tests/daikon/daikon/tools/nullness/NullnessUtil.java:// From the Checker Framework, but replace uses of "org.checkerframework.checker.nullness" by
+tests/daikon/daikon/tools/nullness/NullnessUtil.java:// "daikon.tools.nullness" and comment out nullness annotations and their import statement.
+tests/daikon/daikon/tools/nullness/NullnessUtil.java:package daikon.tools.nullness;
+tests/daikon/daikon/tools/nullness/NullnessUtil.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
+tests/daikon/daikon/tools/nullness/NullnessUtil.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/tools/nullness/NullnessUtil.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/tools/nullness/NullnessUtil.java: * <pre>import static daikon.tools.nullness.NullnessUtil.castNonNull;</pre>
+tests/daikon/daikon/tools/nullness/NullnessUtil.java: * <pre>import static daikon.tools.nullness.NullnessUtil.*;</pre>
+tests/daikon/daikon/tools/nullness/NullnessUtil.java:  "nullness", // Nullness utilities are trusted regarding nullness.
+tests/daikon/daikon/tools/ReadTrace.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/tools/ReadTrace.java:import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+tests/daikon/daikon/tools/DtraceDiff.java:import static daikon.tools.nullness.NullnessUtil.*;
+tests/daikon/daikon/tools/DtraceDiff.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/tools/DtraceDiff.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/tools/DtraceDiff.java:            @SuppressWarnings("nullness") // dependent:  state1 is ParseState
+tests/daikon/daikon/tools/DtraceDiff.java:            @SuppressWarnings("nullness") // dependent:  state2 is ParseState
+tests/daikon/daikon/tools/DtraceDiff.java:              @SuppressWarnings("nullness") // dependent:  state1 is SAMPLE
+tests/daikon/daikon/tools/DtraceDiff.java:              @SuppressWarnings("nullness") // dependent:  state2 is SAMPLE
+tests/daikon/daikon/tools/DtraceDiff.java:                : "@AssumeAssertion(nullness): application invariant: status is not EOF or"
+tests/daikon/daikon/tools/DtraceDiff.java:                : "@AssumeAssertion(nullness): application invariant: status is not EOF or"
+tests/daikon/daikon/tools/DtraceDiff.java:  @SuppressWarnings("nullness") // dependent: ParseState for error reporting
+tests/daikon/daikon/tools/DtraceDiff.java:  @SuppressWarnings("nullness") // dependent: ParseState for error reporting
+tests/daikon/daikon/tools/DtraceDiff.java:  @SuppressWarnings("nullness") // dependent: ParseState for error reporting
+tests/daikon/daikon/tools/DtraceDiff.java:  @SuppressWarnings("nullness") // nullable parameters suppress warnings at call sites
+tests/daikon/daikon/tools/runtimechecker/WriteViolationFile.java:        "nullness", // static method, so null first arg is OK: main()
+tests/daikon/daikon/tools/runtimechecker/WriteViolationFile.java:        "UnusedVariable" // exists to give a place to write @SuppressWarnings("nullness")
+tests/daikon/daikon/tools/runtimechecker/InstrumentVisitor.java:import org.checkerframework.checker.nullness.qual.KeyFor;
+tests/daikon/daikon/tools/runtimechecker/InstrumentVisitor.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/tools/runtimechecker/InstrumentVisitor.java:        "nullness") // application invariant: method node is always in a class or interface
+tests/daikon/daikon/tools/runtimechecker/InstrumentVisitor.java:        "nullness") // application invariant: method node is always in a class or interface
+tests/daikon/daikon/tools/runtimechecker/CheckerClass.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/tools/runtimechecker/CheckerClass.java:    @SuppressWarnings("nullness") // application invariant: every body is in a compilation unit
+tests/daikon/daikon/tools/runtimechecker/Property.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+tests/daikon/daikon/tools/runtimechecker/Property.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/tools/runtimechecker/Violation.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+tests/daikon/daikon/tools/runtimechecker/Violation.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/tools/runtimechecker/CheckerClasses.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/tools/runtimechecker/CheckerClasses.java:        "nullness") // application invariant: a constructor is always in a class or interface
+tests/daikon/daikon/tools/runtimechecker/CheckerClasses.java:        "nullness") // application invariant: a method is always in a class or interface
+tests/daikon/daikon/tools/ExtractConsequent.java:import org.checkerframework.checker.nullness.qual.KeyFor;
+tests/daikon/daikon/tools/ExtractConsequent.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/tools/InvariantChecker.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/tools/InvariantChecker.java:import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+tests/daikon/daikon/tools/InvariantChecker.java:        assert nonce != null : "@AssumeAssertion(nullness): nonce exists for enter & exit points";
+tests/daikon/daikon/tools/InvariantChecker.java:        assert nonce != null : "@AssumeAssertion(nullness): nonce exists for enter & exit points";
+tests/daikon/daikon/tools/compare/LogicalCompare.java:import static daikon.tools.nullness.NullnessUtil.*;
+tests/daikon/daikon/tools/compare/LogicalCompare.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
+tests/daikon/daikon/tools/compare/LogicalCompare.java:import org.checkerframework.checker.nullness.qual.KeyFor;
+tests/daikon/daikon/tools/compare/LogicalCompare.java:import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+tests/daikon/daikon/tools/compare/LogicalCompare.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/tools/compare/LogicalCompare.java:import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+tests/daikon/daikon/tools/compare/LogicalCompare.java:                "nullness") // application invariant: context; might be able to rewrite types to
+tests/daikon/daikon/tools/compare/LogicalCompare.java:              "nullness") // map: on previous loop iteration, this key was added to map
+tests/daikon/daikon/tools/compare/LogicalCompare.java:        @SuppressWarnings("nullness") // map: iterating over keyset
+tests/daikon/daikon/tools/compare/LogicalCompare.java:        @SuppressWarnings("nullness") // map: iterating over subset of keySet
+tests/daikon/daikon/tools/compare/LogicalCompare.java:        @SuppressWarnings("nullness") // map: iterating over subset of keySet
+tests/daikon/daikon/tools/compare/LogicalCompare.java:        @SuppressWarnings("nullness") // map: exit should be in map if enter is
+tests/daikon/daikon/tools/compare/LogicalCompare.java:        @SuppressWarnings("nullness") // map: exit should be in map if enter is
+tests/daikon/daikon/tools/InvMatch.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/tools/InvMatch.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/tools/InvMatch.java:  @SuppressWarnings("nullness") // testing method, not worth type-checking
+tests/daikon/daikon/tools/InvMatch.java:          "nullness") // can't figure out what this is for; maybe change the declaration
+tests/daikon/daikon/Chicory.java:import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
+tests/daikon/daikon/Chicory.java:import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+tests/daikon/daikon/Chicory.java:import org.checkerframework.checker.nullness.qual.NonNull;
+tests/daikon/daikon/Chicory.java:import org.checkerframework.checker.nullness.qual.Nullable;
+tests/daikon/daikon/Chicory.java:import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+tests/daikon/daikon/Chicory.java:          : "@AssumeAssertion(nullness): conditional: just tested daikon_online, and ran"
+tests/daikon/daikon/Chicory.java:            : "@AssumeAssertion(nullness): dependent: because daikon_online is true";
+tests/daikon/daikon/Chicory.java:            : "@AssumeAssertion(nullness): dependent: because daikon_online is true";

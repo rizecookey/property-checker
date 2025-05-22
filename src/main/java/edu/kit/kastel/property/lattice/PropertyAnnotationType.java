@@ -173,7 +173,8 @@ public final class PropertyAnnotationType {
         FLOAT("float", float.class),
         DOUBLE("double", double.class),
         BOOLEAN("boolean", boolean.class),
-        STRING("String", String.class);
+        STRING("String", String.class),
+        OBJECT("Object", Object.class);
 
         private String str;
         private Class<?> cls;
@@ -206,6 +207,9 @@ public final class PropertyAnnotationType {
                 case "String":
                     this.fromStringMethod = String.class.getMethod("valueOf", Object.class);
                     break;
+                case "Object":
+                    this.fromStringMethod = this.getClass().getMethod("objectFromString", String.class);
+                    break;
                 }
             } catch (NoSuchMethodException | SecurityException e) {
                 throw new AssertionError();
@@ -218,6 +222,13 @@ public final class PropertyAnnotationType {
 
         public Class<?> toClass() {
             return cls;
+        }
+
+        public static Object objectFromString(String str) {
+            if (str.equals("null")) {
+                return null;
+            }
+            throw new IllegalArgumentException();
         }
 
         public Object fromString(String str) {

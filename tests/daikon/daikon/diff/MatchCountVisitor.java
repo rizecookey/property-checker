@@ -11,6 +11,9 @@ import java.util.StringTokenizer;
 import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import edu.kit.kastel.property.subchecker.lattice.daikon_qual.*;
+import edu.kit.kastel.property.checker.qual.*;
+
 /**
  * MatchCountVisitor is a visitor that almost does the opposite of PrintDifferingInvariantsVisitor.
  * MatchCount prints invariant pairs if they are the same, and only if they are a part of a
@@ -37,7 +40,7 @@ public class MatchCountVisitor extends PrintAllVisitor {
   // throw out Program points that are not Conditional,
   // meaning they were NOT added from our splitters
   @Override
-  public void visit(PptNode node) {
+  public void visit(@NonNullNode PptNode node) {
     PptTopLevel ppt = node.getPpt1();
     if (!(ppt instanceof PptConditional)) {
       return;
@@ -47,7 +50,7 @@ public class MatchCountVisitor extends PrintAllVisitor {
   }
 
   @Override
-  public void visit(InvNode node) {
+  public void visit(@NonNullNode InvNode node) {
     Invariant inv1 = node.getInv1();
     Invariant inv2 = node.getInv2();
     String key1 = "";
@@ -105,8 +108,8 @@ public class MatchCountVisitor extends PrintAllVisitor {
     int rel = DetailedStatisticsVisitor.determineRelationship(inv1, inv2);
     if (rel == DetailedStatisticsVisitor.REL_SAME_JUST1_JUST2) {
       // determineRelationship returns REL_SAME_JUST1_JUST2 only if inv1 and inv2 are nonnull
-      assert inv1 != null : "@AssumeAssertion(nullness): dependent: called determineRelationship()";
-      assert inv2 != null : "@AssumeAssertion(nullness): dependent: called determineRelationship()";
+      //assert inv1 != null : "@AssumeAssertion(nullness): dependent: called determineRelationship()";
+      //assert inv2 != null : "@AssumeAssertion(nullness): dependent: called determineRelationship()";
 
       // got rid of unjustified
       //   rel == DetailedStatisticsVisitor.REL_SAME_UNJUST1_UNJUST2)
@@ -133,7 +136,7 @@ public class MatchCountVisitor extends PrintAllVisitor {
    * or is null.
    */
   private static boolean filterOut(Invariant inv) {
-    assert inv != null : "@AssumeAssertion(nullness): precondition";
+    //assert inv != null : "@AssumeAssertion(nullness): precondition";
     String str = inv.format_using(OutputFormat.JAVA);
     StringTokenizer st = new StringTokenizer(str, " ()");
     while (st.hasMoreTokens()) {

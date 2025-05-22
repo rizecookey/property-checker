@@ -32,7 +32,7 @@ public class DaikonTest {
     protected final String testDir = "daikon";
 
     /** The binary names of the checkers to run. */
-    protected final String lattices = "";
+    protected final String lattices = "tests/daikon/lattice_nullnessnode";
 
     protected final List<String> classpathExtra = List.of(
             "tests/daikon/typequals",
@@ -63,14 +63,14 @@ public class DaikonTest {
             "-APropertyChecker_inDir=" + new File(new File("tests"), testDir).getPath(),
             "-APropertyChecker_outDir=" + "../property-checker-out",
             "-APropertyChecker_lattices=" + lattices,
-            "-APropertyChecker_qualPkg=" + "daikon_qual",
+            "-APropertyChecker_qualPkg=" + "edu.kit.kastel.property.subchecker.lattice.daikon_qual",
             "-APropertyChecker_noInferUnpack=true",
             "-APropertyChecker_translationOnly=" + ObjectUtils.defaultIfNull(System.getProperty("translationOnly"), "false"));
 
     /** Run the tests. */
     @Test
     public void run() {
-        List<File> testFiles = Arrays.stream(new File(resolveTestDirectory(), testDir + "/daikon").listFiles()).filter(f -> f.getName().endsWith(".java")).toList();
+        List<File> testFiles = Arrays.stream(new File(resolveTestDirectory(), testDir + "/daikon/diff").listFiles()).filter(f -> f.getName().endsWith(".java")).toList();
         boolean shouldEmitDebugInfo = TestUtilities.getShouldEmitDebugInfo();
         TestConfiguration config =
                 TestConfigurationBuilder.buildDefaultConfiguration(

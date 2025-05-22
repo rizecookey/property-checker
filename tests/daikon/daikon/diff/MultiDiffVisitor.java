@@ -17,6 +17,9 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.plumelib.util.CollectionsPlume;
 
+import edu.kit.kastel.property.subchecker.lattice.daikon_qual.*;
+import edu.kit.kastel.property.checker.qual.*;
+
 /**
  * <B>MultiDiffVisitor</B> is a state-storing NodeVisitor that works across multiple files
  * regardless of the current two-file infrastructure. This allows the selection of very unique
@@ -47,14 +50,14 @@ public class MultiDiffVisitor extends PrintNullDiffVisitor {
   }
 
   @Override
-  public void visit(RootNode node) {
+  public void visit(@NonNullNode RootNode node) {
 
     total++;
     super.visit(node);
   }
 
   @Override
-  public void visit(InvNode node) {
+  public void visit(@NonNullNode InvNode node) {
     Invariant inv1 = node.getInv1();
     Invariant inv2 = node.getInv2();
 
@@ -133,10 +136,10 @@ public class MultiDiffVisitor extends PrintNullDiffVisitor {
     // Now to populate those ArrayLists
     for (String str : bigList) {
       StringTokenizer st = new StringTokenizer(str, "$");
-      String key = st.nextToken(); // a Ppt name
+      @SuppressWarnings("keyfor")
+      @KeyFor("lastMap") String key = st.nextToken(); // a Ppt name
       String data = st.nextToken();
       try {
-        @SuppressWarnings("nullness") // map
         @NonNull ArrayList<String> formatAndFrequencyList = lastMap.get(key);
         formatAndFrequencyList.add(data);
       } catch (Exception e) {
@@ -193,10 +196,10 @@ public class MultiDiffVisitor extends PrintNullDiffVisitor {
     // Now to populate those ArrayLists
     for (String str : bigList) {
       StringTokenizer st = new StringTokenizer(str, "$");
-      String key = st.nextToken();
+      @SuppressWarnings("keyfor")
+      @KeyFor("lastMap") String key = st.nextToken();
       String data = st.nextToken();
       try {
-        @SuppressWarnings("nullness") // map
         @NonNull ArrayList<String> formatAndFrequencyList = lastMap.get(key);
         formatAndFrequencyList.add(data);
       } catch (Exception e) {

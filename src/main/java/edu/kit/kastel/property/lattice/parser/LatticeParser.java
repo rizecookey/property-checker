@@ -16,6 +16,13 @@
  */
 package edu.kit.kastel.property.lattice.parser;
 
+import edu.kit.kastel.property.lattice.*;
+import edu.kit.kastel.property.lattice.Bound.BoundType;
+import edu.kit.kastel.property.subchecker.lattice.LatticeAnnotatedTypeFactory;
+import edu.kit.kastel.property.util.ClassUtils;
+import edu.kit.kastel.property.util.UnorderedPair;
+import org.checkerframework.javacutil.Pair;
+
 import java.io.IOException;
 import java.io.StreamTokenizer;
 import java.io.StringReader;
@@ -24,18 +31,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import org.checkerframework.javacutil.Pair;
-
-import edu.kit.kastel.property.lattice.Bound;
-import edu.kit.kastel.property.lattice.Lattice;
-import edu.kit.kastel.property.lattice.PropertyAnnotation;
-import edu.kit.kastel.property.lattice.PropertyAnnotationType;
-import edu.kit.kastel.property.lattice.SubAnnotationRelation;
-import edu.kit.kastel.property.lattice.Bound.BoundType;
-import edu.kit.kastel.property.subchecker.lattice.LatticeAnnotatedTypeFactory;
-import edu.kit.kastel.property.util.ClassUtils;
-import edu.kit.kastel.property.util.UnorderedPair;
 
 @SuppressWarnings("nls")
 public final class LatticeParser {
@@ -104,6 +99,8 @@ public final class LatticeParser {
                 }
                 meets.get(meet.getOperandNames()).add(meet);
                 break;
+            default:
+                throw new ParseException("Unexpected token: " + currentToken(tokenizer));
             }
 
             next(tokenizer);
