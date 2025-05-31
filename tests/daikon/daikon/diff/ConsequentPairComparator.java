@@ -24,7 +24,9 @@ public class ConsequentPairComparator implements Comparator<Invariant> {
 
   @Pure
   @Override
-  public int compare(Invariant inv1, Invariant inv2) {
+  public int compare(Invariant arg1, Invariant arg2) {
+    Invariant inv1 = arg1;
+    Invariant inv2 = arg2;
     if (inv2 instanceof Implication) {
       Implication imp2 = (Implication) inv2;
       inv2 = imp2.consequent();

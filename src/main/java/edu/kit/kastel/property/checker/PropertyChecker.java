@@ -59,6 +59,8 @@ import java.util.*;
     Config.TRANSLATION_ONLY_OPTION,
     Config.NO_EXCLUSITIVY_OPTION,
     Config.NO_INFER_UNPACK_OPTION,
+    Config.KEEP_GENERICS_OPTION,
+    Config.SHOULD_NOT_USE_TRAMPOLINE_OPTION,
     "assumeKeyFor",
     "assumeInitialized",
     "jspecifyNullMarkedAlias",
@@ -72,6 +74,7 @@ public final class PropertyChecker extends PackingChecker {
     private List<LatticeSubchecker> latticeSubcheckers;
     private List<BaseTypeChecker> packingTargetCheckers;
     private List<BaseTypeChecker> subcheckers;
+    private List<String> shouldNotUseTrampoline;
 
     private Map<String, PriorityQueue<CooperativeVisitor.Result>> results = new HashMap<>();
 
@@ -203,6 +206,10 @@ public final class PropertyChecker extends PackingChecker {
     	return getOptionsNoSubcheckers().get(Config.QUAL_PKG_OPTION);
     }
 
+    public boolean shouldKeepGenerics() {
+        return getBooleanOption(Config.KEEP_GENERICS_OPTION, false);
+    }
+
     public void addResult(String fileName, CooperativeVisitor.Result result) {
         if (!results.containsKey(fileName)) {
             results.put(fileName, new PriorityQueue<>(
@@ -227,5 +234,18 @@ public final class PropertyChecker extends PackingChecker {
 
     public PropertyAnnotatedTypeFactory getPropertyFactory() {
         return (PropertyAnnotatedTypeFactory) getTypeFactory();
+    }
+
+    private List<String> getShouldNotUseTrampoline() {
+        if (shouldNotUseTrampoline == null) {
+            String option = getOption(Config.SHOULD_NOT_USE_TRAMPOLINE_OPTION, "");
+            shouldNotUseTrampoline = Arrays.asList(option.split(Config.SPLIT));
+        }
+
+        return Collections.unmodifiableList(shouldNotUseTrampoline);
+    }
+
+    public boolean shouldNotUseTrampoline(String typeName) {
+        return getShouldNotUseTrampoline().stream().anyMatch(s -> typeName.startsWith(s));
     }
 }

@@ -66,6 +66,7 @@ public class InvMap implements Serializable {
     get(ppt).add(inv);
   }
 
+  @Pure
   public List<Invariant> get(@GuardSatisfied InvMap this, PptTopLevel ppt) {
     if (!pptToInvs.containsKey(ppt)) {
       throw new Error("ppt has not yet been added: " + ppt.name());

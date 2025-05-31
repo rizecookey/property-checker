@@ -42,7 +42,8 @@ public class MultiDiff {
           IllegalAccessException,
           InvocationTargetException,
           NoSuchMethodException {
-    try (FileOutputStream fos = new FileOutputStream("rand_sel.spinfo")) {
+    FileOutputStream fos = new FileOutputStream("rand_sel.spinfo");
+    try {
       PrintStream out = new PrintStream(fos);
       /*
         try {
@@ -56,6 +57,8 @@ public class MultiDiff {
       */
       MultiDiffVisitor.setForSpinfoOut(out);
       Diff.main(args);
+    } finally {
+      fos.close();
     }
   }
 }

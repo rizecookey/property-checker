@@ -1,10 +1,8 @@
 package daikon.diff;
 
-import static java.util.logging.Level.FINE;
-import static java.util.logging.Level.INFO;
-
 import daikon.Daikon;
 import daikon.FileIO;
+import daikon.LogHelper;
 import daikon.Ppt;
 import daikon.PptConditional;
 import daikon.PptMap;
@@ -25,10 +23,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NavigableSet;
 import java.util.TreeSet;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
-import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.*;
 import org.checkerframework.checker.signature.qual.ClassGetName;
 import org.plumelib.util.CollectionsPlume;
 import org.plumelib.util.FilesPlume;
@@ -36,7 +34,11 @@ import org.plumelib.util.MPair;
 import org.plumelib.util.OrderedPairIterator;
 import org.plumelib.util.StringsPlume;
 
+import org.checkerframework.dataflow.qual.Pure;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
+import edu.kit.kastel.property.subchecker.lattice.daikon_qual.*;
+import edu.kit.kastel.property.checker.qual.*;
+import edu.kit.kastel.property.util.*;
 
 /**
  * Diff is the main class for the invariant diff program. The invariant diff program outputs the
@@ -107,19 +109,21 @@ public final class Diff {
     setAllInvComparators(c);
   }
 
+  @SuppressWarnings("unchecked")
   public @MaybeAliased Diff(boolean examineAllPpts, boolean ignoreNumberedExits) {
     this.examineAllPpts = examineAllPpts;
     this.ignoreNumberedExits = ignoreNumberedExits;
-    setAllInvComparators(new Invariant.ClassVarnameComparator());
+    Comparator c = new Invariant.ClassVarnameComparator();
+    setAllInvComparators(c);
   }
 
   public @MaybeAliased Diff(
       boolean examineAllPpts,
       boolean ignoreNumberedExits,
-      @Nullable @ClassGetName String invSortComparator1Classname,
-      @Nullable @ClassGetName String invSortComparator2Classname,
-      @Nullable @ClassGetName String invPairComparatorClassname,
-      Comparator<Invariant> defaultComparator)
+      @Nullable @ClassGetName String sc1,
+      @Nullable @ClassGetName String sc2,
+      @Nullable @ClassGetName String pc,
+      Comparator<Invariant> d)
       throws ClassNotFoundException,
           IllegalAccessException,
           InstantiationException,
@@ -127,9 +131,9 @@ public final class Diff {
           NoSuchMethodException {
     this.examineAllPpts = examineAllPpts;
     this.ignoreNumberedExits = ignoreNumberedExits;
-    this.invSortComparator1 = selectComparator(invSortComparator1Classname, defaultComparator);
-    this.invSortComparator2 = selectComparator(invSortComparator2Classname, defaultComparator);
-    this.invPairComparator = selectComparator(invPairComparatorClassname, defaultComparator);
+    this.invSortComparator1 = selectComparator(sc1, d);
+    this.invSortComparator2 = selectComparator(sc2, d);
+    this.invPairComparator = selectComparator(pc, d);
   }
 
   /**
@@ -167,7 +171,10 @@ public final class Diff {
           IllegalAccessException,
           InvocationTargetException,
           NoSuchMethodException {
-    daikon.LogHelper.setupLogs(INFO);
+    // This is well-typed, so we can comment it out and avoid having to specify all the library functions it calls
+    // in KeY.
+    /*
+    LogHelper.setupLogs(Level.INFO);
 
     boolean printDiff = false;
     boolean printAll = false;
@@ -190,7 +197,7 @@ public final class Diff {
 
     boolean optionSelected = false;
 
-    daikon.LogHelper.setupLogs(INFO);
+    LogHelper.setupLogs(Level.INFO);
     //     daikon.LogHelper.setLevel ("daikon.diff", FINE);
 
     LongOpt[] longOpts =
@@ -207,8 +214,8 @@ public final class Diff {
         new Getopt(
             "daikon.diff.Diff", args,
             "Hhyduastmxno:jzpevl", longOpts);
-    int c;
-    while ((c = g.getopt()) != -1) {
+    int c = g.getopt();
+    while (c != -1) {
       switch (c) {
         case 0:
           // got a long option
@@ -328,6 +335,7 @@ public final class Diff {
           System.out.println("getopt() returned " + c);
           break;
       }
+      c = g.getopt();
     }
 
     // Turn on the defaults
@@ -478,7 +486,7 @@ public final class Diff {
         root.accept(v);
         InvMap resultMap = v.getResult();
         FilesPlume.writeObject(resultMap, outputFile);
-        if (debug.isLoggable(FINE)) {
+        if (debug.isLoggable(Level.FINE)) {
           debug.fine("Result: " + resultMap.toString());
         }
 
@@ -504,6 +512,7 @@ public final class Diff {
     }
 
     // finished; return (and end program)
+    */
   }
 
   /**
@@ -579,22 +588,48 @@ public final class Diff {
   public RootNode diffInvMap(InvMap map1, InvMap map2, boolean includeUnjustified) {
     RootNode root = new RootNode();
 
-    Iterator<MPair<@Nullable PptTopLevel, @Nullable PptTopLevel>> opi =
-        new OrderedPairIterator<PptTopLevel>(
-            map1.pptSortedIterator(PPT_COMPARATOR),
-            map2.pptSortedIterator(PPT_COMPARATOR),
-            PPT_COMPARATOR);
+    @NonNull Comparator<PptTopLevel> comp = PPT_COMPARATOR;
+    OrderedPairIterator<PptTopLevel> opi =
+        new OrderedPairIterator<>(
+            map1.pptSortedIterator(comp),
+            map2.pptSortedIterator(comp),
+            comp);
+    //invariant: 0 <= opi.idx & opi.idx <= opi.len
+    //variant: opi.len - opi.idx
     while (opi.hasNext()) {
       MPair<@Nullable PptTopLevel, @Nullable PptTopLevel> ppts = opi.next();
-      PptTopLevel ppt1 = ppts.first;
-      PptTopLevel ppt2 = ppts.second;
-      if (shouldAdd(ppt1) || shouldAdd(ppt2)) {
-        PptNode node = diffPptTopLevel(ppt1, ppt2, map1, map2, includeUnjustified);
-        root.add(node);
-      }
+      // Work around KeY not supporting generics
+      Assert._assume("ppts.first instanceof PptTopLevel");
+      Assert._assume("ppts.second instanceof PptTopLevel");
+      PptTopLevel ppt1 = (PptTopLevel) ppts.first;
+      // :: error: nullnessnode.assignment.type.incompatible
+      @NonNullIfNull("ppt2") PptTopLevel ppt2 = (PptTopLevel) ppts.second;
+
+      // Use ghost variables to prove that opi is not modified by method call
+      Ghost.ghost("int", "idx", "opi.idx");
+      Ghost.ghost("int", "len", "opi.len");
+      // :: error: nullnessnode.argument.type.incompatible
+      addChildToRootNode(root, ppt1, ppt2, map1, map2, includeUnjustified);
+      Ghost.set("opi.idx", "idx");
+      Ghost.set("opi.len", "len");
     }
 
     return root;
+  }
+  // Put this in its own method to make the KeY proof easier
+  // :: error: nullnessnode.contracts.postcondition.not.satisfied
+  public void addChildToRootNode(
+          RootNode root,
+          @NonNullIfNull("ppt2") @Nullable PptTopLevel ppt1,
+          @NonNullIfNull("ppt1") @Nullable PptTopLevel ppt2,
+          InvMap map1,
+          InvMap map2,
+          boolean includeUnjustified) {
+    if (shouldAdd(ppt1) || shouldAdd(ppt2)) {
+      // :: error: nullnessnode.argument.type.incompatible
+      @NonNullNode PptNode node = diffPptTopLevel(ppt1, ppt2, map1, map2, includeUnjustified);
+      root.add(node);
+    }
   }
 
   /**
@@ -616,6 +651,7 @@ public final class Diff {
   }
 
   /** Returns true if the program point should be added to the tree, false otherwise. */
+  @Pure
   private boolean shouldAdd(@Nullable PptTopLevel ppt) {
     if (examineAllPpts) {
       return true;
@@ -637,21 +673,24 @@ public final class Diff {
    * corresponding invariants. Either of the program points may be null. If includeUnjustied is
    * true, the unjustified invariants are included.
    */
-  private PptNode diffPptTopLevel(
-      @Nullable PptTopLevel ppt1,
-      @Nullable PptTopLevel ppt2,
+  @Pure
+  // :: error: nullnessnode.contracts.postcondition.not.satisfied
+  private @NonNullNode PptNode diffPptTopLevel(
+      @NonNullIfNull("ppt2") @Nullable PptTopLevel ppt1,
+      @NonNullIfNull("ppt1") @Nullable PptTopLevel ppt2,
       InvMap map1,
       InvMap map2,
       boolean includeUnjustified) {
-    PptNode pptNode = new PptNode(ppt1, ppt2);
+    // :: error: nullnessnode.argument.type.incompatible
+    @NonNullNode PptNode pptNode = new PptNode(ppt1, ppt2);
 
-    assert ppt1 == null || ppt2 == null || PPT_COMPARATOR.compare(ppt1, ppt2) == 0
-        : "Program points do not correspond";
+    // assert ppt1 == null || ppt2 == null || PPT_COMPARATOR.compare(ppt1, ppt2) == 0 : "Program points do not correspond";
 
     List<Invariant> invs1;
     if (ppt1 != null) {
       invs1 = map1.get(ppt1);
-      Collections.sort(invs1, invSortComparator1);
+      @NonNull Comparator<Invariant> comp = invSortComparator1;
+      Collections.sort(invs1, comp);
     } else {
       invs1 = new ArrayList<Invariant>();
     }
@@ -659,32 +698,42 @@ public final class Diff {
     List<Invariant> invs2;
     if (ppt2 != null) {
       invs2 = map2.get(ppt2);
-      Collections.sort(invs2, invSortComparator2);
+      @NonNull Comparator<Invariant> comp = invSortComparator2;
+      Collections.sort(invs2, comp);
     } else {
       invs2 = new ArrayList<Invariant>();
     }
 
+    addChildrenToPptTopLevelNode(pptNode, invs1, invs2, includeUnjustified);
+    return pptNode;
+  }
+  // Put this in its own method to make KeY proof easier
+  private void addChildrenToPptTopLevelNode(@NonNullNode PptNode pptNode, List<Invariant> invs1, List<Invariant> invs2, boolean includeUnjustified) {
     Iterator<MPair<@Nullable Invariant, @Nullable Invariant>> opi =
-        new OrderedPairIterator<Invariant>(invs1.iterator(), invs2.iterator(), invPairComparator);
+            new OrderedPairIterator<Invariant>(invs1.iterator(), invs2.iterator(), invPairComparator);
     while (opi.hasNext()) {
       MPair<@Nullable Invariant, @Nullable Invariant> invariants = opi.next();
       Invariant inv1 = invariants.first;
       Invariant inv2 = invariants.second;
-      if (!includeUnjustified) {
-        if ((inv1 != null) && !inv1.justified()) {
-          inv1 = null;
-        }
-        if ((inv2 != null) && !inv2.justified()) {
-          inv2 = null;
-        }
+      addChildToPptTopLevelNode(pptNode, inv1, inv2, includeUnjustified);
+    }
+  }
+  private void addChildToPptTopLevelNode(@NonNullNode PptNode pptNode, @Nullable Invariant arg1, @Nullable Invariant arg2, boolean includeUnjustified) {
+    Invariant inv1 = arg1;
+    Invariant inv2 = arg2;
+    if (!includeUnjustified) {
+      if ((inv1 != null) && !inv1.justified()) {
+        inv1 = null;
       }
-      if ((inv1 != null) || (inv2 != null)) {
-        InvNode invNode = new InvNode(inv1, inv2);
-        pptNode.add(invNode);
+      if ((inv2 != null) && !inv2.justified()) {
+        inv2 = null;
       }
     }
-
-    return pptNode;
+    if ((inv1 != null) || (inv2 != null)) {
+      // :: error: nullnessnode.argument.type.incompatible
+      InvNode invNode = new InvNode(inv1, inv2);
+      pptNode.add(invNode);
+    }
   }
 
   /** Use the comparator for sorting both sets and creating the pair tree. */

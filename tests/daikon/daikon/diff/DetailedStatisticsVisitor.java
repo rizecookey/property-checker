@@ -1,6 +1,8 @@
 package daikon.diff;
 
 import daikon.inv.Invariant;
+import daikon.PptSlice;
+import java.lang.Math;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.logging.Level;
@@ -14,6 +16,7 @@ import org.plumelib.util.StringsPlume;
 
 import edu.kit.kastel.property.subchecker.lattice.daikon_qual.*;
 import edu.kit.kastel.property.checker.qual.*;
+import edu.kit.kastel.property.util.*;
 
 /**
  * Computes statistics about the differences between the sets of invariants. The statistics can be
@@ -85,6 +88,7 @@ public class DetailedStatisticsVisitor extends DepthFirstVisitor {
     Invariant inv1 = node.getInv1();
     Invariant inv2 = node.getInv2();
     if (shouldAddFrequency(inv1, inv2)) {
+      // :: error: nullnessnode.argument.type.incompatible
       addFrequency(node.getInv1(), node.getInv2());
     }
   }
@@ -93,10 +97,13 @@ public class DetailedStatisticsVisitor extends DepthFirstVisitor {
    * Adds the difference between the two invariants to the appropriate entry in the frequencies
    * table.
    */
+  // :: error: nullnessnode.contracts.postcondition.not.satisfied
   private void addFrequency(@NonNullIfNull("inv2") @Nullable Invariant inv1, @NonNullIfNull("inv1") @Nullable Invariant inv2) {
     if (continuousJustification) {
+      // :: error: nullnessnode.argument.type.incompatible
       addFrequencyContinuous(inv1, inv2);
     } else {
+      // :: error: nullnessnode.argument.type.incompatible
       addFrequencyBinary(inv1, inv2);
     }
   }
@@ -105,28 +112,39 @@ public class DetailedStatisticsVisitor extends DepthFirstVisitor {
    * Treats justification as a binary value. The table entry is incremented by 1 regardless of the
    * difference in justifications.
    */
+  @JMLClause("requires_free ARITY_LABELS != null && freq.length == ARITY_LABELS.length;")
+  @JMLClause("requires_free RELATIONSHIP_LABELS != null && (\forall int i; 0 <= i && i < freq.length; freq[i] != null && freq[i].length == RELATIONSHIP_LABELS.length);")
+  // :: error: nullnessnode.contracts.postcondition.not.satisfied
   private void addFrequencyBinary(@NonNullIfNull("inv2") @Nullable Invariant inv1, @NonNullIfNull("inv1") @Nullable Invariant inv2) {
+    // :: error: nullnessnode.argument.type.incompatible
     int arity = determineArity(inv1, inv2);
+    // :: error: nullnessnode.argument.type.incompatible
     int relationship = determineRelationship(inv1, inv2);
-    freq[arity][relationship]++;
+    freq[arity][relationship] += 1.0;
   }
 
   /**
    * Treats justification as a continuous value. If one invariant is justified but the other is
    * unjustified, the table entry is incremented by the difference in justifications.
    */
+  @JMLClause("requires_free ARITY_LABELS != null && freq.length == ARITY_LABELS.length;")
+  @JMLClause("requires_free RELATIONSHIP_LABELS != null && (\forall int i; 0 <= i && i < freq.length; freq[i] != null && freq[i].length == RELATIONSHIP_LABELS.length);")
+  // :: error: nullnessnode.contracts.postcondition.not.satisfied
   private void addFrequencyContinuous(@NonNullIfNull("inv2") @Nullable Invariant inv1, @NonNullIfNull("inv1") @Nullable Invariant inv2) {
+    // :: error: nullnessnode.argument.type.incompatible
     int arity = determineArity(inv1, inv2);
+    // :: error: nullnessnode.argument.type.incompatible
     int relationship = determineRelationship(inv1, inv2);
 
     switch (relationship) {
       case REL_SAME_JUST1_UNJUST2:
       case REL_SAME_UNJUST1_JUST2:
         //assert inv1 != null && inv2 != null : "@AssumeAssertion(nullness)"; // application invariant about return value of determineRelationship
+        // :: error: nullness.argument.type.incompatible
         freq[arity][relationship] += calculateConfidenceDifference(inv1, inv2);
         break;
       default:
-        freq[arity][relationship]++;
+        freq[arity][relationship] += 1.0;
     }
   }
 
@@ -144,26 +162,38 @@ public class DetailedStatisticsVisitor extends DepthFirstVisitor {
   }
 
   /** Returns the arity of the invariant pair. */
+  @Pure
+  // We could turn on static initialization in KeY just for this class, but this is easier
+  @JMLClause("requires_free debug != null && Level.FINE != null;")
+  @JMLClause("requires_free ARITY_LABELS != null && ARITY_LABELS.length == 4;")
+  @JMLClause("ensures ARITY_LABELS != null && 0 <= \\result && \\result < ARITY_LABELS.length;")
+  // :: error: nullnessnode.contracts.postcondition.not.satisfied
   public static int determineArity(@NonNullIfNull("inv2") @Nullable Invariant inv1, @NonNullIfNull("inv1") @Nullable Invariant inv2) {
     // Set inv to a non-null invariant
     //@SuppressWarnings("nullness") // at least one argument is non-null
+    // :: error: nullness.assignment.type.incompatible
     @NonNull Invariant inv = (inv1 != null) ? inv1 : inv2;
-
-    if (debug.isLoggable(Level.FINE)) {
-      debug.fine(
-          "visit: "
-              + ((inv1 != null) ? inv1.ppt.parent.name() : "NULL")
-              + " "
-              + ((inv1 != null) ? inv1.repr() : "NULL")
-              + " - "
-              + ((inv2 != null) ? inv2.repr() : "NULL"));
-    }
-
-    int arity = inv.ppt.arity();
+    logInvariantVisit(inv1, inv2);
+    @NonNull PptSlice ppt = inv.ppt;
+    int arity = ppt.arity();
     if (debug.isLoggable(Level.FINE)) {
       debug.fine("  arity: " + arity);
     }
     return arity;
+  }
+
+  // Put this in its own method to make the KeY proof for determineArity easier
+  @Pure
+  private static void logInvariantVisit(@Nullable Invariant inv1, @Nullable Invariant inv2) {
+    if (debug.isLoggable(Level.FINE)) {
+      debug.fine(
+              "visit: "
+                      + ((inv1 != null) ? inv1.ppt.parent.name() : "NULL")
+                      + " "
+                      + ((inv1 != null) ? inv1.repr() : "NULL")
+                      + " - "
+                      + ((inv2 != null) ? inv2.repr() : "NULL"));
+    }
   }
 
   /**
@@ -171,13 +201,23 @@ public class DetailedStatisticsVisitor extends DepthFirstVisitor {
    * described at the beginning of this file.
    */
   @Pure
+  // We could turn on static initialization in KeY just for this class, but this is easier
+  @JMLClause("requires_free REL_SAME_JUST1_JUST2 == 0 && REL_SAME_JUST1_UNJUST2 == 1 && REL_SAME_UNJUST1_JUST2 == 2 && REL_SAME_UNJUST1_UNJUST2 == 3;")
+  @JMLClause("requires_free REL_DIFF_JUST1_JUST2 == 4 && REL_DIFF_JUST1_UNJUST2 == 5 && REL_DIFF_UNJUST1_JUST2 == 6 && REL_DIFF_UNJUST1_UNJUST2 == 7;")
+  @JMLClause("requires_free REL_MISS_JUST1 == 8 && REL_MISS_UNJUST1 == 9 && REL_MISS_JUST2 == 10 && REL_MISS_UNJUST2 == 11;")
+  @JMLClause("requires_free RELATIONSHIP_LABELS != null && RELATIONSHIP_LABELS.length == 12;")
   @JMLClause("ensures \\result == REL_SAME_JUST1_JUST2 ==> inv1 != null && inv2 != null;")
+  @JMLClause("ensures \\result == REL_SAME_JUST1_UNJUST2 ==> inv1 != null && inv2 != null;")
+  @JMLClause("ensures \\result == REL_SAME_UNJUST1_JUST2 ==> inv1 != null && inv2 != null;")
   @JMLClause("ensures \\result == REL_SAME_UNJUST1_UNJUST2 ==> inv1 != null && inv2 != null;")
+  @JMLClause("ensures RELATIONSHIP_LABELS != null && 0 <= \\result && \\result < RELATIONSHIP_LABELS.length;")
+  // :: error: nullnessnode.contracts.postcondition.not.satisfied
   public static int determineRelationship(@NonNullIfNull("inv2") @Nullable Invariant inv1, @NonNullIfNull("inv1") @Nullable Invariant inv2) {
     int relationship;
 
     if (inv1 == null) {
       //assert inv2 != null : "@AssumeAssertion(nullness): at least one argument is non-null";
+      // :: error: nullness.dereference.of.nullable
       relationship = inv2.justified() ? REL_MISS_JUST2 : REL_MISS_UNJUST2;
     } else if (inv2 == null) {
       relationship = inv1.justified() ? REL_MISS_JUST1 : REL_MISS_UNJUST1;

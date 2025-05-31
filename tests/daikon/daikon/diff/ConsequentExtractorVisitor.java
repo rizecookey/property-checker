@@ -1,5 +1,6 @@
 package daikon.diff;
 
+import daikon.PptSlice;
 import daikon.PptConditional;
 import daikon.inv.Implication;
 import daikon.inv.Invariant;
@@ -7,7 +8,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.*;
 
 import edu.kit.kastel.property.subchecker.lattice.daikon_qual.*;
 import edu.kit.kastel.property.checker.qual.*;
@@ -37,20 +38,24 @@ public class ConsequentExtractorVisitor extends DepthFirstVisitor {
 
   @Override
   public void visit(@NonNullNode PptNode node) {
-    assert node.getPpt1() != null : "@AssumeAssertion(nullness): method precondition: has a (non-null) consequent";
+    // assert node.getPpt1() != null : "@AssumeAssertion(nullness): method precondition: has a (non-null) consequent";
     if (node.getPpt1() instanceof PptConditional) {
       return;
     }
+    // Ill-typed and thus unprovable. A client may calling this method may violate the precondition stated in the
+    // above assertion.
+    // :: error: nullness.dereference.of.nullable
     System.out.println(node.getPpt1().name);
     repeatFilter.clear();
     accum.clear();
     super.visit(node);
     // clear all of the old ppts
 
-    for (Iterator<InvNode> i = node.children(); i.hasNext(); ) {
-      InvNode child = i.next();
+    for (Iterator<@NonNullNode InvNode> i = node.children(); i.hasNext(); ) {
+      @NonNullNode InvNode child = i.next();
       if (child.getInv1() != null) {
-        child.getInv1().ppt.invs.clear();
+        @NonNull List<Invariant> invs = child.getInv1().ppt.invs;
+        invs.clear();
       }
     }
     /*
@@ -60,7 +65,8 @@ public class ConsequentExtractorVisitor extends DepthFirstVisitor {
     */
     // Now add back everything in accum
     for (Invariant inv : accum) {
-      inv.ppt.addInvariant(inv);
+      @NonNull PptSlice ppt = inv.ppt;
+      ppt.addInvariant(inv);
     }
     System.out.println("NONCE: " + nonce);
   }
@@ -101,7 +107,9 @@ public class ConsequentExtractorVisitor extends DepthFirstVisitor {
    * Returns true if the pair of invariants should be printed, depending on their type,
    * relationship, and printability.
    */
-  protected boolean shouldPrint(@Nullable Invariant inv1, @Nullable Invariant inv2) {
+  // :: error: nullnessnode.contracts.postcondition.not.satisfied
+  protected boolean shouldPrint(@NonNullIfNull("inv2") @Nullable Invariant inv1, @NonNullIfNull("inv1") @Nullable Invariant inv2) {
+    // :: error: nullnessnode.argument.type.incompatible
     int rel = DetailedStatisticsVisitor.determineRelationship(inv1, inv2);
     if (rel == DetailedStatisticsVisitor.REL_SAME_JUST1_JUST2
         || rel == DetailedStatisticsVisitor.REL_SAME_UNJUST1_UNJUST2

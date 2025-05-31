@@ -1,7 +1,5 @@
 package daikon.diff;
 
-import java.util.Objects;
-import org.plumelib.util.*;
 import org.checkerframework.checker.lock.qual.GuardSatisfied;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.qual.Pure;
@@ -21,12 +19,17 @@ public class IPair<@MaybeAliased V1, @MaybeAliased V2> {
     /** The second element of the pair. */
     public final @Dependable V2 second;
 
+    @Pure
+    @JMLClause("ensures this.first == first && this.second == second;")
     private IPair(V1 first, V2 second) {
         this.first = first;
         this.second = second;
     }
 
-    public static <T1, T2> IPair<T1, T2> of(T1 first, T2 second) {
+    @Pure
+    @JMLClause("ensures \\result != null && \\fresh(\\result) && \\fresh(\\result.*) && \\invariant_free_for(\\result);")
+    @JMLClause("ensures \\result.first == first && \\result.second == second;")
+    public static <T1, T2> IPair<T1, T2> of(@MaybeAliased T1 first, @MaybeAliased T2 second) {
         return new IPair<>(first, second);
     }
 }

@@ -79,7 +79,9 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 		}
 		localVarsToClear.forEach(v -> replaceValue(v, createTopValue(v.getElement().asType())));
 
-		if (thisValue != null && !factory.getLattice().getPropertyAnnotation(thisValue.getAnnotations().first()).getAnnotationType().isNonNull()) {
+		if (thisValue != null
+				&& !factory.getLattice().getPropertyAnnotation(thisValue.getAnnotations().first()).getAnnotationType().isNonNull()
+				&& !factory.getLattice().getPropertyAnnotation(thisValue.getAnnotations().first()).getAnnotationType().isInv()) {
 			thisValue = createTopValue(thisValue.getUnderlyingType());
 		}
 	}

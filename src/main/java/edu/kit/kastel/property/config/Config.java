@@ -30,10 +30,12 @@ public final class Config {
     public static final String QUAL_PKG_OPTION = "qualPkg";
     public static final String INPUT_DIR_OPTION = "inDir";
     public static final String OUTPUT_DIR_OPTION = "outDir";
-    
+    public static final String SHOULD_NOT_USE_TRAMPOLINE_OPTION = "shouldNotUseTrampoline";
+
     public static final String TRANSLATION_ONLY_OPTION = "translationOnly";
     public static final String NO_EXCLUSITIVY_OPTION = "noExclusivity";
     public static final String NO_INFER_UNPACK_OPTION = "noInferUnpack";
+    public static final String KEEP_GENERICS_OPTION = "keepGenerics";
 
     public static final String CHECKERS_PACKAGE = "__checkers";
 

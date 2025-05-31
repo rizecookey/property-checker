@@ -50,7 +50,7 @@ public class PrintAllVisitor extends DepthFirstVisitor {
 
       ps.print("<");
       if (ppt1 == null) {
-        ps.print((@Nullable String) null);
+        ps.print((String) null);
       } else {
         ps.print(ppt1.name());
       }
@@ -58,7 +58,7 @@ public class PrintAllVisitor extends DepthFirstVisitor {
       if (ppt1 == null || ppt2 == null || !ppt1.name().equals(ppt2.name())) {
         ps.print(", ");
         if (ppt2 == null) {
-          ps.print((@Nullable String) null);
+          ps.print((String) null);
         } else {
           ps.print(ppt2.name());
         }
@@ -89,14 +89,16 @@ public class PrintAllVisitor extends DepthFirstVisitor {
     }
     bufPrint(", ");
     if (inv2 == null) {
-      bufPrint((@Nullable String) null);
+      bufPrint((String) null);
     } else {
       printInvariant(inv2);
     }
     bufPrint(">");
 
+    // :: error: nullnessnode.argument.type.incompatible
     int arity = DetailedStatisticsVisitor.determineArity(inv1, inv2);
     String arityLabel = DetailedStatisticsVisitor.ARITY_LABELS[arity];
+    // :: error: nullnessnode.argument.type.incompatible
     int rel = DetailedStatisticsVisitor.determineRelationship(inv1, inv2);
     String relLabel = DetailedStatisticsVisitor.RELATIONSHIP_LABELS[rel];
 

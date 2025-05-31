@@ -65,7 +65,29 @@ public class DaikonTest {
             "-APropertyChecker_lattices=" + lattices,
             "-APropertyChecker_qualPkg=" + "edu.kit.kastel.property.subchecker.lattice.daikon_qual",
             "-APropertyChecker_noInferUnpack=true",
-            "-APropertyChecker_translationOnly=" + ObjectUtils.defaultIfNull(System.getProperty("translationOnly"), "false"));
+            "-APropertyChecker_translationOnly=" + ObjectUtils.defaultIfNull(System.getProperty("translationOnly"), "false"),
+            "-APropertyChecker_shouldNotUseTrampoline=" + "java.,daikon.inv.,gnu.,org.plumelib.,"
+                + "daikon.AnnotateNullable,"
+                + "daikon.Chicory,"
+                + "daikon.Daikon,"
+                + "daikon.Debug,"
+                + "daikon.DiscReasonMap,"
+                + "daikon.DynComp,"
+                + "daikon.DynamicConstants,"
+                + "daikon.FileIO,"
+                + "daikon.Global,"
+                + "daikon.LogHelper,"
+                + "daikon.MemMonitor,"
+                + "daikon.MergeInvariants,"
+                + "daikon.ModBitTracker,"
+                + "daikon.Ppt,"
+                + "daikon.PrintInvariant,"
+                + "daikon.ProglangType,"
+                + "daikon.Quant,"
+                + "daikon.SplitDtrace,"
+                + "daikon.UnionInvariants,"
+                + "daikon.ValueTuple,"
+                + "daikon.Var");
 
     /** Run the tests. */
     @Test

@@ -3,12 +3,13 @@ package daikon.diff;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.*;
 import org.checkerframework.dataflow.qual.Pure;
 
 import edu.kit.kastel.property.subchecker.lattice.daikon_qual.*;
 import edu.kit.kastel.property.checker.qual.*;
 import edu.kit.kastel.property.packing.qual.Dependable;
+import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
 
 /**
  * All nodes must subclass this class.
@@ -17,7 +18,7 @@ import edu.kit.kastel.property.packing.qual.Dependable;
  *     IPair<CONTENT,CONTENT>}
  * @param <CHILD> the type of the children; it is is ignored if there are no children
  */
-public abstract class Node<CONTENT extends @Nullable Object, CHILD extends @NonNullNode Object> {
+public abstract class Node<@MaybeAliased CONTENT extends @Nullable Object, @MaybeAliased CHILD extends @NonNullNode Object> {
 
   /** The children of this node. */
   private List<CHILD> children = new ArrayList<>();
@@ -25,6 +26,8 @@ public abstract class Node<CONTENT extends @Nullable Object, CHILD extends @NonN
   /** Nonsensical for RootNode. */
   private @Dependable IPair<CONTENT, CONTENT> userObject;
 
+  @Pure
+  // :: error: nullnessnode.inconsistent.constructor.type :: error: nullnessnode.contracts.postcondition.not.satisfied
   protected @NonNullNode Node(@NonNullIfNull("right") CONTENT left, @NonNullIfNull("left") CONTENT right) {
     this.userObject = IPair.of(left, right);
   }
@@ -52,8 +55,9 @@ public abstract class Node<CONTENT extends @Nullable Object, CHILD extends @NonN
    * @return the first element of the user object pair
    */
   @Pure
-  @JMLClause("ensures \\result == first")
-  public CONTENT getUserLeft(@NonNullNode Node<CONTENT, CHILD> this) {
+  @JMLClause("ensures \\result == userObject.first;")
+  public @NonNullIfNull("userObject.second") CONTENT getUserLeft(@NonNullNode Node<CONTENT, CHILD> this) {
+    // :: error: nullnessnode.return.type.incompatible
     return userObject.first;
   }
 
@@ -63,10 +67,11 @@ public abstract class Node<CONTENT extends @Nullable Object, CHILD extends @NonN
    * @return the second element of the user object pair
    */
   @Pure
-  @JMLClause("ensures \\result == second")
-  public CONTENT getUserRight(@NonNullNode Node<CONTENT, CHILD> this) {
+  @JMLClause("ensures \\result == userObject.second;")
+  public @NonNullIfNull("userObject.first") CONTENT getUserRight(@NonNullNode Node<CONTENT, CHILD> this) {
+    // :: error: nullnessnode.return.type.incompatible
     return userObject.second;
   }
 
-  public abstract void accept(Visitor v);
+  public abstract void accept(@NonNullNode Node<CONTENT, CHILD> this, Visitor v);
 }

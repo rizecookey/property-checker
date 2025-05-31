@@ -68,7 +68,7 @@ public final class LatticeTransfer extends PackingClientTransfer<LatticeValue, L
         if (rhs.getTree() instanceof LiteralTree) {
             LiteralTree literal = (LiteralTree) rhs.getTree();
             Lattice lattice = factory.getLattice();
-            PropertyAnnotation pa = lattice.getPropertyAnnotation(lhsDeclType);
+            PropertyAnnotation pa = lattice.getEffectivePropertyAnnotation(lhsDeclType);
             EvaluatedPropertyAnnotation epa = lattice.getEvaluatedPropertyAnnotation(factory.getAnnotatedTypeLhs(lhs.getTree()));
 
             if (factory.getAnnotatedType(rhs.getTree()).getUnderlyingType().toString().equals("java.lang.String") && pa.getAnnotationType().isNonNull()) {
@@ -113,7 +113,7 @@ public final class LatticeTransfer extends PackingClientTransfer<LatticeValue, L
                     thisType.getUnderlyingType());
         } else {
             AnnotatedTypeMirror thisType = factory.getSelfType(methodDeclTree.getBody());
-            boolean isNonNull = factory.getLattice().getPropertyAnnotation(thisType).getAnnotationType().isNonNull();
+            boolean isNonNull = factory.getLattice().getEffectivePropertyAnnotation(thisType).getAnnotationType().isNonNull();
             return analysis.createSingleAnnotationValue(
                     isNonNull ? thisType.getAnnotationInHierarchy(factory.getTop()) : factory.getTop(),
                     thisType.getUnderlyingType());

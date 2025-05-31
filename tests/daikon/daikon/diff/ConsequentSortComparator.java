@@ -28,9 +28,11 @@ public class ConsequentSortComparator implements Comparator<Invariant> {
 
   @Pure
   @Override
-  public int compare(Invariant inv1, Invariant inv2) {
+  public int compare(Invariant arg1, Invariant arg2) {
     Implication imp1 = null;
     Implication imp2 = null;
+    Invariant inv1 = arg1;
+    Invariant inv2 = arg2;
     if (inv1 instanceof Implication) {
       imp1 = (Implication) inv1;
       inv1 = imp1.consequent();

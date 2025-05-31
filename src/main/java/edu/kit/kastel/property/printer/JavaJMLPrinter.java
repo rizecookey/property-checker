@@ -20,6 +20,8 @@ import com.google.common.collect.Streams;
 import com.sun.source.tree.*;
 import com.sun.tools.javac.code.Attribute;
 import com.sun.tools.javac.code.Flags;
+import com.sun.tools.javac.code.Symbol;
+import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.tree.JCTree.*;
 import com.sun.tools.javac.tree.TreeInfo;
@@ -40,7 +42,6 @@ import edu.kit.kastel.property.subchecker.exclusivity.qual.Unique;
 import edu.kit.kastel.property.subchecker.lattice.CooperativeVisitor;
 import edu.kit.kastel.property.subchecker.lattice.LatticeVisitor;
 import edu.kit.kastel.property.subchecker.nullness.NullnessLatticeAnnotatedTypeFactory;
-import edu.kit.kastel.property.util.TypeUtils;
 import edu.kit.kastel.property.util.Union;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -156,11 +157,49 @@ public class JavaJMLPrinter extends PrettyPrinter {
     public void visitImport(JCImport tree) {
         String str = tree.qualid.toString();
     	if (str.startsWith("edu.kit.kastel.property")
-                || str.startsWith("org.checkerframework.checker.initialization")) {
+                || str.startsWith("org.checkerframework.")) {
     		return;
     	}
     	
     	super.visitImport(tree);
+    }
+
+    @Override
+    public void printTypeParameters(com.sun.tools.javac.util.List<JCTypeParameter> trees) throws IOException {
+        if (propertyFactory.getChecker().shouldKeepGenerics()) {
+            super.printTypeParameters(trees);
+        }
+    }
+
+    @Override
+    public void visitReference(JCTree.JCMemberReference tree) {
+        try {
+            this.printExpr(tree.expr);
+            this.print("::");
+            if (tree.typeargs != null && propertyFactory.getChecker().shouldKeepGenerics()) {
+                this.print('<');
+                this.printExprs(tree.typeargs);
+                this.print('>');
+            }
+
+            this.print(tree.getMode() == MemberReferenceTree.ReferenceMode.INVOKE ? tree.name : "new");
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    @Override
+    public void visitTypeApply(JCTree.JCTypeApply tree) {
+        try {
+            this.printExpr(tree.clazz);
+            if (propertyFactory.getChecker().shouldKeepGenerics()) {
+                this.print('<');
+                this.printExprs(tree.arguments);
+                this.print('>');
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     @Override
@@ -231,6 +270,8 @@ public class JavaJMLPrinter extends PrettyPrinter {
                 for (VariableElement field : allFields) {
                     if (!field.asType().getKind().isPrimitive()) {
                         if (ElementUtils.isStatic(field)) {
+                            //TODO
+                            /*
                             printlnAligned(String.format(
                                     "//@ public static invariant_free packed <: %s ==> %s;",
                                     containingClassName,
@@ -240,6 +281,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
                             printlnAligned(String.format(
                                     "//@ public static invariant_free \\invariant_free_for(%s);",
                                     field.getSimpleName().toString()));
+                            */
                         } else {
                             printlnAligned(String.format(
                                     "//@ public invariant_free packed <: %s ==> %s;",
@@ -282,7 +324,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
                     Lattice lattice = wellTypedness.getLattice();
 
                     for (LatticeVisitor.Invariant invariant : wellTypedness.getStaticInvariants(containingClassName)) {
-                        PropertyAnnotation pa = lattice.getPropertyAnnotation(invariant.getType());
+                        PropertyAnnotation pa = lattice.getEffectivePropertyAnnotation(invariant.getType());
                         if (!pa.getAnnotationType().isTrivial()) {
                             Condition inv = new Condition(
                                     true,
@@ -295,7 +337,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
                     }
 
                     for (LatticeVisitor.Invariant invariant : wellTypedness.getInstanceInvariants(containingClassName)) {
-                        PropertyAnnotation pa = lattice.getPropertyAnnotation(invariant.getType());
+                        PropertyAnnotation pa = lattice.getEffectivePropertyAnnotation(invariant.getType());
                         if (!pa.getAnnotationType().isTrivial()) {
                             Condition inv = new Condition(
                                     true,
@@ -359,6 +401,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
 
             JCMethodDecl prevEnclMethod = enclMethod;
             enclMethod = tree;
+            ExecutableElement element = propertyFactory.getAnnotatedType(tree).getElement();
 
             JMLContract jmlContract = new JMLContract(Flags.asFlagSet(tree.mods.flags));
             //jmlContract.addClause("diverges true;");
@@ -370,11 +413,17 @@ public class JavaJMLPrinter extends PrettyPrinter {
 
                 if (!inputPackingTypes.isEmpty() ) {
                     AnnotationMirror receiverInputType = inputPackingTypes.get(0);
+                    if (receiverInputType == null && !ElementUtils.isStatic(element) && !isConstructor(tree)) {
+                        receiverInputType = propertyFactory.getInitialized();
+                    }
                     if (receiverInputType != null) {
                         jmlContract.addClause(String.format("requires_free %s;", getPackedCondition(receiverInputType, "this")));
                     }
 
                     AnnotationMirror receiverOutputType = outputPackingTypes.get(0);
+                    if (receiverOutputType == null && !ElementUtils.isStatic(element) && !isConstructor(tree)) {
+                        receiverOutputType = propertyFactory.getInitialized();
+                    }
                     if (receiverOutputType != null) {
                         jmlContract.addClause(String.format("ensures_free %s;", getPackedCondition(receiverOutputType, "this")));
                     }
@@ -437,7 +486,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
 
                 if (method.getReceiverType() != null) {
                     AnnotatedTypeMirror requiredReceiverType = method.getReceiverType();
-                    PropertyAnnotation pa = lattice.getPropertyAnnotation(requiredReceiverType);
+                    PropertyAnnotation pa = lattice.getEffectivePropertyAnnotation(requiredReceiverType);
                     if (!pa.getAnnotationType().isInv()) {
                         jmlContract.addClause(new Condition(ConditionType.ASSERTION, ConditionLocation.PRECONDITION, pa, "this"));
                     }
@@ -449,7 +498,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
 
                     if (!AnnotationUtils.areSame(paramType.getEffectiveAnnotationInHierarchy(getTop(factory)), getTop(factory))) {
                         jmlContract.addClause(
-                                new Condition(ConditionType.ASSERTION, ConditionLocation.PRECONDITION, lattice.getPropertyAnnotation(paramType), paramName));
+                                new Condition(ConditionType.ASSERTION, ConditionLocation.PRECONDITION, lattice.getEffectivePropertyAnnotation(paramType), paramName));
                     }
                 }
             }
@@ -466,7 +515,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
                     Lattice lattice = wellTypedness.getLattice();
                     boolean wt = wellTypedness.isWellTypedConstructor(tree);
 
-                    PropertyAnnotation pa = lattice.getPropertyAnnotation(receiverType);
+                    PropertyAnnotation pa = lattice.getEffectivePropertyAnnotation(receiverType);
                     if (!(pa.getAnnotationType().isInv() && !wt)) {
                         jmlContract.addClause(new Condition(wt, ConditionLocation.POSTCONDITION, pa, "this"));
                     }
@@ -484,7 +533,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
                             && returnType.getKind() != TypeKind.VOID
                             && !AnnotationUtils.areSame(returnType.getEffectiveAnnotationInHierarchy(getTop(factory)), getTop(factory))) {
                         boolean wt = wellTypedness.isWellTypedMethodResult(tree);
-                        PropertyAnnotation pa = lattice.getPropertyAnnotation(returnType);
+                        PropertyAnnotation pa = lattice.getEffectivePropertyAnnotation(returnType);
                         jmlContract.addClause(new Condition(wt, ConditionLocation.POSTCONDITION, pa, "\\result"));
 
                         if (!wt) {
@@ -594,8 +643,14 @@ public class JavaJMLPrinter extends PrettyPrinter {
                 }
             }
 
-            ExecutableElement element = propertyFactory.getAnnotatedType(tree).getElement();
-            
+            if (!isConstructor(tree) && !ElementUtils.isStatic(element) && !results.stream().anyMatch(wt -> wt.getLattice().getIdent().equals("inv"))) {
+                jmlContract.addClause("requires_free \\invariant_free_for(this);");
+                jmlContract.addClause("ensures_free \\invariant_free_for(this);");
+            }
+            if (propertyFactory.isSideEffectFree(element)) {
+                jmlContract.addClause("assignable \\nothing;");
+            }
+
             getJMLClauseValues(element).forEach(jmlContract::addClause);
             if (TRANSLATION_RAW) {
                 getJMLClauseValuesTranslationOnly(element).forEach(jmlContract::addClause);
@@ -607,13 +662,23 @@ public class JavaJMLPrinter extends PrettyPrinter {
             printExpr(tree.mods);
 
             if (isConstructor(tree)) {
+                if (!results.stream().anyMatch(wt -> wt.getLattice().getIdent().equals("inv"))) {
+                    print("/*@helper@*/ ");
+                }
                 print(enclClass != null ? enclClass.sym.getSimpleName() : tree.name);
             } else {
                 TypeKind k = propertyFactory.getAnnotatedType(tree).getReturnType().getKind();
                 if (k != TypeKind.VOID && !k.isPrimitive()) {
                     print("/*@nullable@*/ ");
                 }
-                printExpr(tree.restype);
+                if (!results.stream().anyMatch(wt -> wt.getLattice().getIdent().equals("inv"))) {
+                    print("/*@helper@*/ ");
+                }
+                if (tree.restype.type instanceof Type.TypeVar && !propertyFactory.getChecker().shouldKeepGenerics()) {
+                    print("Object");
+                } else {
+                    printExpr(tree.restype);
+                }
                 print(" " + tree.name);
             }
 
@@ -724,6 +789,11 @@ public class JavaJMLPrinter extends PrettyPrinter {
     @Override
     public void visitNewClass(JCNewClass tree) {
         try {
+            if (propertyFactory.getChecker().shouldNotUseTrampoline(tree.type.toString())) {
+                super.visitNewClass(tree);
+                return;
+            }
+
             if (tree.encl != null) {
                 printExpr(tree.encl);
                 print(".");
@@ -732,7 +802,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
             if (tree.def != null && tree.def.mods.annotations.nonEmpty()) {
                 printTypeAnnotations(tree.def.mods.annotations);
             }
-            print(tree.clazz.toString());
+            printExpr(tree.clazz);
             print(".");
             print(trampolineName("<init>"));
             print("(");
@@ -745,7 +815,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
                 AnnotatedExecutableType methodType = wellTypedness.getTypeFactory().constructorFromUse(tree).executableType;
 
                 for (int i = 0; i < invokedMethod.getParameterTypes().size(); ++i) {
-                    PropertyAnnotationType pat = wellTypedness.getLattice().getPropertyAnnotation(methodType.getParameterTypes().get(i)).getAnnotationType();
+                    PropertyAnnotationType pat = wellTypedness.getLattice().getEffectivePropertyAnnotation(methodType.getParameterTypes().get(i)).getAnnotationType();
                     if (!pat.isTrivial()) {
                         args.add(wellTypedness.getIllTypedConstructorParams(tree).contains(i) || TRANSLATION_RAW ? "false" : "true");
                     }
@@ -799,7 +869,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
                 }
 
                 AnnotatedTypeMirror type = result.getTypeFactory().getAnnotatedType(field);
-                PropertyAnnotation pa = result.getLattice().getPropertyAnnotation(type);
+                PropertyAnnotation pa = result.getLattice().getEffectivePropertyAnnotation(type);
                 if (!pa.getAnnotationType().isTrivial()) {
                     Condition cond = new Condition(
                             !uninitFields.contains(field),
@@ -816,14 +886,14 @@ public class JavaJMLPrinter extends PrettyPrinter {
         align();
         //TODO Workaround for KeY not supporting set statement for \TYPE variable because Recoder is terrible
         //print(String.format("//@ set packed = \\type(%s)", typeElement));
-        println(String.format("havocPacked(); //@ assume packed == \\type(%s)", frame));
+        println(String.format("havocPacked(); //@ assume packed == \\type(%s);", frame));
         align();
     }
 
     protected void printUnpackStatement(Tree tree, String frame) throws IOException {
         //TODO Workaround for KeY not supporting set statement for \TYPE variable because Recoder is terrible
         //print(String.format("//@ set packed = \\type(%s)", typeElement.getSuperclass()));
-        println(String.format("havocPacked(); //@ assume packed == \\type(%s)", frame));
+        println(String.format("havocPacked(); //@ assume packed == \\type(%s);", frame));
         align();
     }
 
@@ -856,6 +926,12 @@ public class JavaJMLPrinter extends PrettyPrinter {
                 printPackStatement(tree, TreeUtils.elementFromUse(((MemberSelectTree) tree.args.get(1)).getExpression()).toString());
             } else if (tree.meth.toString().equals("Packing.unpack")) {
                 printUnpackStatement(tree, ((TypeElement) TreeUtils.elementFromUse(((MemberSelectTree) tree.args.get(1)).getExpression())).getSuperclass().toString());
+            } else if (tree.meth.toString().equals("Ghost.ghost")) {
+                JCLiteral type = (JCLiteral) tree.args.get(0);
+                JCLiteral name = (JCLiteral) tree.args.get(1);
+                JCLiteral value = (JCLiteral) tree.args.get(2);
+                print(String.format("//@ ghost %s %s = %s", type.getValue(), name.getValue(), value.getValue()));
+                return;
             } else if (tree.meth.toString().equals("Ghost.set")) {
                 JCLiteral name = (JCLiteral) tree.args.get(0);
                 JCLiteral value = (JCLiteral) tree.args.get(1);
@@ -899,9 +975,9 @@ public class JavaJMLPrinter extends PrettyPrinter {
                 AnnotatedExecutableType methodType = wellTypedness.getTypeFactory().methodFromUse(tree).executableType;
 
                 if (!ElementUtils.isStatic(invokedMethod.getElement())) {
-                    PropertyAnnotationType pat = wellTypedness.getLattice().getPropertyAnnotation(methodType.getReceiverType()).getAnnotationType();
+                    PropertyAnnotationType pat = wellTypedness.getLattice().getEffectivePropertyAnnotation(methodType.getReceiverType()).getAnnotationType();
                     if (!pat.isTrivial() && !pat.isInv()) {
-                    	if (wellTypedness.getIllTypedMethodReceivers().contains(tree) || TRANSLATION_RAW ) {
+                    	if (wellTypedness.getIllTypedMethodReceivers().contains(tree) || TRANSLATION_RAW) {
                     		booleanArgs.add("false");
                     		++methodCallPreconditions;
                     	} else {
@@ -912,7 +988,11 @@ public class JavaJMLPrinter extends PrettyPrinter {
                 }
 
                 for (int i = 0; i < invokedMethod.getParameterTypes().size(); ++i) {
-                    if (!wellTypedness.getLattice().getPropertyAnnotation(methodType.getParameterTypes().get(i)).getAnnotationType().isTrivial()) {
+                    AnnotatedTypeMirror paramType = methodType.getParameterTypes().get(i);
+                    // TODO Don't add argument for type variable
+                    // to be consistent with the (non-generic) declaration of the trampoline method
+                    if (!(paramType instanceof AnnotatedTypeMirror.AnnotatedTypeVariable) &&
+                            !wellTypedness.getLattice().getPropertyAnnotation(paramType).getAnnotationType().isTrivial()) {
                     	if (wellTypedness.getIllTypedMethodParams(tree).contains(i) || TRANSLATION_RAW) {
                     		booleanArgs.add("false");
                     		++methodCallPreconditions;
@@ -923,7 +1003,12 @@ public class JavaJMLPrinter extends PrettyPrinter {
                     }
                 }
             }
-            
+
+            if (propertyFactory.getChecker().shouldNotUseTrampoline(((Symbol.MethodSymbol) invokedMethod.getElement()).owner.toString())) {
+                super.visitApply(tree);
+                return;
+            }
+
             if (booleanArgs.length() == 0) {
                 super.visitApply(tree);
                 return;
@@ -951,12 +1036,59 @@ public class JavaJMLPrinter extends PrettyPrinter {
         }
     }
 
+    private boolean inForLoopInit = false;
+
+    @Override
+    public void visitForLoop(JCForLoop tree) {
+        try {
+            this.print("for (");
+            inForLoopInit = true;
+            if (tree.init.nonEmpty()) {
+                if (((JCTree.JCStatement)tree.init.head).hasTag(Tag.VARDEF)) {
+                    this.printExpr((JCTree)tree.init.head);
+
+                    for(com.sun.tools.javac.util.List<JCTree.JCStatement> l = tree.init.tail; l.nonEmpty(); l = l.tail) {
+                        JCTree.JCVariableDecl vdef = (JCTree.JCVariableDecl)l.head;
+                        this.print(", ");
+                        this.print(vdef.name);
+                        if (vdef.init != null) {
+                            this.print(" = ");
+                            this.printExpr(vdef.init);
+                        }
+                    }
+                } else {
+                    this.printExprs(tree.init);
+                }
+            }
+
+            this.print("; ");
+            if (tree.cond != null) {
+                this.printExpr(tree.cond);
+            }
+
+            this.print("; ");
+            this.printExprs(tree.step);
+            this.print(") ");
+            inForLoopInit = false;
+            this.printStat(tree.body);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
     @Override
     public void visitAssign(JCAssign tree) {
         printInferredPackingStatements(tree);
 
         // Only assignments to local variables need an assertion; fields are checked at the next packing statement.
         if (tree.getVariable() instanceof MemberSelectTree) {
+            super.visitAssign(tree);
+            return;
+        }
+
+        //TODO This only works if the for loop's index var has top type; otherwise we must transform the for loop
+        // into a while loop
+        if (inForLoopInit) {
             super.visitAssign(tree);
             return;
         }
@@ -985,6 +1117,13 @@ public class JavaJMLPrinter extends PrettyPrinter {
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
+            return;
+        }
+
+        //TODO This only works if the for loop's index var has top type; otherwise we must transform the for loop
+        // into a while loop
+        if (inForLoopInit) {
+            super.visitVarDef(tree);
             return;
         }
 
@@ -1131,14 +1270,14 @@ public class JavaJMLPrinter extends PrettyPrinter {
             List<AnnotatedTypeMirror> requiredParamTypes = methodType.getParameterTypes();
 
             if (requiredReceiverType != null) {
-                PropertyAnnotationType pat = lattice.getPropertyAnnotation(requiredReceiverType).getAnnotationType();
+                PropertyAnnotationType pat = lattice.getEffectivePropertyAnnotation(requiredReceiverType).getAnnotationType();
                 if (!pat.isTrivial() && !pat.isInv()) {
                     paramStr.add(String.format("boolean %s", trampolineBooleanParamName("this", wellTypedness)));
                 }
             }
 
             for (int i = 0; i < paramNames.size(); ++i) {
-                if (!lattice.getPropertyAnnotation(requiredParamTypes.get(i)).getAnnotationType().isTrivial()) {
+                if (!lattice.getEffectivePropertyAnnotation(requiredParamTypes.get(i)).getAnnotationType().isTrivial()) {
                     paramStr.add(String.format("boolean %s", trampolineBooleanParamName(paramNames.get(i), wellTypedness)));
                 }
             }
@@ -1155,7 +1294,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
             AnnotationMirror receiverInputType = inputPackingTypes.get(0);
             AnnotationMirror receiverOutputType = outputPackingTypes.get(0);
 
-            if (receiverInputType != null) {
+            if (receiverInputType != null && !isConstructor(tree)) {
                 jmlContract.addClause(String.format("requires_free %s;", getPackedCondition(receiverInputType, "this")));
             }
 
@@ -1179,7 +1318,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
 
             if (methodType.getReceiverType() != null) {
                 AnnotatedTypeMirror requiredReceiverType = methodType.getReceiverType();
-                PropertyAnnotation pa = lattice.getPropertyAnnotation(requiredReceiverType);
+                PropertyAnnotation pa = lattice.getEffectivePropertyAnnotation(requiredReceiverType);
                 PropertyAnnotationType pat = pa.getAnnotationType();
 
                 if (!pat.isTrivial() && !pat.isInv()) {
@@ -1191,7 +1330,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
             }
 
             for (int i = 0; i < requiredParamTypes.size(); ++i) {
-                PropertyAnnotation pa = lattice.getPropertyAnnotation(requiredParamTypes.get(i));
+                PropertyAnnotation pa = lattice.getEffectivePropertyAnnotation(requiredParamTypes.get(i));
                 PropertyAnnotationType pat = pa.getAnnotationType();
 
                 if (!pat.isTrivial()
@@ -1213,14 +1352,14 @@ public class JavaJMLPrinter extends PrettyPrinter {
 
             if (methodType.getReceiverType() != null) {
                 AnnotatedTypeMirror requiredReceiverType = methodType.getReceiverType();
-                PropertyAnnotation pa = lattice.getPropertyAnnotation(requiredReceiverType);
+                PropertyAnnotation pa = lattice.getEffectivePropertyAnnotation(requiredReceiverType);
                 if (!pa.getAnnotationType().isTrivial() && !pa.getAnnotationType().isInv()) {
                     jmlContract.addClause(new Condition(ConditionType.ASSUMPTION, ConditionLocation.POSTCONDITION, pa, "this"));
                 }
             }
 
             for (int i = 0; i < requiredParamTypes.size(); ++i) {
-                PropertyAnnotation pa = lattice.getPropertyAnnotation(requiredParamTypes.get(i));
+                PropertyAnnotation pa = lattice.getEffectivePropertyAnnotation(requiredParamTypes.get(i));
                 if (!pa.getAnnotationType().isTrivial()) {
                     jmlContract.addClause(new Condition(ConditionType.ASSUMPTION, ConditionLocation.POSTCONDITION, pa, paramNames.get(i)));
                 }
@@ -1240,27 +1379,21 @@ public class JavaJMLPrinter extends PrettyPrinter {
                 if (anno != null && !AnnotationUtils.areSame(
                         anno,
                         getTop(wellTypedness.getTypeFactory()))) {
-                    PropertyAnnotation pa = lattice.getPropertyAnnotation(returnType);
+                    PropertyAnnotation pa = lattice.getEffectivePropertyAnnotation(returnType);
                     PropertyAnnotationType pat = pa.getAnnotationType();
 
-                    if (pat.isTrivial()) {
-                        continue;
+                    if (!pat.isTrivial()) {
+                        jmlContract.addClause(new Condition(ConditionType.ASSUMPTION, ConditionLocation.POSTCONDITION, pa, "\\result").toString());
                     }
-
-                    jmlContract.addClause(new Condition(ConditionType.ASSUMPTION, ConditionLocation.POSTCONDITION, pa, "\\result").toString());
                 }
             }
 
             if (factory instanceof NullnessLatticeAnnotatedTypeFactory) {
                 // Nullness Checker
                 Set<Contract> contracts = factory.getContractsFromMethod().getContracts(TreeUtils.elementFromDeclaration(tree));
-                StringToJavaExpression stringToJavaExpr =
-                        stringExpr -> StringToJavaExpression.atMethodBody(stringExpr, tree, factory.getChecker());
 
                 for (Contract contract : contracts) {
                     String exprStr = contract.expressionString;
-                    AnnotationMirror anno = contract.viewpointAdaptDependentTypeAnnotation(
-                            factory, stringToJavaExpr, tree);
                     JavaExpression exprJe;
                     try {
                         exprJe = StringToJavaExpression.atMethodBody(
@@ -1277,7 +1410,6 @@ public class JavaJMLPrinter extends PrettyPrinter {
                     } else if (contract.kind == Contract.Kind.CONDITIONALPOSTCONDITION) {
                         // @EnsuresNonNullIf(exprJe, contractResult)
                         boolean contractResult = ((Contract.ConditionalPostcondition) contract).resultValue;
-                        boolean wt = !wellTypedness.getNullnessCondPostconditions().get(tree).contains(Triple.of(anno, exprJe, contractResult));
                         jmlContract.addClause(String.format(
                                 "ensures_free %s ==> %s != null;",
                                 contractResult ? "\\result" : "!\\result",
@@ -1322,11 +1454,17 @@ public class JavaJMLPrinter extends PrettyPrinter {
             }
         }
 
+        ExecutableElement element = propertyFactory.getAnnotatedType(tree).getElement();
+
         if (isConstructor(tree)) {
             jmlContract.addClause("ensures \\result != null && \\fresh(\\result) && \\invariant_free_for(\\result) && \\invariant_for(\\result);");
+        } else if (!ElementUtils.isStatic(element)){
+            jmlContract.addClause("ensures \\invariant_free_for(this);");
         }
 
-        ExecutableElement element = propertyFactory.getAnnotatedType(tree).getElement();
+        if (propertyFactory.isSideEffectFree(element)) {
+            jmlContract.addClause("assignable \\nothing;");
+        }
 
         for (String clause : getJMLClauseValues(element)) {
             if (isConstructor(tree) && clause.startsWith("assignable")) {
@@ -1353,13 +1491,15 @@ public class JavaJMLPrinter extends PrettyPrinter {
         }
 
         if (printBody) {
-            printlnAligned(String.format("public %s %s%s %s(%s) {",
+            printlnAligned(String.format("public %s %s%s%s %s(%s) {",
                     ElementUtils.isStatic(propertyMethodType.getElement()) || isConstructor(tree) ? "static" : "",
                             propertyMethodType.getReturnType().getKind() == TypeKind.VOID || propertyMethodType.getReturnType().getKind().isPrimitive()
-                            ? "" : "/*@nullable@*/ ",
-                                    TypeUtils.unannotatedTypeName(propertyMethodType.getReturnType()),
-                                    trampolineName(tree.getName()),
-                                    paramStr));
+                                ? "" : "/*@nullable@*/ ",
+                            isConstructor(tree) || results.stream().anyMatch(wt -> wt.getLattice().getIdent().equals("inv"))
+                                ? "" : "/*@helper@*/ ",
+                            unannotatedTypeName(propertyMethodType.getReturnType()),
+                            trampolineName(tree.getName()),
+                            paramStr));
 
             indent();
 
@@ -1376,13 +1516,15 @@ public class JavaJMLPrinter extends PrettyPrinter {
             undent();
             printlnAligned("}");
         } else {
-            printlnAligned(String.format("public %s %s%s %s(%s);",
+            printlnAligned(String.format("public %s %s%s%s %s(%s);",
                     ElementUtils.isStatic(propertyMethodType.getElement()) || isConstructor(tree) ? "static" : "",
                             propertyMethodType.getReturnType().getKind() == TypeKind.VOID || propertyMethodType.getReturnType().getKind().isPrimitive()
-                            ? "" : "/*@nullable@*/ ",
-                                    TypeUtils.unannotatedTypeName(propertyMethodType.getReturnType()),
-                                    trampolineName(tree.getName()),
-                                    paramStr));
+                                ? "" : "/*@nullable@*/ ",
+                            isConstructor(tree) || results.stream().anyMatch(wt -> wt.getLattice().getIdent().equals("inv"))
+                                ? "" : "/*@helper@*/ ",
+                            unannotatedTypeName(propertyMethodType.getReturnType()),
+                            trampolineName(tree.getName()),
+                            paramStr));
         }
     }
 
@@ -1453,33 +1595,52 @@ public class JavaJMLPrinter extends PrettyPrinter {
         return String.format("%s_%s", paramName, wellTypedness.getLattice().getIdent());
     }
 
-
     protected String unannotatedTypeName(JCTree tree) {
-        return TypeUtils.unannotatedTypeName(results.get(0).getTypeFactory().getAnnotatedType(tree));
+        AnnotatedTypeMirror type = results.get(0).getTypeFactory().getAnnotatedType(tree);
+        return unannotatedTypeName(type, false);
     }
 
     protected String unannotatedNullableTypeName(JCTree tree) {
         AnnotatedTypeMirror type = results.get(0).getTypeFactory().getAnnotatedType(tree);
-
-        return (type.getKind() == TypeKind.VOID || type.getKind().isPrimitive()
-        		? "" : "/*@nullable@*/ ")
-                + TypeUtils.unannotatedTypeName(type);
+        return unannotatedTypeName(type, true);
     }
 
     protected String unannotatedTypeNameLhs(JCTree tree) {
-        return TypeUtils.unannotatedTypeName(results.get(0).getTypeFactory().getAnnotatedTypeLhs(tree));
+        AnnotatedTypeMirror type = results.get(0).getTypeFactory().getAnnotatedTypeLhs(tree);
+        return unannotatedTypeName(type, false);
     }
 
     protected String unannotatedNullableTypeNameLhs(JCTree tree) {
         AnnotatedTypeMirror type = results.get(0).getTypeFactory().getAnnotatedTypeLhs(tree);
-
-        return (type.getKind() == TypeKind.VOID || type.getKind().isPrimitive()
-        		? "" : "/*@nullable@*/ ")
-                + TypeUtils.unannotatedTypeName(type);
+        return unannotatedTypeName(type, true);
     }
 
-    protected String unannotatedReturnTypeName() {
-        return TypeUtils.unannotatedTypeName(results.get(0).getTypeFactory().getMethodReturnType(enclMethod));
+    protected String unannotatedTypeName(AnnotatedTypeMirror type) {
+        return unannotatedTypeName(type, false);
+    }
+
+    protected String unannotatedTypeName(AnnotatedTypeMirror type, boolean nullable) {
+        return unannotatedTypeName(type.getUnderlyingType(), nullable);
+    }
+
+    protected String unannotatedTypeName(TypeMirror type, boolean nullable) {
+        if (type instanceof AnnotatedExecutableType) {
+            throw new IllegalArgumentException();
+        }
+
+        String unannotatedTypeName;
+        if ((type instanceof Type.TypeVar || type instanceof Type.DelegatedType)
+                && !propertyFactory.getChecker().shouldKeepGenerics()) {
+            unannotatedTypeName = "Object";
+        } else if (type instanceof Type.ArrayType arrType) {
+            unannotatedTypeName = unannotatedTypeName(arrType.elemtype, false) + "[]";
+        } else {
+            unannotatedTypeName = ((Type) type).asElement().toString();;
+        }
+
+        return (!nullable || type.getKind() == TypeKind.VOID || type.getKind().isPrimitive()
+        		? "" : "/*@nullable@*/ ")
+                + unannotatedTypeName;
     }
 
     protected String tempVarName() {
@@ -1490,7 +1651,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
         return enclClass.sym.getQualifiedName();
     }
 
-    public Name getEnclMethodNameName() {
+    public Name getEnclMethodName() {
         return enclMethod.sym.getQualifiedName();
     }
 
@@ -1552,7 +1713,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
             Lattice lattice = wellTypedness.getLattice();
             boolean wt = wellTypedness.isWellTyped(tree);
 
-            PropertyAnnotation pa = lattice.getPropertyAnnotation(type);
+            PropertyAnnotation pa = lattice.getEffectivePropertyAnnotation(type);
             (wt ? wellTyped : malTyped).add(new Condition(wt, conditionLocation, pa, subject));
         }
 
@@ -1575,7 +1736,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
             Lattice lattice = wellTypedness.getLattice();
             boolean wt = wellTypedness.isWellTyped(tree);
 
-            PropertyAnnotation pa = lattice.getPropertyAnnotation(factory.getAnnotatedTypeLhs(tree));
+            PropertyAnnotation pa = lattice.getEffectivePropertyAnnotation(factory.getAnnotatedTypeLhs(tree));
             (wt ? wellTyped : malTyped).add(new Condition(wt, conditionLocation, pa, subject));
         }
 

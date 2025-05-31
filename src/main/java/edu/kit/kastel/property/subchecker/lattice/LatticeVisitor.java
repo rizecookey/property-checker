@@ -50,6 +50,7 @@ import org.checkerframework.framework.util.AnnotatedTypes;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
+import org.checkerframework.javacutil.TypesUtils;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.AnnotationMirror;
@@ -337,15 +338,14 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         AnnotatedTypeMirror widenedValueType = atypeFactory.getWidenedType(valueType, varType);
         boolean success = atypeFactory.getTypeHierarchy().isSubtype(widenedValueType, varType);
 
-        if (!success && valueTree instanceof LiteralTree) {
-            LiteralTree literal = (LiteralTree) valueTree;
+        if (!success && TypesUtils.isPrimitive(valueType.getUnderlyingType())) {
             Lattice lattice = getLatticeSubchecker().getTypeFactory().getLattice();
-            PropertyAnnotation pa = lattice.getPropertyAnnotation(varType);
+            PropertyAnnotation pa = lattice.getEffectivePropertyAnnotation(varType);
             EvaluatedPropertyAnnotation epa = lattice.getEvaluatedPropertyAnnotation(varType);
 
-            if (valueType.getUnderlyingType().toString().equals("java.lang.String") && pa.getAnnotationType().isNonNull()) {
+            if (pa.getAnnotationType().isInv() && pa.getAnnotationType().isNonNull()) {
                 success = true;
-            } else if (epa != null) {
+            } else if (epa != null && valueTree instanceof LiteralTree literal) {
                 PropertyAnnotationType pat = epa.getAnnotationType();
 
                 Class<?> literalClass = ClassUtils.literalKindToClass(literal.getKind());
@@ -394,7 +394,8 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         AnnotationMirror constructorAnno =
                 qualifierHierarchy.findAnnotationInHierarchy(constructorAnnotations, top);
         if (!qualifierHierarchy.isSubtypeQualifiersOnly(top, constructorAnno) &&
-                !atypeFactory.getLattice().getPropertyAnnotation(constructorAnno).getAnnotationType().isNonNull()) {
+                !atypeFactory.getLattice().getPropertyAnnotation(constructorAnno).getAnnotationType().isNonNull() &&
+                !atypeFactory.getLattice().getPropertyAnnotation(constructorAnno).getAnnotationType().isInv()) {
             // Report an error instead of a warning.
             checker.reportError(
                     constructorElement, "inconsistent.constructor.type", constructorAnno, top);
@@ -419,7 +420,8 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         result.methodOutputTypes.get(tree)[0] = constructorAnno;
 
         if (!qualifierHierarchy.isSubtypeQualifiersOnly(top, constructorAnno) &&
-                !atypeFactory.getLattice().getPropertyAnnotation(constructorAnno).getAnnotationType().isNonNull()) {
+                !atypeFactory.getLattice().getPropertyAnnotation(constructorAnno).getAnnotationType().isNonNull() &&
+                !atypeFactory.getLattice().getPropertyAnnotation(constructorAnno).getAnnotationType().isInv()) {
             // Report an error instead of a warning.
             checker.reportError(
                     constructorElement, "inconsistent.constructor.type", constructorAnno, top);

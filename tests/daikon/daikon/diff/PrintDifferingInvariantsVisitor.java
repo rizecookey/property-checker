@@ -6,6 +6,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import org.checkerframework.dataflow.qual.Pure;
 import edu.kit.kastel.property.subchecker.lattice.daikon_qual.*;
 import edu.kit.kastel.property.checker.qual.*;
 
@@ -24,6 +25,7 @@ public class PrintDifferingInvariantsVisitor extends PrintAllVisitor {
   public void visit(@NonNullNode InvNode node) {
     Invariant inv1 = node.getInv1();
     Invariant inv2 = node.getInv2();
+    // :: error: nullnessnode.argument.type.incompatible
     if (shouldPrint(inv1, inv2)) {
       super.visit(node);
     }
@@ -33,13 +35,12 @@ public class PrintDifferingInvariantsVisitor extends PrintAllVisitor {
    * Returns true if the pair of invariants should be printed, depending on their type,
    * relationship, and printability.
    */
-  protected boolean shouldPrint(@Nullable Invariant inv1, @Nullable Invariant inv2) {
+  @JMLClause("requires_free debug != null && Level.FINE != null;")
+  // :: error: nullnessnode.contracts.postcondition.not.satisfied
+  protected boolean shouldPrint(@NonNullIfNull("inv2") @Nullable Invariant inv1, @NonNullIfNull("inv1") @Nullable Invariant inv2) {
+    // :: error: nullnessnode.argument.type.incompatible
     int rel = DetailedStatisticsVisitor.determineRelationship(inv1, inv2);
-    if (rel == DetailedStatisticsVisitor.REL_SAME_JUST1_JUST2
-        || rel == DetailedStatisticsVisitor.REL_SAME_UNJUST1_UNJUST2
-        || rel == DetailedStatisticsVisitor.REL_DIFF_UNJUST1_UNJUST2
-        || rel == DetailedStatisticsVisitor.REL_MISS_UNJUST1
-        || rel == DetailedStatisticsVisitor.REL_MISS_UNJUST2) {
+    if (!shouldPrintBasedOnRel(rel)) {
       if (debug.isLoggable(Level.FINE)) {
         debug.fine(" Returning false");
       }
@@ -58,6 +59,22 @@ public class PrintDifferingInvariantsVisitor extends PrintAllVisitor {
       debug.fine(" Returning true");
     }
 
+    return true;
+  }
+  // Put this in its own method to have fewer branches in KeY proof
+  @Pure
+  private boolean shouldPrintBasedOnRel(int rel) {
+    if (rel == DetailedStatisticsVisitor.REL_SAME_JUST1_JUST2
+            || rel == DetailedStatisticsVisitor.REL_SAME_UNJUST1_UNJUST2
+            || rel == DetailedStatisticsVisitor.REL_DIFF_UNJUST1_UNJUST2
+            || rel == DetailedStatisticsVisitor.REL_MISS_UNJUST1
+            || rel == DetailedStatisticsVisitor.REL_MISS_UNJUST2) {
+      if (debug.isLoggable(Level.FINE)) {
+        debug.fine(" Returning false");
+      }
+
+      return false;
+    }
     return true;
   }
 }

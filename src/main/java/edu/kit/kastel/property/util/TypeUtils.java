@@ -20,14 +20,10 @@ import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
-import com.sun.tools.javac.code.Type;
-import com.sun.tools.javac.code.Type.ArrayType;
 import org.checkerframework.dataflow.cfg.node.ArrayCreationNode;
 import org.checkerframework.dataflow.cfg.node.MethodInvocationNode;
 import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.dataflow.expression.*;
-import org.checkerframework.framework.type.AnnotatedTypeMirror;
-import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
 
@@ -62,18 +58,6 @@ public final class TypeUtils {
         }
 
         return param.equals(tree.getReceiverParameter()) ? 0 : i + 1;
-    }
-
-    public static String unannotatedTypeName(AnnotatedTypeMirror mirror) {
-        if (mirror instanceof AnnotatedExecutableType) {
-            throw new IllegalArgumentException();
-        }
-
-        if (mirror.getUnderlyingType() instanceof ArrayType) {
-            return ((ArrayType) mirror.getUnderlyingType()).elemtype.asElement().toString() + "[]";
-        } else {
-            return ((Type) mirror.getUnderlyingType()).asElement().toString();
-        }
     }
 
     public static boolean sameTree(Tree tree0, Tree tree1) {

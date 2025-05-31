@@ -13,15 +13,17 @@ public class DepthFirstVisitor implements Visitor {
 
   @Override
   public void visit(@NonNullNode RootNode node) {
-    for (Iterator<PptNode> i = node.children(); i.hasNext(); ) {
-      i.next().accept(this);
+    for (Iterator<@NonNullNode PptNode> i = node.children(); i.hasNext(); ) {
+      // The cast is necessary because KeY does not support generics
+      ((@NonNullNode PptNode)i.next()).accept(this);
     }
   }
 
   @Override
   public void visit(@NonNullNode PptNode node) {
-    for (Iterator<InvNode> i = node.children(); i.hasNext(); ) {
-      i.next().accept(this);
+    for (Iterator<@NonNullNode InvNode> i = node.children(); i.hasNext(); ) {
+      // The cast is necessary because KeY does not support generics
+      ((@NonNullNode InvNode)i.next()).accept(this);
     }
   }
 

@@ -224,9 +224,11 @@ public abstract class PackingClientTransfer<
                                 paramType.getAnnotations(),
                                 paramType.getUnderlyingType());
                         if (sideEffectFree) {
-                            store.insertOrRefine(
-                                    JavaExpression.fromNode(TypeUtils.getArgumentWithVarargs((MethodInvocationNode) invocationNode, i)),
-                                    paramDefaultValue.getAnnotations().first());
+                            if (!paramDefaultValue.getAnnotations().isEmpty()) {
+                                store.insertOrRefine(
+                                        JavaExpression.fromNode(TypeUtils.getArgumentWithVarargs((MethodInvocationNode) invocationNode, i)),
+                                        paramDefaultValue.getAnnotations().first());
+                            }
                         } else {
                             store.insertValue(
                                     JavaExpression.fromNode(TypeUtils.getArgumentWithVarargs((MethodInvocationNode) invocationNode, i)),

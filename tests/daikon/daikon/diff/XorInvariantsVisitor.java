@@ -1,8 +1,10 @@
 package daikon.diff;
 
+import daikon.PptSlice;
 import daikon.inv.Invariant;
 import java.io.PrintStream;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.*;
+import org.checkerframework.dataflow.qual.Pure;
 
 import edu.kit.kastel.property.subchecker.lattice.daikon_qual.*;
 import edu.kit.kastel.property.checker.qual.*;
@@ -35,15 +37,18 @@ public class XorInvariantsVisitor extends PrintDifferingInvariantsVisitor {
     Invariant inv2 = node.getInv2();
     // do nothing if they are unique
 
+    // :: error: nullnessnode.argument.type.incompatible
     if (shouldPrint(inv1, inv2)) {
       // do nothing, keep both
     } else {
       if (inv1 != null) {
-        inv1.ppt.removeInvariant(inv1);
+        @NonNull PptSlice ppt = inv1.ppt;
+        ppt.removeInvariant(inv1);
       }
 
       if (inv2 != null) {
-        inv2.ppt.removeInvariant(inv2);
+        @NonNull PptSlice ppt = inv2.ppt;
+        ppt.removeInvariant(inv2);
       }
     }
   }
@@ -52,8 +57,11 @@ public class XorInvariantsVisitor extends PrintDifferingInvariantsVisitor {
    * Returns true if the pair of invariants should be printed, depending on their type,
    * relationship, and printability.
    */
+  @Pure
   @Override
-  protected boolean shouldPrint(@Nullable Invariant inv1, @Nullable Invariant inv2) {
+  // :: error: nullnessnode.contracts.postcondition.not.satisfied :: error: nullnessnode.override.param.invalid
+  protected boolean shouldPrint(@NonNullIfNull("inv2") @Nullable Invariant inv1, @NonNullIfNull("inv1") @Nullable Invariant inv2) {
+    // :: error: nullnessnode.argument.type.incompatible
     int rel = DetailedStatisticsVisitor.determineRelationship(inv1, inv2);
     if (rel == DetailedStatisticsVisitor.REL_SAME_JUST1_JUST2
         || rel == DetailedStatisticsVisitor.REL_SAME_UNJUST1_UNJUST2

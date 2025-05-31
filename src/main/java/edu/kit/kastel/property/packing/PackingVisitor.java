@@ -300,7 +300,16 @@ public class PackingVisitor
             }
 
             return null;
-        } else if (ElementUtils.isMethod(invokedMethod, unchangedFieldMethod, env) || ElementUtils.isMethod(invokedMethod, equalFieldMethod, env)) {
+        } else if (ElementUtils.isMethod(invokedMethod, unchangedFieldMethod, env)) {
+            JCTree.JCLiteral immutableObject = (JCTree.JCLiteral) node.getArguments().get(0);
+            JCTree.JCLiteral unchangedField = (JCTree.JCLiteral) node.getArguments().get(1);
+            // TODO!
+            return null;
+        } else if (ElementUtils.isMethod(invokedMethod, equalFieldMethod, env)) {
+            JCTree.JCLiteral immutableObject0 = (JCTree.JCLiteral) node.getArguments().get(0);
+            JCTree.JCLiteral immutableObject1 = (JCTree.JCLiteral) node.getArguments().get(1);
+            JCTree.JCLiteral equalField0 = (JCTree.JCLiteral) node.getArguments().get(2);
+            JCTree.JCLiteral equalField1 = (JCTree.JCLiteral) node.getArguments().get(3);
             // TODO!
             return null;
         } else if (atypeFactory.isMonotonicMethod(enclMethod)
@@ -532,10 +541,6 @@ public class PackingVisitor
     }
 
     protected List<String> isPreservingAssignment(ExpressionTree lhs, ExpressionTree valueExp) {
-        if (atypeFactory.isDependableField(lhs)) {
-            return List.of("packing.assignment.to.dependable");
-        }
-
         List<String> errors = new ArrayList<>();
 
         for (BaseTypeChecker targetChecker : getChecker().getTargetCheckers()) {
@@ -590,10 +595,10 @@ public class PackingVisitor
             AnnotatedTypeMirror xType = atypeFactory.getReceiverType(lhs);
 
             List<String> assignmentErrs = isPreservingAssignment(lhs, valueExp);
-            if (assignmentErrs.isEmpty()) {
+            if (assignmentErrs.isEmpty() && !atypeFactory.isDependableField(lhs)) {
                 return true;
-
             }
+
             // Non-preserving assignments only allowed to fields of this, not other objects
             if (lhs instanceof MemberSelectTree && !((MemberSelectTree) lhs).getExpression().toString().equals("this")) {
                 checker.reportError(varTree, "initialization.assignment.invalid-lhs");
@@ -601,13 +606,13 @@ public class PackingVisitor
                 return false;
             }
 
-            if (enclMethod != null && atypeFactory.isMonotonicMethod(enclMethod)) {
+            if (!assignmentErrs.isEmpty() && enclMethod != null && atypeFactory.isMonotonicMethod(enclMethod)) {
                 checker.reportError(varTree, "initialization.nonmonotonic.write");
                 assignmentErrs.forEach(err -> checker.reportError(varTree, err));
                 return false;
             }
 
-            if (atypeFactory.isUnknownInitialization(xType) || atypeFactory.isInitializedForFrame(xType, TreeInfo.symbol((JCTree) varTree).owner.type)) {
+            if (xType == null || atypeFactory.isUnknownInitialization(xType) || atypeFactory.isInitializedForFrame(xType, TreeInfo.symbol((JCTree) varTree).owner.type)) {
                 checker.reportError(varTree, "initialization.write.committed.field", varTree);
                 assignmentErrs.forEach(err -> checker.reportError(varTree, err));
                 return false;

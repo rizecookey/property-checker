@@ -30,8 +30,10 @@ public interface CooperativeAnnotatedTypeFactory {
                         chk.getParameterNames(),
                         chk.toString());
 
-                // Don't add methods for primitives for NonNull
-                if (!(chk instanceof PropertyAnnotationType.PropertyCheckable propChk && propChk.getPropertyAnnotationType().isNonNull())) {
+                // Don't add methods for primitives for NonNull or Inv
+                if (!(chk instanceof PropertyAnnotationType.PropertyCheckable propChk
+                        && (propChk.getPropertyAnnotationType().isNonNull()
+                            || propChk.getPropertyAnnotationType().isInv()))) {
                     for (Class<?> primitive : ClassUtils.PRIMITIVES) {
                         paramTypes[0] = primitive;
                         compiler.addMethod(

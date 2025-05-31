@@ -87,17 +87,38 @@ public class Lattice {
     }
 
     public PropertyAnnotation getPropertyAnnotation(AnnotatedTypeMirror mirror) {
+        PropertyAnnotation result = getPropertyAnnotation(mirror.getAnnotationInHierarchy(getTop()));
+
+        // Replace @NonNull on primitives by @Nullable to avoid type error in JML translation
+        if (TypesUtils.isPrimitive(mirror.getUnderlyingType()) && result.getAnnotationType().isNonNull()) {
+            result = new PropertyAnnotation(this.annotationTypes.get("Nullable"), List.of());
+        }
+        if (TypesUtils.isPrimitive(mirror.getUnderlyingType()) && result.getAnnotationType().isInv()) {
+            result = new PropertyAnnotation(this.annotationTypes.get("InvUnknown"), List.of());
+        }
+
+        return result;
+    }
+
+    public PropertyAnnotation getEffectivePropertyAnnotation(AnnotatedTypeMirror mirror) {
         PropertyAnnotation result = getPropertyAnnotation(mirror.getEffectiveAnnotationInHierarchy(getTop()));
 
         // Replace @NonNull on primitives by @Nullable to avoid type error in JML translation
         if (TypesUtils.isPrimitive(mirror.getUnderlyingType()) && result.getAnnotationType().isNonNull()) {
             result = new PropertyAnnotation(this.annotationTypes.get("Nullable"), List.of());
         }
+        if (TypesUtils.isPrimitive(mirror.getUnderlyingType()) && result.getAnnotationType().isInv()) {
+            result = new PropertyAnnotation(this.annotationTypes.get("InvUnknown"), List.of());
+        }
 
         return result;
     }
 
     public PropertyAnnotation getPropertyAnnotation(AnnotationMirror mirror) {
+        if (mirror == null) {
+            return getPropertyAnnotation(getTop());
+        }
+        
         PropertyAnnotationType type = annotationTypes.get(
                 mirror.getAnnotationType().asElement().getSimpleName().toString());
 

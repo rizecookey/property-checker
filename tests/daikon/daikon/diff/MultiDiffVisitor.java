@@ -106,7 +106,7 @@ public class MultiDiffVisitor extends PrintNullDiffVisitor {
     // This gets all of the output in the format:
     // inv.ppt.name() + "$" + inv1.format_java() + " Count = " + freq
     for (String str : freqList.keySet()) {
-      int freq = freqList.get(str).intValue();
+      int freq = ((Integer)freqList.get(str)).intValue();
       if (freq < total && justifiedList.contains(str)) {
         bigList.add(str + " Count =  " + freq);
         // System.out.println (str + " Count =  " + freq);
@@ -149,8 +149,9 @@ public class MultiDiffVisitor extends PrintNullDiffVisitor {
 
     // print it all
     for (Map.Entry<@KeyFor("lastMap") String, ArrayList<String>> entry : lastMap.entrySet()) {
-      String key = entry.getKey();
-      ArrayList<String> al = entry.getValue();
+      String key = (String) entry.getKey();
+      @SuppressWarnings("unchecked")
+      ArrayList<String> al = (ArrayList<String>) entry.getValue();
       // don't print anything if there are no selective invariants
       if (al.size() == 0) {
         continue;
@@ -176,7 +177,7 @@ public class MultiDiffVisitor extends PrintNullDiffVisitor {
     // This gets all of the output in the format:
     // inv.ppt.name() + "$" + inv1.format_java()
     for (String str : freqList.keySet()) {
-      int freq = freqList.get(str).intValue();
+      int freq = ((Integer)freqList.get(str)).intValue();
       if (freq < total && justifiedList.contains(str)) {
         // just want the String on its own line
         bigList.add(str);

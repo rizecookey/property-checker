@@ -26,6 +26,7 @@ public class UnionVisitor extends DepthFirstVisitor {
     PptTopLevel ppt1 = node.getPpt1();
     PptTopLevel ppt2 = node.getPpt2();
     //@SuppressWarnings("nullness") // application invariant: at least one of ppt1 and ppt2 is non-null
+    // :: error: nullness.assignment.type.incompatible
     @Unique @NonNull PptTopLevel pptNonNull = (ppt1 != null ? ppt1 : ppt2);
     result.addPpt(pptNonNull);
     currentPpt = pptNonNull;
@@ -43,11 +44,14 @@ public class UnionVisitor extends DepthFirstVisitor {
   )*/
   @RequiresNonNull("currentPpt")
   // visitor invariant
+  // Ill-typed and thus unprovable: A client calling this method from a superclass may violate this precondition
+  // :: error: nullness.contracts.precondition.override.invalid
   public void visit(@NonNullNode InvNode node) {
     Invariant inv1 = node.getInv1();
     Invariant inv2 = node.getInv2();
     if (inv1 == null) {
       //assert inv2 != null : "@AssumeAssertion(nullness): at least one of inv1 and inv2 is non-null";
+      // :: error: nullness.argument.type.incompatible
       result.add(currentPpt, inv2);
     } else if (inv2 == null) {
       result.add(currentPpt, inv1);

@@ -28,6 +28,7 @@ public class XorVisitor extends DepthFirstVisitor {
     PptTopLevel ppt1 = node.getPpt1();
     PptTopLevel ppt2 = node.getPpt2();
     //@SuppressWarnings("nullness") // application invariant: at least one of ppt1 and ppt2 is non-null
+    // :: error: nullness.assignment.type.incompatible
     @Unique @NonNull PptTopLevel pptNonNull = (ppt1 != null ? ppt1 : ppt2);
     result.addPpt(pptNonNull);
     currentPpt = pptNonNull;

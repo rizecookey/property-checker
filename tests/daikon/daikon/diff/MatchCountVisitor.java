@@ -1,6 +1,7 @@
 package daikon.diff;
 
 import daikon.PptConditional;
+import daikon.PptSlice;
 import daikon.PptTopLevel;
 import daikon.inv.Invariant;
 import daikon.inv.OutputFormat;
@@ -9,7 +10,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.StringTokenizer;
 import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.*;
 
 import edu.kit.kastel.property.subchecker.lattice.daikon_qual.*;
 import edu.kit.kastel.property.checker.qual.*;
@@ -53,44 +54,63 @@ public class MatchCountVisitor extends PrintAllVisitor {
   public void visit(@NonNullNode InvNode node) {
     Invariant inv1 = node.getInv1();
     Invariant inv2 = node.getInv2();
-    String key1 = "";
-    String key2 = "";
 
-    if (inv1 != null && inv1.justified() && !filterOut(inv1)) {
-      String thisPptName1 = inv1.ppt.name();
-      // System.out.println ("NAME1: " + thisPptName1);
-      // Contest.smallestRoom(II)I:::EXIT;condition="not(max <= num)"
-      String bucketKey = thisPptName1.substring(0, thisPptName1.lastIndexOf(";condition"));
-      key1 = bucketKey + "$" + inv1.format_using(OutputFormat.JAVA);
-      // checks for justification
-      if (shouldPrint(inv1, inv1)) { // [???]
-        cnt.add(key1);
-      }
-    }
+    String key1 = visitInv1(inv1);
+    String key2 = visitInv2(inv2);
 
-    if (inv2 != null && inv2.justified() && !filterOut(inv2)) {
-      String thisPptName2 = inv2.ppt.name();
-      String thisPptName2_substring = thisPptName2.substring(0, thisPptName2.lastIndexOf('('));
-      key2 = thisPptName2_substring + "$" + inv2.format_using(OutputFormat.JAVA);
-      targSet.add(key2);
-    }
-
+    // :: error: nullnessnode.argument.type.incompatible
     if (shouldPrint(inv1, inv2)) {
       // inv1 and inv2 should be the same, so it doesn't matter
       // which one we choose when adding to recall -LL
-      recall.add(key1);
+      @NonNull HashSet<String> recallLocal = recall;
+      recallLocal.add(key1);
 
       // System.out.println("K1: " + key1);
       // System.out.println ("K2: " + key2);
 
-      String thisPptName1 = inv1.ppt.name();
+      @NonNull PptSlice ppt1 = inv1.ppt;
+      @NonNull String thisPptName1 = ppt1.name();
       // System.out.println ("NAME1: " + thisPptName1);
       // Contest.smallestRoom(II)I:::EXIT;condition="not(max <= num)"
+
+      //TODO Comment this out for now, since KeY does not support lambdas
+
+      /*
       String bucketKey = thisPptName1.substring(0, thisPptName1.lastIndexOf(";condition"));
       String predicate = extractPredicate(thisPptName1);
       HashSet<String> bucket = goodMap.computeIfAbsent(bucketKey, __ -> new HashSet<String>());
       bucket.add(predicate + " ==> " + inv1.format());
+      */
     }
+  }
+  // Split into multiple methods to make KeY proofs easier
+  private String visitInv1(@Nullable Invariant inv1) {
+    String key1 = "";
+    if (inv1 != null && inv1.justified() && !filterOut(inv1)) {
+      key1 = buildKey(inv1, ";condition");
+
+      // checks for justification
+      // :: error: nullnessnode.argument.type.incompatible
+      if (shouldPrint(inv1, inv1)) { // [???]
+        @NonNull HashSet<String> cntLocal = cnt;
+        cntLocal.add(key1);
+      }
+    }
+    return key1;
+  }
+  private String visitInv2(@Nullable Invariant inv2) {
+    String key2 = "";
+    if (inv2 != null && inv2.justified() && !filterOut(inv2)) {
+      key2 = buildKey(inv2, "(");
+      @NonNull HashSet<String> targSetLocal = targSet;
+      targSetLocal.add(key2);
+    }
+    return key2;
+  }
+  private String buildKey(Invariant inv, String endMarker) {
+    String thisPptName = inv.ppt.name();
+    String thisPptName_substring = thisPptName.substring(0, thisPptName.lastIndexOf(endMarker));
+    return thisPptName_substring + "$" + inv.format_using(OutputFormat.JAVA);
   }
 
   /** Grabs the splitting condition from a pptname. */
@@ -103,8 +123,9 @@ public class MatchCountVisitor extends PrintAllVisitor {
   @EnsuresNonNullIf(
       result = true,
       expression = {"#1", "#2"})
-  protected static boolean shouldPrint(@Nullable Invariant inv1, @Nullable Invariant inv2) {
-
+  // :: error: nullnessnode.contracts.postcondition.not.satisfied
+  protected static boolean shouldPrint(@NonNullIfNull("inv2") @Nullable Invariant inv1, @NonNullIfNull("inv1") @Nullable Invariant inv2) {
+    // :: error: nullnessnode.argument.type.incompatible
     int rel = DetailedStatisticsVisitor.determineRelationship(inv1, inv2);
     if (rel == DetailedStatisticsVisitor.REL_SAME_JUST1_JUST2) {
       // determineRelationship returns REL_SAME_JUST1_JUST2 only if inv1 and inv2 are nonnull
@@ -119,12 +140,12 @@ public class MatchCountVisitor extends PrintAllVisitor {
       // filter out targets that could never really be achived
       // example:   num >= 10378
 
+      // :: error: nullness.argument.type.incompatible
       if (filterOut(inv1) || filterOut(inv2)) {
         return false;
       }
 
       // now you have a match
-
       return true;
     }
 
