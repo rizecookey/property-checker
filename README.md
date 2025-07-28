@@ -9,7 +9,16 @@ An object `o` has the type `@NonNull Object` if the specified property, `o != nu
 
 If the Property Checker is not able to completely prove a program's correctness, it outputs a JML translation, in which all property qualifiers have been translated into specification clauses in the Java Modeling Language (JML). This translation can be given to a deductive verification tool like KeY or OpenJML to prove the parts of the program which the checker was not able to prove. This approach combines the scalability and easy-of-use of pluggable type system with the power of deductive verification.
 
+# Tests
+
 See the folder `tests` for short examples. For a longer example project using the Property Checker, see https://github.com/flo2702/property-checker-example.
+
+To run a specific test case, use `./gradlew clean test --tests <name of test case>`, e.g., `./gradlew clean test --tests NullnessTest` to run `tests.property.NullnessTest`.
+
+To create your own test cases, you must create a class extending `PropertyCheckerTest` that points to the source code firectory as well as the lattice files for the required type lattices.
+See the existing test cases for examples.
+
+# Building and running
 
 To build the Property Checker, run `./gradlew assemble`. The file `property-checker.jar` will be generated in the main directory. To be able to run the Property Checker, the files `property-checker.jar`, `checker-qual.jar`, and `javac` (not the regular Java compiler, but the one included here!) must be kept in the same directory.
 
@@ -25,7 +34,6 @@ To run the checker, use the following command:
 -APropertyChecker_outDir=<out_dir> \
 -APropertyChecker_lattices=<lattice_file> \
 -APropertyChecker_qualPkg=<qual_pkg> \
--APropertyChecker_jmlDialect=<jml_dialect> \
 -APropertyChecker_translationOnly=<translation_only>
 ```
 
@@ -38,6 +46,4 @@ where
 * `<your_project_root>` is the root directory for the source code of the project which should be checked. This is indeed redundant with the previous option. It is there because it is necessary for the Property Checker to know not just the files it should check, but also the file/package structure of the project.
 * `<out_dir>` is the directory to which the JML translation should be written.
 * `<qual_pkg>` is the fully qualified name of the package containing all annotations.
-* `<jml_dialect>` is either `key` or `openjml` depending on the JML dialect that should be used for the translation. The default is `key`.
 * `<translation_only>` is `true` if you want to only run the JML translator without running the Property Checker beforehand. The default is `false`.
-

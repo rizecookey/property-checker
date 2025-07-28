@@ -1,0 +1,103 @@
+/* This file is part of the Property Checker.
+ * Copyright (c) 2021 -- present. Property Checker developers.
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details.
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+package case_study; 
+
+import edu.kit.kastel.property.subchecker.lattice.case_study_qual.*;
+import edu.kit.kastel.property.checker.qual.*;
+
+public class List {
+    
+    private Object head;
+    
+    private @Nullable
+    @Length(min="this.size - 1", max="this.size - 1")
+    List tail;
+    
+    public @Positive int size;
+
+    @JMLClause(values={
+        "assignable \nothing"})
+    public
+    @Length(min="tail.size + 1", max="tail.size + 1")
+    // :: error: inconsistent.constructor.type
+    List(Object head, List tail) {
+        // :: error: assignment.type.incompatible
+        this.size = tail.size() + 1;
+        this.head = head;
+        // :: error: assignment.type.incompatible
+        this.tail = tail;
+    }
+
+    @JMLClause(values={
+        "assignable \nothing"})
+    public
+    @Length(min="1", max="1")
+    // :: error: inconsistent.constructor.type
+    List(Object head) {
+        this.size = 1;
+        this.head = head;
+        // :: error: assignment.type.incompatible
+        this.tail = null;
+    }
+
+    @JMLClause(values={
+        "assignable \nothing"})
+    public static List cons(Object head, @Nullable List tail) {
+        if (tail != null) {
+            // :: error: argument.type.incompatible
+            return new List(head, tail);
+        } else {
+            return new List(head);
+        }
+    }
+
+    @JMLClause(values={"assignable \nothing"})
+    public Object head() {
+        return head;
+    }
+
+    @JMLClause(values={"assignable \nothing"})
+    public
+    @Nullable
+    @Length(min="this.size - 1", max="this.size - 1")
+    List tail() {
+        // :: error: return.type.incompatible
+        return tail;
+    }
+
+    @JMLClause(values={
+        "assignable \nothing",
+        "ensures \result == this.size"
+        })
+    public @Positive int size() {
+        return size;
+    }
+
+    @JMLClause(values={
+        "assignable \nothing",
+        "ensures l != null ==> \result == l.size",
+        "ensures l == null ==> \result == 0"
+        })
+    public static @NonNegative int size(@Nullable List l) {
+        if (l == null) {
+            return 0;
+        } else {
+            // :: error: method.invocation.invalid
+            return l.size();
+        }
+    }
+}

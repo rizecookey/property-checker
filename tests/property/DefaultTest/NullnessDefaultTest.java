@@ -1,32 +1,37 @@
-/* This file is part of the Property Checker.
- * Copyright (c) 2021 -- present. Property Checker developers.
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.
- *
- * This code is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * version 2 for more details.
- *
- * You should have received a copy of the GNU General Public License version
- * 2 along with this work; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- */
-import java.util.*;
-import edu.kit.iti.checker.property.subchecker.lattice.qual.*;
+import edu.kit.kastel.property.util.Packing;
+import edu.kit.kastel.property.checker.qual.*;
+import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
+import edu.kit.kastel.property.subchecker.lattice.qual.*;
+import org.checkerframework.checker.nullness.qual.*;
+import edu.kit.kastel.property.packing.qual.*;
+import org.checkerframework.checker.initialization.qual.*;
+import org.checkerframework.dataflow.qual.*;
 
-// :: error: initialization.fields.uninitialized
 public class NullnessDefaultTest {
+
+    // :: error: initialization.static.field.uninitialized
+    static @NonNull Object staticNonNullField;
+    static @Nullable Object staticNullableField;
+    static @MonotonicNonNull Object staticMonotonicNonNullField;
+    // :: error: initialization.static.field.uninitialized
+    static Object staticDefaultField;
+
+    // :: error: initialization.field.uninitialized
     @NonNull Object nonNullField;
     @Nullable Object nullableField;
+    @MonotonicNonNull Object monotonicNonNullField;
+    // :: error: initialization.field.uninitialized
     Object defaultField;
+    
+    // :: error: initialization.field.uninitialized
+    @ReadOnly @UnknownInitialization(Object.class) @NonNull Object nonNullField0;
+    // :: error: initialization.field.uninitialized
+    @ReadOnly @UnknownInitialization(Object.class) Object defaultField0;
 
     public void foo() {
         @NonNull Object nonNullLocal = nonNullField;
         nonNullLocal = defaultField;
-        // :: error: assignment.type.incompatible
+        // :: error: nullness.assignment.type.incompatible
         nonNullLocal = nullableField;
         
         @Nullable Object nullableLocal = nonNullField;
@@ -37,4 +42,10 @@ public class NullnessDefaultTest {
         defaultLocal = defaultField;
         defaultLocal = nullableField;
     }
+
+    public void validParam0(@NonNull Object arg) {}
+    public void validParam1(Object arg) {}
+
+    public void invalidParam0(@ReadOnly @UnknownInitialization(Object.class) @NonNull Object arg) {}
+    public void invalidParam1(@ReadOnly @UnknownInitialization(Object.class) Object arg) {}
 }

@@ -1,34 +1,36 @@
-/* This file is part of the Property Checker.
- * Copyright (c) 2021 -- present. Property Checker developers.
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.
- *
- * This code is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * version 2 for more details.
- *
- * You should have received a copy of the GNU General Public License version
- * 2 along with this work; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- */
-import java.util.*;
-import edu.kit.iti.checker.property.subchecker.lattice.qual.*;
+import edu.kit.kastel.property.util.Packing;
+import edu.kit.kastel.property.checker.qual.*;
+import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
+import edu.kit.kastel.property.subchecker.lattice.qual.*;
+import org.checkerframework.checker.nullness.qual.*;
+import edu.kit.kastel.property.packing.qual.*;
+import org.checkerframework.checker.initialization.qual.*;
+import org.checkerframework.dataflow.qual.*;
+
+import java.util.List;
 
 public abstract class LengthInitTest {
     
-    public @Length(min="1", max="3") List i2;
-    public @Length(min="1", max="1") List i3;
-    
-    public @Length(min="1", max="3") List i4;
+    public @MaybeAliased @Length(len="1") List i2;
+    public @MaybeAliased @Length(len="1") List i3;
+    public @MaybeAliased @Length(len="2") List i4;
 
     // :: error: initialization.fields.uninitialized
-    public LengthInitTest(@Length(min="1", max="3") List arg) {
-        i2 = arg;
-        
-        // :: error: assignment.type.incompatible
-        i3 = arg;
+    public LengthInitTest(@MaybeAliased @Length(len="1") List arg) {
+        this.i2 = arg;
+        this.i3 = arg;
+
+        @Length(len="1") List l3 = arg;
+    }
+
+    // :: error: initialization.fields.uninitialized
+    public LengthInitTest(@MaybeAliased @Length(len="1") List arg, int dummy) {
+        this.i2 = arg;
+        this.i3 = arg;
+        // :: error: initialization.nonmonotonic.write :: error: length.assignment.type.incompatible
+        this.i4 = arg;
+
+        // :: error: length.assignment.type.incompatible
+        @Length(len="2") List l3 = arg;
     }
 }

@@ -1,43 +1,62 @@
-/* This file is part of the Property Checker.
- * Copyright (c) 2021 -- present. Property Checker developers.
- *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.
- *
- * This code is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * version 2 for more details.
- *
- * You should have received a copy of the GNU General Public License version
- * 2 along with this work; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- */
-import java.util.List;
+import edu.kit.kastel.property.util.Packing;
+import edu.kit.kastel.property.checker.qual.*;
+import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
+import edu.kit.kastel.property.subchecker.lattice.qual.*;
+import org.checkerframework.checker.nullness.qual.*;
+import edu.kit.kastel.property.packing.qual.*;
+import org.checkerframework.checker.initialization.qual.*;
+import org.checkerframework.dataflow.qual.*;
 
-import edu.kit.iti.checker.property.subchecker.lattice.qual.*;
+import java.util.List;
 
 public abstract class LengthReceiverTest implements List {
 
-    public void method(@Length(min="1", max="1") LengthReceiverTest this, @Length(min="2", max="2") LengthReceiverTest that) { }
+    public void method(
+            @Length(len="1") LengthReceiverTest this,
+            @Length(len="2") LengthReceiverTest that) { }
 
-    public void foo(@Length(min="1", max="1") LengthReceiverTest a, @Length(min="2", max="2") LengthReceiverTest b) {
+    // :: error: length.contracts.postcondition.not.satisfied
+    public void foo0(
+            LengthReceiverTest this,
+            @Length(len="1") LengthReceiverTest a,
+            @Length(len="2") LengthReceiverTest b) {
         a.method(b);
 
-        // :: error: argument.type.incompatible
+        // :: error: length.argument.type.incompatible
         a.method(a);
+    }
 
-        // :: error: method.invocation.invalid :: error: argument.type.incompatible
+    // :: error: length.contracts.postcondition.not.satisfied
+    public void foo1(
+            LengthReceiverTest this,
+            @Length(len="1") LengthReceiverTest a,
+            @Length(len="2") LengthReceiverTest b) {
+        // :: error: length.method.invocation.invalid :: error: length.argument.type.incompatible
         b.method(a);
+    }
 
-        // :: error: method.invocation.invalid
+    public void foo2(
+            LengthReceiverTest this,
+            @Length(len="1") LengthReceiverTest a,
+            @Length(len="2") LengthReceiverTest b) {
+        // :: error: length.method.invocation.invalid
         b.method(b);
+    }
 
-        // :: error: method.invocation.invalid :: error: argument.type.incompatible
-        method(a);
+    // :: error: length.contracts.postcondition.not.satisfied
+    public void foo3(
+            LengthReceiverTest this,
+            @Length(len="1") LengthReceiverTest a,
+            @Length(len="2") LengthReceiverTest b) {
+        // :: error: length.method.invocation.invalid :: error: length.argument.type.incompatible
+        this.method(a);
+    }
 
-        // :: error: method.invocation.invalid
-        method(b);
+    public void foo4(
+            LengthReceiverTest this,
+            @Length(len="1") LengthReceiverTest a,
+            @Length(len="2") LengthReceiverTest b) {
+        // :: error: length.method.invocation.invalid
+        this.method(b);
     }
 }

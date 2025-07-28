@@ -18,25 +18,16 @@ ident length;
 annotation UnknownLength() any :<==> "true" for "true";
 annotation BottomLength() any :<==> "false" for "true";
 
-annotation Length(int min, int max) pkg.List
-    :<==> "§subject§ != null && §subject§.size() >= min && §subject§.size() <= max"
-    for "§min§ >= 0 && §min§ <= §max§";
+annotation Length(int len) pkg.List
+    :<==> "(§subject§ == null && §len§ == 0) || (§subject§ != null && §subject§.size == §len§)"
+    for "§len§ >= 0";
 
-relation Length(a0, b0) <: Length(a1, b1) :<==> "§a0§ >= §a1§ && §b0§ <= §b1§";
+relation Length(a) <: Length(b) :<==> "§a§ == §b§";
 
-relation Length(a,b) <: UnknownLength() :<==> "true";
-relation BottomLength() <: Length(a,b) :<==> "true";
+relation Length(a) <: UnknownLength() :<==> "true";
+relation BottomLength() <: Length(a) :<==> "true";
 
-join Length(a0, b0), Length(a1, b1) := Length("java.lang.Math.min(§a0§, §a1§)", "java.lang.Math.max(§b0§, §b1§)");
-
-# overlapping
-meet Length(a0, b0), Length(a1, b1)
-    := Length("java.lang.Math.max(§a0§, §a1§)", "java.lang.Math.min(§b0§, §b1§)")
-    for "§b0§ >= §a1§ || §b1§ >= §a0§";
+join Length(a), Length(b) := UnknownLength();
     
 # non-overlapping
-meet Length(a0, b0), Length(a1, b1) := BottomLength(); # "!(b0 >= a1 || b1 >= a0)" is implicit!
-
-#alias MinLength(int min) := Length(min, java.lang.Integer.MAX_VALUE);
-#alias MaxLength(int max) := Length(0, max);
-#alias ExactLength(int n) := Length(n, n);
+meet Length(a), Length(b) := BottomLength();
