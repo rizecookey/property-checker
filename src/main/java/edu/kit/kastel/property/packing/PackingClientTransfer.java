@@ -1,8 +1,10 @@
 package edu.kit.kastel.property.packing;
 
-import com.sun.source.tree.*;
+import com.sun.source.tree.ExpressionTree;
+import com.sun.source.tree.MethodInvocationTree;
+import com.sun.source.tree.MethodTree;
+import com.sun.source.tree.NewClassTree;
 import com.sun.tools.javac.code.Symbol;
-import com.sun.tools.javac.tree.JCTree;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityTransfer;
@@ -54,12 +56,12 @@ public abstract class PackingClientTransfer<
 
     @Override
     public S initialStore(UnderlyingAST underlyingAST, List<LocalVariableNode> parameters) {
+        ((PackingClientAnalysis<?, ?, ?>) analysis).setPosition(underlyingAST.getCode());
         S initStore = super.initialStore(underlyingAST, parameters);
-        PackingClientAnnotatedTypeFactory factory = getAnalysis().getTypeFactory();
+        PackingClientAnnotatedTypeFactory<?, ?, ?, ?> factory = getAnalysis().getTypeFactory();
 
         if (underlyingAST.getKind() == UnderlyingAST.Kind.METHOD) {
             // Add receiver value
-
             UnderlyingAST.CFGMethod method = (UnderlyingAST.CFGMethod) underlyingAST;
             MethodTree methodDeclTree = method.getMethod();
             V initialThisValue = null;
@@ -68,67 +70,79 @@ public abstract class PackingClientTransfer<
                 initStore.initializeThisValue(initialThisValue);
             }
 
-            // The default implementation only adds fields declared in this class.
-            // To make type-checking of pack statements more precise, we also add all fields declared in superclasses.
-            ClassTree classTree = method.getClassTree();
-
             if (!ElementUtils.isStatic(TreeUtils.elementFromDeclaration(methodDeclTree))) {
-                List<VariableElement> allFields = ElementUtils.getAllFieldsIn(
-                        TypesUtils.getTypeElement(((JCTree) classTree).type),
-                        factory.getElementUtils());
+                // add fields declared in this class and all superclasses to store
+                PackingFieldAccessAnnotatedTypeFactory packingFactory =
+                        factory.getChecker().getTypeFactoryOfSubcheckerOrNull(PackingFieldAccessSubchecker.class);
+
                 AnnotatedTypeMirror receiverType =
                         factory.getSelfType(methodDeclTree.getBody());
                 if (initialThisValue != null) {
                     receiverType.replaceAnnotations(initStore.getValue((ThisNode) null).getAnnotations());
                 }
 
-                PackingFieldAccessAnnotatedTypeFactory packingFactory =
-                        factory.getChecker().getTypeFactoryOfSubcheckerOrNull(PackingFieldAccessSubchecker.class);
-
                 AnnotatedTypeMirror receiverPackingType =
                         packingFactory.getSelfType(methodDeclTree.getBody());
-
-                for (VariableElement field : allFields) {
-                    if (!ElementUtils.isStatic(field)) {
-                        FieldAccess fieldAccess = new FieldAccess(new ThisReference(receiverType.getUnderlyingType()), field);
-                        TypeMirror fieldOwnerType = field.getEnclosingElement().asType();
-                        AnnotatedTypeMirror declaredType = factory.getAnnotatedType(field);
-
-                        // Viewpoint-adapt type
-                        AnnotatedTypeMirror adaptedType =
-                                AnnotatedTypes.asMemberOf(
-                                        analysis.getTypes(),
-                                        analysis.getTypeFactory(),
-                                        receiverType,
-                                        field,
-                                        declaredType);
-
-                        if (adaptedType == null) {
-                            adaptedType = declaredType;
-                        }
-
-                        // Use top annotation if receiver is not sufficiently packed
-                        if (!packingFactory.isInitializedForFrame(receiverPackingType, fieldOwnerType)
-                                && (!adaptedType.getKind().isPrimitive() || uncommitPrimitiveFields())) {
-                            adaptedType.clearAnnotations();
-                            // Special case: At the beginning of a constructor, fields have the default value null,
-                            // which we can consider @Unique
-                            if (TreeUtils.isConstructor(methodDeclTree) && factory instanceof ExclusivityAnnotatedTypeFactory exclFactory) {
-                                adaptedType.addAnnotation(exclFactory.UNIQUE);
-                            } else {
-                                adaptedType.addAnnotations(factory.getQualifierHierarchy().getTopAnnotations());
-                            }
-                        }
-
-                        V value = analysis.createAbstractValue(adaptedType);
-                        initStore.insertValue(fieldAccess, value);
-                    }
-                }
+                insertFieldsUpToFrame(initStore, receiverType, receiverPackingType, true, TreeUtils.isConstructor(methodDeclTree));
             }
             addInformationFromPreconditions(initStore, factory, method, methodDeclTree, TreeUtils.elementFromDeclaration(methodDeclTree));
         }
 
         return initStore;
+    }
+
+    protected void insertFieldsUpToFrame(
+            S store, AnnotatedTypeMirror receiverType, AnnotatedTypeMirror receiverPackingType, boolean removeUncommitted, boolean beginningOfConstructor) {
+        var factory = getAnalysis().getTypeFactory();
+        PackingFieldAccessAnnotatedTypeFactory packingFactory =
+                factory.getChecker().getTypeFactoryOfSubcheckerOrNull(PackingFieldAccessSubchecker.class);
+        List<VariableElement> allFields = ElementUtils.getAllFieldsIn(
+                TypesUtils.getTypeElement(receiverType.getUnderlyingType()),
+                factory.getElementUtils());
+        for (VariableElement field : allFields) {
+            if (!ElementUtils.isStatic(field)) {
+                ((PackingClientAnalysis<V, S, T>) analysis).setPosition(field);
+                FieldAccess fieldAccess = new FieldAccess(new ThisReference(receiverType.getUnderlyingType()), field);
+                TypeMirror fieldOwnerType = field.getEnclosingElement().asType();
+                AnnotatedTypeMirror declaredType = factory.getAnnotatedType(field);
+
+                // Viewpoint-adapt type
+                AnnotatedTypeMirror adaptedType =
+                        AnnotatedTypes.asMemberOf(
+                                analysis.getTypes(),
+                                analysis.getTypeFactory(),
+                                receiverType,
+                                field,
+                                declaredType);
+
+                if (adaptedType == null) {
+                    adaptedType = declaredType;
+                }
+
+
+                if (!packingFactory.isInitializedForFrame(receiverPackingType, fieldOwnerType)
+                        && (!adaptedType.getKind().isPrimitive() || uncommitPrimitiveFields())) {
+                    if (store.getValue(fieldAccess) == null || removeUncommitted) {
+                        // If field is not initialized and not in store yet or uncommitted field values
+                        // should be removed, insert the top value
+                        adaptedType.clearAnnotations();
+                        // Special case: At the beginning of a constructor, fields have the default value null,
+                        // which we can consider @Unique
+                        if (beginningOfConstructor && factory instanceof ExclusivityAnnotatedTypeFactory exclFactory) {
+                            adaptedType.addAnnotation(exclFactory.UNIQUE);
+                        } else {
+                            adaptedType.addAnnotations(factory.getQualifierHierarchy().getTopAnnotations());
+                        }
+                        V value = analysis.createAbstractValue(adaptedType);
+                        store.insertValue(fieldAccess, value);
+                    }
+                } else {
+                    // if field is initialized, insert its declared type
+                    V value = analysis.createAbstractValue(adaptedType);
+                    store.insertValue(fieldAccess, value);
+                }
+            }
+        }
     }
 
     protected abstract boolean uncommitPrimitiveFields();

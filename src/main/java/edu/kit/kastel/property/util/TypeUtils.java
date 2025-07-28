@@ -25,10 +25,19 @@ import org.checkerframework.dataflow.cfg.node.MethodInvocationNode;
 import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.dataflow.expression.*;
 import org.checkerframework.javacutil.ElementUtils;
+import com.sun.source.tree.*;
+import org.checkerframework.dataflow.expression.JavaExpression;
+import org.checkerframework.dataflow.expression.LocalVariable;
+import org.checkerframework.dataflow.expression.ThisReference;
+import org.checkerframework.framework.type.AnnotatedTypeMirror;
+import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutableType;
+import com.sun.tools.javac.code.Type;
+import com.sun.tools.javac.code.Type.ArrayType;
 import org.checkerframework.javacutil.TreeUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public final class TypeUtils {
 
@@ -58,6 +67,39 @@ public final class TypeUtils {
         }
 
         return param.equals(tree.getReceiverParameter()) ? 0 : i + 1;
+    }
+
+    public static int getArgumentIndex(MethodInvocationTree tree, Tree argument) {
+        if (Objects.equals(tree.getMethodSelect(), argument)) {
+            return 0;
+        }
+        for (int i = 0; i < tree.getArguments().size(); i++) {
+            if (tree.getArguments().get(i).equals(argument)) {
+                return i + 1;
+            }
+        }
+        return -1;
+    }
+
+    public static int getArgumentIndex(NewClassTree tree, Tree argument) {
+        for (int i = 0; i < tree.getArguments().size(); i++) {
+            if (tree.getArguments().get(i).equals(argument)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    public static String unannotatedTypeName(AnnotatedTypeMirror mirror) {
+        if (mirror instanceof AnnotatedExecutableType) {
+            throw new IllegalArgumentException();
+        }
+
+        if (mirror.getUnderlyingType() instanceof ArrayType) {
+            return ((ArrayType) mirror.getUnderlyingType()).elemtype.asElement().toString() + "[]";
+        } else {
+            return ((Type) mirror.getUnderlyingType()).asElement().toString();
+        }
     }
 
     public static boolean sameTree(Tree tree0, Tree tree1) {

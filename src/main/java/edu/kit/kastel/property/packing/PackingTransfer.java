@@ -30,6 +30,8 @@ import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.type.TypeMirror;
 import java.lang.reflect.Modifier;
+import javax.lang.model.element.*;
+import javax.lang.model.type.TypeMirror;
 import java.util.List;
 import java.util.Set;
 
@@ -97,20 +99,20 @@ public class PackingTransfer extends InitializationAbstractTransfer<CFValue, Pac
                 JavaExpression objToPack = JavaExpression.fromNode(n.getArgument(0));
 
                 ClassNameNode className = (ClassNameNode) ((FieldAccessNode) n.getArgument(1)).getReceiver();
-                Class<?> clazzArg = ClassUtils.classOrPrimitiveForName(
+                TypeMirror typeArg = ClassUtils.typeForName(
                         ((Symbol.ClassSymbol) className.getElement()).getQualifiedName().toString(),
                         (PackingFieldAccessSubchecker) atypeFactory.getChecker()
                 );
 
-                Class<?> clazzToPackTo;
+                TypeMirror typeToPackTo;
 
                 if (method.getSimpleName().contentEquals("pack")) {
-                    clazzToPackTo = clazzArg;
+                    typeToPackTo = typeArg;
                 } else /*if (method.getSimpleName().contentEquals("unpack"))*/ {
-                    clazzToPackTo = clazzArg.getSuperclass();
+                    typeToPackTo = TypesUtils.getSuperclass(typeArg, analysis.getTypes());
                 }
 
-                if (clazzToPackTo == null) {
+                if (typeToPackTo == null) {
                     // This happens when the user tries to unpack from a type with no super type.
                     store.insertValue(objToPack, AnnotationBuilder.fromClass(atypeFactory.getElementUtils(), FBCBottom.class));
                     return new RegularTransferResult<>(null, store, true);
@@ -118,12 +120,12 @@ public class PackingTransfer extends InitializationAbstractTransfer<CFValue, Pac
 
                 CFValue oldVal = store.getValue(objToPack);
                 AnnotationMirror newAnnotation;
-                if (Modifier.isFinal(clazzToPackTo.getModifiers())) {
+                if (TypesUtils.getTypeElement(typeToPackTo).getModifiers().contains(Modifier.FINAL)) {
                     newAnnotation = AnnotationBuilder.fromClass(atypeFactory.getElementUtils(), Initialized.class);
                 } else if (oldVal != null && AnnotationUtils.containsSameByClass(oldVal.getAnnotations(), UnknownInitialization.class)) {
-                    newAnnotation = atypeFactory.createUnknownInitializationAnnotation(clazzToPackTo);
+                    newAnnotation = atypeFactory.createUnknownInitializationAnnotation(typeToPackTo);
                 } else {
-                    newAnnotation = atypeFactory.createUnderInitializationAnnotation(clazzToPackTo);
+                    newAnnotation = atypeFactory.createUnderInitializationAnnotation(typeToPackTo);
                 }
 
                 store.insertValue(objToPack, newAnnotation);

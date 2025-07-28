@@ -1044,7 +1044,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
             this.print("for (");
             inForLoopInit = true;
             if (tree.init.nonEmpty()) {
-                if (((JCTree.JCStatement)tree.init.head).hasTag(Tag.VARDEF)) {
+                if (tree.init.head.hasTag(Tag.VARDEF)) {
                     this.printExpr((JCTree)tree.init.head);
 
                     for(com.sun.tools.javac.util.List<JCTree.JCStatement> l = tree.init.tail; l.nonEmpty(); l = l.tail) {

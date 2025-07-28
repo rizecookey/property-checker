@@ -2,15 +2,19 @@ package edu.kit.kastel.property.subchecker.lattice;
 
 import com.sun.source.tree.*;
 import com.sun.source.util.SourcePositions;
+import com.sun.source.util.TreePath;
 import com.sun.tools.javac.tree.JCTree;
 import edu.kit.kastel.property.lattice.Lattice;
+import edu.kit.kastel.property.smt.SmtExpression;
 import edu.kit.kastel.property.util.CollectionUtils;
+import edu.kit.kastel.property.util.TypeUtils;
 import edu.kit.kastel.property.util.Union;
 import org.apache.commons.lang3.tuple.Triple;
 import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
 import org.checkerframework.javacutil.Pair;
+import org.checkerframework.javacutil.TreePathUtil;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.VariableElement;
@@ -88,6 +92,27 @@ public interface CooperativeVisitor {
 
         public Map<Tree, List<VariableElement>> uninitializedFields = new HashMap<>();
 
+        /* SMT analysis data */
+
+        /**
+         * Contains a mapping from "path to ill-typed expression" to
+         * "condition that, if proven universally valid, makes the expression well-typed".
+         * @see #removeTypeError(TreePath)
+         */
+        private final Map<Tree, SmtExpression> mendingConditions = new HashMap<>();
+
+        /**
+         * Keep track of the refinements of all fields. This can later be used for SMT analysis on packing calls.
+         */
+        private final Map<VariableElement, SmtExpression> fieldRefinements = new HashMap<>();
+
+
+        /**
+         * Contains a mapping from expression trees to computed contexts.
+         * If the expression is well-typed, the context includes the corresponding property refinement.
+         */
+        private final Map<Tree, Set<SmtExpression>> contexts = new HashMap<>();
+
         public Result(CooperativeChecker checker) {
             this.checker = checker;
         }
@@ -152,6 +177,18 @@ public interface CooperativeVisitor {
             CollectionUtils.addToSetMap(illTypedMethodOutputParams, tree, param);
         }
 
+        public void addContext(Tree tree, SmtExpression formula) {
+            CollectionUtils.addToSetMap(contexts, tree, formula);
+        }
+
+        public void addMendingCondition(Tree key, SmtExpression expr) {
+            mendingConditions.put(key, expr);
+        }
+
+        public void addFieldRefinement(VariableElement field, SmtExpression expr) {
+            fieldRefinements.put(field, expr);
+        }
+
         public List<Pair<AnnotatedTypeMirror.AnnotatedDeclaredType, AnnotatedTypeMirror.AnnotatedExecutableType>> getOverriddenMethods(MethodTree tree) {
             return CollectionUtils.getUnmodifiableList(overriddenMethods, tree);
         }
@@ -206,6 +243,78 @@ public interface CooperativeVisitor {
             return CollectionUtils.getUnmodifiableList(uninitializedFields, tree);
         }
 
+        public Map<Tree, List<VariableElement>> getUninitializedFields() {
+            return Collections.unmodifiableMap(uninitializedFields);
+        }
+
+        public boolean hasFieldRefinement(VariableElement field) {
+            return fieldRefinements.containsKey(field);
+        }
+
+        public SmtExpression getFieldRefinement(VariableElement field) {
+            return fieldRefinements.get(field);
+        }
+
+        public Map<Tree, Set<SmtExpression>> getContexts() {
+            return Collections.unmodifiableMap(contexts);
+        }
+
+        public Map<Tree, SmtExpression> getMendingConditions() {
+            return Collections.unmodifiableMap(mendingConditions);
+        }
+
+        public void clear() {
+            illTypedAssignments.clear();
+            illTypedConstructors.clear();
+            illTypedConstructorParams.clear();
+            illTypedVars.clear();
+            illTypedMethodOutputParams.clear();
+            illTypedMethodParams.clear();
+            illTypedMethodReceivers.clear();
+            illTypedMethodResults.clear();
+            overriddenMethods.clear();
+            instanceInitializers.clear();
+            instanceInvariants.clear();
+            staticInitializers.clear();
+            staticInvariants.clear();
+            methodOutputTypes.clear();
+            uninitializedFields.clear();
+            mendingConditions.clear();
+            contexts.clear();
+        }
+
+        public void removeTypeError(TreePath path) {
+            Tree tree = path.getLeaf();
+            switch (path.getParentPath().getLeaf()) {
+            case AssignmentTree a -> illTypedAssignments.remove(a);
+            case VariableTree v -> illTypedVars.remove(v);
+            case ReturnTree r -> illTypedMethodResults.remove(TreePathUtil.enclosingMethod(path));
+            case MethodInvocationTree m -> {
+                // tree is either a parameter or the method select (identifying the receiver)
+                if (tree.equals(m.getMethodSelect())) {
+                    illTypedMethodReceivers.remove(m);
+                } else {
+                    CollectionUtils.removeFromCollectionMap(illTypedMethodParams, m,
+                            TypeUtils.getArgumentIndex(m, tree));
+                }
+            }
+            case NewClassTree n -> CollectionUtils.removeFromCollectionMap(illTypedConstructorParams, n,
+                    TypeUtils.getArgumentIndex(n, tree));
+            // postcondition on parameter
+            case MethodTree m -> CollectionUtils.removeFromCollectionMap(illTypedMethodOutputParams,
+                    m, TypeUtils.getParameterIndex(m, (VariableTree) tree));
+            // postcondition on `this`
+            case ClassTree c -> CollectionUtils.removeFromCollectionMap(illTypedMethodOutputParams,
+                    (MethodTree) tree, 0);
+            default -> throw new UnsupportedOperationException("Type error for tree " + tree + " cannot be removed");
+            }
+        }
+
+        public void removeUninitializedField(Tree packingCall, VariableElement field) {
+            CollectionUtils.removeFromCollectionMap(uninitializedFields, packingCall, field);
+        }
+
+        // TODO: when is this actually called? only when merging results from two checkers of the same kind? shouldn't they produce equal results?
         public void addAll(Result result) {
             illTypedAssignments.addAll(result.illTypedAssignments);
             illTypedVars.addAll(result.illTypedVars);

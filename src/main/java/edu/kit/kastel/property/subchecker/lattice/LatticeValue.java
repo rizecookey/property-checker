@@ -16,18 +16,75 @@
  */
 package edu.kit.kastel.property.subchecker.lattice;
 
+import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
 
+import edu.kit.kastel.property.lattice.PropertyAnnotation;
 import edu.kit.kastel.property.packing.PackingClientValue;
-import org.checkerframework.framework.flow.CFAbstractAnalysis;
+import org.checkerframework.dataflow.expression.JavaExpression;
+import org.checkerframework.framework.util.JavaExpressionParseUtil;
 import org.checkerframework.javacutil.AnnotationMirrorSet;
+import org.checkerframework.javacutil.TreeUtils;
+
+import java.util.List;
+import java.util.Optional;
+
+import static org.checkerframework.dataflow.expression.ViewpointAdaptJavaExpression.viewpointAdapt;
 
 public final class LatticeValue extends PackingClientValue<LatticeValue> {
 
+	private final JavaExpression refinement;
+
+	// TODO: verify that there are no ambiguities when parsing
+	//  e.g.: are there situations where LatticeValues originally parsed at field declarations are recreated in a local context?
 	protected LatticeValue(
-			CFAbstractAnalysis<LatticeValue, ?, ?> analysis,
+			LatticeAnalysis analysis,
 			AnnotationMirrorSet annotations,
 			TypeMirror underlyingType) {
 		super(analysis, annotations, underlyingType);
+
+		JavaExpression parsed = null;
+		PropertyAnnotation property = toPropertyAnnotation();
+		try {
+			if (analysis.getLocalTree() != null) {
+				// if we have a location where the refinement should be parsed, we parse it
+				var localPath = analysis.getTypeFactory().getPath(analysis.getLocalTree());
+				parsed = property.parseRefinement(localPath, analysis.getTypeFactory().getChecker());
+			} else if (analysis.getField() != null) {
+				parsed = property.parseRefinement(analysis.getField(), analysis.getTypeFactory().getChecker());
+			}
+		} catch (JavaExpressionParseUtil.JavaExpressionParseException e) {
+			// ignored
+		}
+		this.refinement = parsed;
+    }
+
+	public PropertyAnnotation toPropertyAnnotation() {
+		var factory = (LatticeAnnotatedTypeFactory) analysis.getTypeFactory();
+		var anno = factory.getQualifierHierarchy().findAnnotationInHierarchy(annotations, factory.getTop());
+		return factory.getLattice().getPropertyAnnotation(anno == null ? factory.getTop() : anno);
 	}
+
+	/**
+	 * Returns the parsed behind this value with the {@code §subject§} variable substituted for the given expression.
+	 *
+	 * @param subject the subject to insert into the refinement.
+	 * @return An empty optional if the refinement couldn't be parsed, otherwise an optional containing the
+	 * refinement applied to the subject.
+	 */
+	public Optional<JavaExpression> getRefinement(JavaExpression subject) {
+		return Optional.ofNullable(refinement).map(prop -> viewpointAdapt(prop, List.of(subject)));
+	}
+
+	public boolean isParsed() {
+		return refinement != null;
+	}
+
+	public boolean onlyLiterals() {
+		var factory = (LatticeAnnotatedTypeFactory) analysis.getTypeFactory();
+		return factory.getLattice().getEvaluatedPropertyAnnotation(
+				factory.getQualifierHierarchy().findAnnotationInHierarchy(annotations, factory.getTop())) != null;
+	}
+
 }

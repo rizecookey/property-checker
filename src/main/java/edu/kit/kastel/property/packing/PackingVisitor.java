@@ -30,6 +30,7 @@ import javax.lang.model.type.NoType;
 import javax.lang.model.type.TypeMirror;
 import java.lang.annotation.Annotation;
 import java.util.*;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class PackingVisitor
@@ -81,7 +82,6 @@ public class PackingVisitor
 
         super.reportCommonAssignmentError(varType, valueType, valueTree, "packing." + errorKey, extraArgs);
     }
-
 
     @Override
     protected void reportMethodInvocabilityError(
@@ -261,18 +261,9 @@ public class PackingVisitor
                 oldAnnotation = atypeFactory.getAnnotatedType(objToPack).getAnnotationInHierarchy(atypeFactory.getUnknownInitialization());
             }
 
-            TypeMirror oldTypeFrame;
-            if (AnnotationUtils.areSameByName(oldAnnotation, atypeFactory.getUnknownInitialization())
-                    || AnnotationUtils.areSameByName(oldAnnotation, atypeFactory.getUnderInitialization())) {
-                oldTypeFrame = atypeFactory.getTypeFrameFromAnnotation(oldAnnotation);
-            } else /*if (AnnotationUtils.areSameByName(oldAnnotation, atypeFactory.getInitialized()))*/ {
-                Type enclosingClassType = ((JCTree) TreePathUtil.enclosingClass(getCurrentPath())).type;
-                if (enclosingClassType.isFinal()) {
-                    oldTypeFrame = enclosingClassType;
-                } else {
-                    oldTypeFrame = null;
-                }
-            }
+            TypeElement thisTypeElement = TreeUtils.elementFromDeclaration(TreePathUtil.enclosingClass(getCurrentPath()));
+            TypeMirror oldTypeFrame = getTypeFrame(oldAnnotation, thisTypeElement);
+
             TypeMirror newTypeFrame;
             if (ElementUtils.isMethod(invokedMethod, unpackMethod, env)) {
                 // Type-check unpack statement: cannot unpack UnknownInitialization
@@ -290,12 +281,12 @@ public class PackingVisitor
             } else {
                 // Type-check pack statement:
                 // New type frame must be subtype of old type frame.
-                newTypeFrame = types.getDeclaredType((TypeElement) typeElement);
+                newTypeFrame = types.getDeclaredType(typeElement);
                 if (oldTypeFrame == null || (!types.isSubtype(newTypeFrame, oldTypeFrame) || types.isSameType(oldTypeFrame, newTypeFrame))) {
                     checker.reportError(node, "initialization.already.packed");
                 }
 
-                // All fields in new frame must be initialized.
+                //All fields in new frame must be initialized.
                 checkFieldsInitializedUpToFrame(node, newTypeFrame);
             }
 
@@ -318,6 +309,20 @@ public class PackingVisitor
             return null;
         } else {
             return super.visitMethodInvocation(node, p);
+        }
+    }
+
+    protected TypeMirror getTypeFrame(AnnotatedTypeMirror type) {
+        var annotation = type.getAnnotationInHierarchy(atypeFactory.getUnknownInitialization());
+        return getTypeFrame(annotation, TypesUtils.getTypeElement(type.getUnderlyingType()));
+    }
+
+    protected TypeMirror getTypeFrame(AnnotationMirror annotation, TypeElement typeElement) {
+        if (AnnotationUtils.areSameByName(annotation, atypeFactory.getUnknownInitialization())
+                || AnnotationUtils.areSameByName(annotation, atypeFactory.getUnderInitialization())) {
+            return atypeFactory.getTypeFrameFromAnnotation(annotation);
+        } else /*if (AnnotationUtils.areSameByName(oldAnnotation, atypeFactory.getInitialized()))*/ {
+            return ElementUtils.isFinal(typeElement) ? typeElement.asType() : null;
         }
     }
 

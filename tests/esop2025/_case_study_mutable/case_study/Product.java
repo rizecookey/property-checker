@@ -37,7 +37,6 @@ public final class Product {
     public static @AllowedFor(age="18") Product product18(
             String title,
             @Interval(min="0", max="2147483647") int price) {
-        // :: error: allowedfor.return.type.incompatible
         return new Product(title, price, 18);
     }
 
@@ -46,7 +45,6 @@ public final class Product {
     public static @AllowedFor(age="6") Product product6(
             String title,
             @Interval(min="0", max="2147483647") int price) {
-        // :: error: allowedfor.return.type.incompatible
         return new Product(title, price, 6);
     }
 }

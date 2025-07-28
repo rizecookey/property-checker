@@ -26,6 +26,7 @@ import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
 import java.io.File;
 import java.io.IOException;
+import java.io.Writer;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
@@ -96,12 +97,12 @@ public class ClassBuilder {
     		            sep +
     		            Arrays.stream(((URLClassLoader) grandparentLoader).getURLs()).map(URL::toString).collect(Collectors.joining(sep));
     		}
-    		
+
     		JavaCompiler.CompilationTask task = compiler.getTask(
-    				null,
+					Writer.nullWriter(),
     				fileManager,
     				null,
-    				Arrays.asList("-classpath", classPathStr),
+    				Arrays.asList("-classpath", classPathStr, "-proc:none"),
     				null,
     				src);
     		task.call();

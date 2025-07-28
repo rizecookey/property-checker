@@ -22,6 +22,13 @@ annotation Length(int len) pkg.List
     :<==> "(§subject§ == null && §len§ == 0) || (§subject§ != null && §subject§.size == §len§)"
     for "§len§ >= 0";
 
+annotation LengthAtLeast(int len) pkg.List
+    :<==> "(§subject§ == null && §len§ == 0) || (§subject§ != null && §subject§.size >= §len§)"
+    for "§len§ >= 0";
+
+relation LengthAtLeast(a) <: UnknownLength() :<==> "true";
+relation BottomLength() <: LengthAtLeast(a) :<==> "true";
+
 relation Length(a) <: Length(b) :<==> "§a§ == §b§";
 
 relation Length(a) <: UnknownLength() :<==> "true";

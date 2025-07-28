@@ -21,6 +21,11 @@ import com.sun.source.tree.Tree.Kind;
 import edu.kit.kastel.property.packing.PackingChecker;
 import edu.kit.kastel.property.packing.PackingFieldAccessSubchecker;
 import edu.kit.kastel.property.subchecker.lattice.LatticeSubchecker;
+import org.checkerframework.javacutil.TypesUtils;
+
+import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.TypeKind;
+import javax.lang.model.type.TypeMirror;
 
 public final class ClassUtils {
 
@@ -49,50 +54,73 @@ public final class ClassUtils {
         
 	}
 
-    public static Class<?> classOrPrimitiveForName(String str, PackingFieldAccessSubchecker checker) {
-        return classOrPrimitiveForName(str, checker.getPackingChecker());
+    public static TypeMirror typeForName(String str, PackingFieldAccessSubchecker checker) {
+        return typeForName(str, checker.getPackingChecker());
     }
 
     @SuppressWarnings("nls")
-    public static Class<?> classOrPrimitiveForName(String str, LatticeSubchecker checker) {
-        return classOrPrimitiveForName(str, checker.getParentChecker());
+    public static TypeMirror typeForName(String str, LatticeSubchecker checker) {
+        return typeForName(str, checker.getParentChecker());
     }
 
-    public static Class<?> classOrPrimitiveForName(String str, PackingChecker checker) {
-        switch(str) {
-        case "boolean": return boolean.class;
-        case "byte": return byte.class;
-        case "char": return char.class;
-        case "int": return int.class;
-        case "short": return short.class;
-        case "long": return long.class;
-        case "float": return float.class;
-        case "double": return double.class;
-        case "void": return void.class;
-        case "any": return null;
-        case "<nulltype>": return null;
-        default: try {
-                return Class.forName(str);
-            } catch (ClassNotFoundException e) {
-                try {
-                    return checker.getProjectClassLoader().loadClass(str);
-                } catch (ClassNotFoundException e1) {
-                    e1.printStackTrace();
+    public static TypeMirror typeForName(String str, PackingChecker checker) {
+        var types = checker.getTypeUtils();
+        return switch (str) {
+            case "boolean" -> types.getPrimitiveType(TypeKind.BOOLEAN);
+            case "byte" -> types.getPrimitiveType(TypeKind.BYTE);
+            case "char" -> types.getPrimitiveType(TypeKind.CHAR);
+            case "int" -> types.getPrimitiveType(TypeKind.INT);
+            case "short" -> types.getPrimitiveType(TypeKind.SHORT);
+            case "long" -> types.getPrimitiveType(TypeKind.LONG);
+            case "float" -> types.getPrimitiveType(TypeKind.FLOAT);
+            case "double" -> types.getPrimitiveType(TypeKind.DOUBLE);
+            case "void" -> types.getNoType(TypeKind.VOID);
+            case "any" -> null;
+            case "<nulltype>" -> null;
+            default -> {
+                var type = checker.getElementUtils().getTypeElement(str).asType();
+                if (type == null) {
                     throw new AssertionError(str);
                 }
+                yield type;
+            }
+        };
+    }
+
+    public static Class<?> classForName(String name, LatticeSubchecker checker) {
+        try {
+            return Class.forName(name);
+        } catch (ClassNotFoundException e) {
+            try {
+                return checker.getProjectClassLoader().loadClass(name);
+            } catch (ClassNotFoundException e1) {
+                e1.printStackTrace();
+                throw new AssertionError(name);
             }
         }
     }
 
     public static Class<?> literalKindToClass(Kind kind) {
-        switch(kind) {
-        case BOOLEAN_LITERAL: return boolean.class;
-        case CHAR_LITERAL: return char.class;
-        case INT_LITERAL: return int.class;
-        case LONG_LITERAL: return long.class;
-        case FLOAT_LITERAL: return float.class;
-        case DOUBLE_LITERAL: return double.class;
-        default: return null;
+        return switch (kind) {
+            case BOOLEAN_LITERAL -> boolean.class;
+            case CHAR_LITERAL -> char.class;
+            case INT_LITERAL -> int.class;
+            case LONG_LITERAL -> long.class;
+            case FLOAT_LITERAL -> float.class;
+            case DOUBLE_LITERAL -> double.class;
+            default -> null;
+        };
+    }
+
+    public static String getCanonicalName(TypeMirror type) {
+        if (type == null) {
+            return null;
         }
+        if (type.getKind().isPrimitive()) {
+            return TypesUtils.simpleTypeName(type);
+        } else if (type instanceof DeclaredType dt) {
+            return TypesUtils.getQualifiedName(dt);
+        }
+        return null;
     }
 }
