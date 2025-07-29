@@ -42,7 +42,7 @@ public final class BasicPackingB extends BasicPackingA {
 
     @NonMonotonic
     void unpackingCovariant(@UnknownInitialization(BasicPackingA.class) @Unique BasicPackingB this) {
-        // :: error: initialization.write.committed.field :: error: nullness.assignment.type.incompatible
+        // :: error: nullness.assignment.type.incompatible
         this.bField = null;
         // :: error: initialization.unpacking.unknown
         Packing.unpack(this, BasicPackingB.class);
@@ -63,7 +63,7 @@ public final class BasicPackingB extends BasicPackingA {
     @NonMonotonic
     // :: error: packing.postcondition.not.satisfied
     void unpackAliased(@MaybeAliased BasicPackingB this) {
-        // :: error: initialization.write.committed.field :: error: nullness.assignment.type.incompatible
+        // :: error: nullness.assignment.type.incompatible
         this.bField = null;
         // :: error: exclusivity.packing.aliased
         Packing.unpack(this, BasicPackingB.class);

@@ -119,35 +119,49 @@ public class PackingAnnotatedTypeFactory
         // Filter out fields which are initialized according to subchecker
         uninitializedFields.removeIf(
                 field -> {
-                    JavaExpression receiver;
-                    if (ElementUtils.isStatic(field)) {
-                        receiver = new ClassName(((JCTree) currentClass).type);
-                    } else {
-                        receiver = new ThisReference(((JCTree) currentClass).type);
+                    AnnotatedTypeMirror declType = factory.getAnnotatedType(field);
+                    AnnotatedTypeMirror refType = getRefinedTypeInCurrentClass(factory, targetStore, currentClass, field);
+
+                    // MonotonicNonNull fields may be null
+                    if (declType.hasAnnotation(MonotonicNonNull.class) && refType.hasAnnotation(Nullable.class)) {
+                        return true;
                     }
-                    FieldAccess fa = new FieldAccess(receiver, field);
-                    CFAbstractValue<?> value = targetStore.getFieldValue(fa);
-                    return isInitialized(factory, value, field);
+
+                    return factory.getTypeHierarchy().isSubtype(refType, declType);
                 });
 
         return uninitializedFields;
     }
 
-    public static boolean isInitialized(
-            GenericAnnotatedTypeFactory<?, ?, ?, ?> factory,
-            CFAbstractValue<?> value,
-            VariableElement var) {
-        // Exclusivity checker considers unassigned fields with default value null unique
-        if (value == null && factory instanceof ExclusivityAnnotatedTypeFactory) {
-            return true;
+    private static CFAbstractValue<?> getFieldValueInCurrentClass(CFAbstractStore<?, ?> store, ClassTree currentClass, VariableElement field) {
+        JavaExpression receiver;
+        if (ElementUtils.isStatic(field)) {
+            receiver = new ClassName(((JCTree) currentClass).type);
+        } else {
+            receiver = new ThisReference(((JCTree) currentClass).type);
         }
+        FieldAccess fa = new FieldAccess(receiver, field);
+        return store.getFieldValue(fa);
+    }
 
-        AnnotatedTypeMirror declType = factory.getAnnotatedType(var);
+    static AnnotatedTypeMirror getRefinedTypeInCurrentClass(
+            GenericAnnotatedTypeFactory<?,?,?,?> factory,
+            @Nullable CFAbstractStore<?, ?> store,
+            ClassTree currentClass,
+            VariableElement field) {
+        AnnotatedTypeMirror declType = factory.getAnnotatedType(field);
         AnnotatedTypeMirror refType = declType.deepCopy();
+        CFAbstractValue<?> value = store == null ? null : getFieldValueInCurrentClass(store, currentClass, field);
+
         if (value != null) {
             refType.replaceAnnotations(value.getAnnotations());
         } else {
-            refType.replaceAnnotations(factory.getQualifierHierarchy().getTopAnnotations());
+            // Exclusivity checker considers unassigned fields with default value null unique
+            if (factory instanceof ExclusivityAnnotatedTypeFactory exclFactory) {
+                refType.replaceAnnotations(List.of(exclFactory.UNIQUE));
+            } else {
+                refType.replaceAnnotations(factory.getQualifierHierarchy().getTopAnnotations());
+            }
         }
         if (refType instanceof AnnotatedTypeMirror.AnnotatedDeclaredType) {
             ((AnnotatedTypeMirror.AnnotatedDeclaredType) refType).getTypeArguments().forEach(arg -> factory.addDefaultAnnotations(arg));
@@ -156,12 +170,7 @@ public class PackingAnnotatedTypeFactory
             factory.addDefaultAnnotations(((AnnotatedTypeMirror.AnnotatedArrayType) refType).getComponentType());
         }
 
-        // MonotonicNonNull fields may be null
-        if (declType.hasAnnotation(MonotonicNonNull.class) && refType.hasAnnotation(Nullable.class)) {
-            return true;
-        }
-
-        return factory.getTypeHierarchy().isSubtype(refType, declType);
+        return refType;
     }
 
     @Override

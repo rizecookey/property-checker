@@ -180,8 +180,8 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
     @Override
     public Void visitAssignment(AssignmentTree node, Void p) {
         if (TreeUtils.isFieldAccess(node.getVariable())) {
-            // Fields can be assigned any value if the receiver is sufficiently unpacked, and cannot be assigned at all
-            // otherwise. Nothing to check.
+            // Fields assignments are handled in the PackingVisitor.
+            // Nothing to do here.
             return null;
         }
         call(() -> super.visitAssignment(node, p), () -> result.illTypedAssignments.add(node));
@@ -518,13 +518,19 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
                 ? expressionFromTree(receiverTree)
                 : JavaExpression.getImplicitReceiver(TreeUtils.elementFromUse(invocation));
         amendSmtResult(expectedType, valueType, invocation.getMethodSelect(),
-                subject, typeCheckSuccess);
+                subject, typeCheckSuccess, getCurrentPath());
     }
 
-    private void amendSmtResultForValue(AnnotatedTypeMirror varType, AnnotatedTypeMirror valueType,
+    public void amendSmtResultForValue(AnnotatedTypeMirror varType, AnnotatedTypeMirror valueType,
                                         Tree valueTree, boolean typeCheckSuccess) {
         amendSmtResult(varType, valueType, valueTree,
-                expressionFromTree((ExpressionTree) valueTree), typeCheckSuccess);
+                expressionFromTree((ExpressionTree) valueTree), typeCheckSuccess, getCurrentPath());
+    }
+
+    public void amendSmtResultForValue(AnnotatedTypeMirror varType, AnnotatedTypeMirror valueType,
+                                       Tree valueTree, boolean typeCheckSuccess, TreePath path) {
+        amendSmtResult(varType, valueType, valueTree,
+                expressionFromTree((ExpressionTree) valueTree), typeCheckSuccess, path);
     }
 
     private void amendSmtResult(
@@ -532,12 +538,13 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             AnnotatedTypeMirror knownType,
             Tree contextKey,
             JavaExpression subject,
-            boolean typeCheckSuccess
+            boolean typeCheckSuccess,
+            TreePath path
     ) {
         var property = atypeFactory.getLattice().getPropertyAnnotation(goalType);
 
         JavaExpression toProve = viewpointAdapt(
-                parseOrUnknown(property, getCurrentPath()),
+                parseOrUnknown(property, path),
                 List.of(subject)
         );
 
@@ -546,7 +553,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         computeSmtContext(atypeFactory.getStoreBefore(contextKey), contextKey);
         var valueProperty = atypeFactory.getLattice().getPropertyAnnotation(knownType);
         var valueRefinement = viewpointAdapt(
-                parseOrUnknown(valueProperty, getCurrentPath()),
+                parseOrUnknown(valueProperty, path),
                 List.of(subject)
         );
         tryConvertToSmt(valueRefinement).ifPresent(res -> result.addContext(contextKey, res.smt()));

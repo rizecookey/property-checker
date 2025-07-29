@@ -27,7 +27,7 @@ public abstract class LengthInitTest {
     public LengthInitTest(@MaybeAliased @Length(len="1") List arg, int dummy) {
         this.i2 = arg;
         this.i3 = arg;
-        // :: error: initialization.nonmonotonic.write :: error: length.assignment.type.incompatible
+        // :: error: length.assignment.type.incompatible
         this.i4 = arg;
 
         // :: error: length.assignment.type.incompatible

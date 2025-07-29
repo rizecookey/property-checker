@@ -8,11 +8,13 @@ import com.sun.tools.javac.tree.TreeInfo;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.Unique;
-import edu.kit.kastel.property.subchecker.lattice.CooperativeChecker;
+import edu.kit.kastel.property.subchecker.lattice.*;
 import edu.kit.kastel.property.util.Assert;
 import edu.kit.kastel.property.util.Packing;
 import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
 import org.checkerframework.checker.initialization.InitializationAbstractVisitor;
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.dataflow.cfg.node.ThisNode;
 import org.checkerframework.dataflow.expression.JavaExpression;
@@ -29,7 +31,6 @@ import javax.lang.model.element.*;
 import javax.lang.model.type.NoType;
 import javax.lang.model.type.TypeMirror;
 import java.lang.annotation.Annotation;
-import java.util.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -545,8 +546,9 @@ public class PackingVisitor
         return null;
     }
 
-    protected List<String> isPreservingAssignment(ExpressionTree lhs, ExpressionTree valueExp) {
-        List<String> errors = new ArrayList<>();
+    protected List<Pair<GenericAnnotatedTypeFactory<?,?,?,?>, String>> isPreservingAssignment(ExpressionTree lhs, ExpressionTree valueExp) {
+        List<Pair<GenericAnnotatedTypeFactory<?,?,?,?>, String>> errors = new ArrayList<>();
+        ClassTree currentClass = TreePathUtil.enclosingClass(getCurrentPath());
 
         for (BaseTypeChecker targetChecker : getChecker().getTargetCheckers()) {
             String err = "assignment.type.incompatible";
@@ -557,24 +559,24 @@ public class PackingVisitor
             } else {
                 throw new AssertionError();
             }
+            GenericAnnotatedTypeFactory<?,?,?,?> factory = targetChecker.getTypeFactory();
 
             if (lhs instanceof MemberSelectTree && ((MemberSelectTree) lhs).getExpression().toString().equals("this")) {
+                VariableElement field = (VariableElement) TreeUtils.elementFromUse(lhs);
                 CFAbstractStore<?, ?> store = targetChecker.getTypeFactory().getStoreAfter(getCurrentPath().getLeaf());
 
-                if (store == null) {
-                    errors.add(err);
+                AnnotatedTypeMirror declType = factory.getAnnotatedType(field);
+                AnnotatedTypeMirror refType = PackingAnnotatedTypeFactory.getRefinedTypeInCurrentClass(factory, store, currentClass, field);
+                // MonotonicNonNull fields may be null
+                if (declType.hasAnnotation(MonotonicNonNull.class) && refType.hasAnnotation(Nullable.class)) {
                     break;
                 }
-                List<VariableElement> uninitFields = atypeFactory.getUninitializedFields(
-                        atypeFactory.getStoreAfter(getCurrentPath().getLeaf()),
-                        store,
-                        this.getCurrentPath(),
-                        ElementUtils.isStatic(TreeUtils.elementFromUse(lhs)),
-                        List.of()
-                );
-
-                if (uninitFields.contains(TreeUtils.elementFromUse(lhs))) {
-                    errors.add(err);
+                if (!factory.getTypeHierarchy().isSubtype(refType, declType)) {
+                    if (targetChecker instanceof LatticeSubchecker latticeSubchecker) {
+                        ((LatticeVisitor) latticeSubchecker.getVisitor())
+                                .amendSmtResultForValue(declType, refType, lhs, false, getCurrentPath());
+                    }
+                    errors.add(Pair.of(factory, err));
                     break;
                 }
             } else {
@@ -582,7 +584,10 @@ public class PackingVisitor
                 AnnotatedTypeMirror lhsType = targetChecker.getTypeFactory().getAnnotatedTypeLhs(lhs);
                 AnnotatedTypeMirror rhsType = targetChecker.getTypeFactory().getAnnotatedType(valueExp);
                 if (!targetChecker.getTypeFactory().getTypeHierarchy().isSubtype(rhsType, lhsType)) {
-                    errors.add(err);
+                    if (targetChecker instanceof LatticeSubchecker latticeSubchecker) {
+                        ((LatticeVisitor) latticeSubchecker.getVisitor()).amendSmtResultForValue(lhsType, rhsType, lhs, false);
+                    }
+                    errors.add(Pair.of(factory, err));
                     break;
                 }
             }
@@ -599,27 +604,47 @@ public class PackingVisitor
             ExpressionTree lhs = (ExpressionTree) varTree;
             AnnotatedTypeMirror xType = atypeFactory.getReceiverType(lhs);
 
-            List<String> assignmentErrs = isPreservingAssignment(lhs, valueExp);
-            if (assignmentErrs.isEmpty() && !atypeFactory.isDependableField(lhs)) {
+            if (atypeFactory.isDependableField(lhs)) {
+                if (lhs instanceof MemberSelectTree && !((MemberSelectTree) lhs).getExpression().toString().equals("this")) {
+                    checker.reportError(varTree, "initialization.write.unowned.dependable.field");
+                    return false;
+                }
+
+                if (enclMethod != null && atypeFactory.isMonotonicMethod(enclMethod)) {
+                    checker.reportError(varTree, "initialization.write.nonmonotonic");
+                    return false;
+                }
+
+                if (xType == null || atypeFactory.isUnknownInitialization(xType) || atypeFactory.isInitializedForFrame(xType, TreeInfo.symbol((JCTree) varTree).owner.type)) {
+                    checker.reportError(varTree, "initialization.write.committed.dependable.field", varTree);
+                    return false;
+                }
+            }
+
+            List<Pair<GenericAnnotatedTypeFactory<?,?,?,?>, String>> assignmentErrs = isPreservingAssignment(lhs, valueExp);
+
+            if (assignmentErrs.isEmpty()) {
                 return true;
             }
 
-            // Non-preserving assignments only allowed to fields of this, not other objects
             if (lhs instanceof MemberSelectTree && !((MemberSelectTree) lhs).getExpression().toString().equals("this")) {
-                checker.reportError(varTree, "initialization.assignment.invalid-lhs");
-                assignmentErrs.forEach(err -> checker.reportError(varTree, err));
+                assignmentErrs.forEach(err -> {
+                    if (err.first instanceof CooperativeAnnotatedTypeFactory factory) {
+                        factory.getChecker().getResult().illTypedAssignments.add((AssignmentTree) TreePathUtil.getAssignmentContext(getCurrentPath()));
+                    }
+                    checker.reportError(varTree, err.second);
+                });
+                assignmentErrs.forEach(err -> checker.reportError(varTree, err.second));
                 return false;
             }
 
-            if (!assignmentErrs.isEmpty() && enclMethod != null && atypeFactory.isMonotonicMethod(enclMethod)) {
-                checker.reportError(varTree, "initialization.nonmonotonic.write");
-                assignmentErrs.forEach(err -> checker.reportError(varTree, err));
+            if (enclMethod != null && atypeFactory.isMonotonicMethod(enclMethod)) {
+                assignmentErrs.forEach(err -> checker.reportError(varTree, err.second));
                 return false;
             }
 
             if (xType == null || atypeFactory.isUnknownInitialization(xType) || atypeFactory.isInitializedForFrame(xType, TreeInfo.symbol((JCTree) varTree).owner.type)) {
-                checker.reportError(varTree, "initialization.write.committed.field", varTree);
-                assignmentErrs.forEach(err -> checker.reportError(varTree, err));
+                assignmentErrs.forEach(err -> checker.reportError(varTree, err.second));
                 return false;
             }
         }
@@ -754,7 +779,7 @@ public class PackingVisitor
                                 receiverAnnotations);
                 uninitializedFields.removeAll(initializedFields);
 
-                // The FBC behavior because it's generally unsound in the packing type system;
+                // The FBC behavior is generally unsound in the packing type system;
                 // a field may be been assigned, but the rhs may violate the field's declared type.
                 // But if a field has been initialized by an inline initializer, that assignment respects the field's
                 // declared type.

@@ -2,13 +2,23 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/checker-framework/checker-qual-android/checker-framework.checker-qual-android.main.iml" filepath="$PROJECT_DIR$/.idea/modules/checker-framework/checker-qual-android/checker-framework.checker-qual-android.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/checker-framework/checker-qual/checker-framework.checker-qual.main.iml" filepath="$PROJECT_DIR$/.idea/modules/checker-framework/checker-qual/checker-framework.checker-qual.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/checker-framework/checker-util/checker-framework.checker-util.main.iml" filepath="$PROJECT_DIR$/.idea/modules/checker-framework/checker-util/checker-framework.checker-util.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/checker-framework/checker/checker-framework.checker.main.iml" filepath="$PROJECT_DIR$/.idea/modules/checker-framework/checker/checker-framework.checker.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/checker-framework/checker/checker-framework.checker.test.iml" filepath="$PROJECT_DIR$/.idea/modules/checker-framework/checker/checker-framework.checker.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/checker-framework/checker/checker-framework.checker.testannotations.iml" filepath="$PROJECT_DIR$/.idea/modules/checker-framework/checker/checker-framework.checker.testannotations.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/checker-framework/dataflow/checker-framework.dataflow.main.iml" filepath="$PROJECT_DIR$/.idea/modules/checker-framework/dataflow/checker-framework.dataflow.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/checker-framework/framework-test/checker-framework.framework-test.main.iml" filepath="$PROJECT_DIR$/.idea/modules/checker-framework/framework-test/checker-framework.framework-test.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/checker-framework/framework-test/checker-framework.framework-test.taglet.iml" filepath="$PROJECT_DIR$/.idea/modules/checker-framework/framework-test/checker-framework.framework-test.taglet.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/checker-framework/framework/checker-framework.framework.main.iml" filepath="$PROJECT_DIR$/.idea/modules/checker-framework/framework/checker-framework.framework.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/checker-framework/javacutil/checker-framework.javacutil.main.iml" filepath="$PROJECT_DIR$/.idea/modules/checker-framework/javacutil/checker-framework.javacutil.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/property-checker.iml" filepath="$PROJECT_DIR$/.idea/modules/property-checker.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/property-checker.main.iml" filepath="$PROJECT_DIR$/.idea/modules/property-checker.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/property-checker-qual/property-checker.property-checker-qual.iml" filepath="$PROJECT_DIR$/.idea/modules/property-checker-qual/property-checker.property-checker-qual.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/property-checker-qual/property-checker.property-checker-qual.main.iml" filepath="$PROJECT_DIR$/.idea/modules/property-checker-qual/property-checker.property-checker-qual.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/property-checker-qual/property-checker.property-checker-qual.test.iml" filepath="$PROJECT_DIR$/.idea/modules/property-checker-qual/property-checker.property-checker-qual.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/property-checker.test.iml" filepath="$PROJECT_DIR$/.idea/modules/property-checker.test.iml" />
     </modules>
   </component>
 </project>

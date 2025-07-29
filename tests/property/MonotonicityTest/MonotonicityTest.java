@@ -27,7 +27,7 @@ public class MonotonicityTest {
 
     void monotonic(@UnderInitialization(Object.class) @Unique MonotonicityTest this) {
         this.field0 = new Object();
-        // :: error: initialization.nonmonotonic.write :: error: nullness.assignment.type.incompatible
+        // :: error: nullness.assignment.type.incompatible
         this.field0 = null;
         // :: error: initialization.nonmonotonic.method.call
         this.nonMonotonic();

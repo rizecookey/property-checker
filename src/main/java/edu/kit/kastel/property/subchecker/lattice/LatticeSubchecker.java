@@ -123,6 +123,11 @@ public final class LatticeSubchecker extends BaseTypeChecker implements Cooperat
     }
 
     @Override
+    public LatticeVisitor getVisitor() {
+        return (LatticeVisitor) super.getVisitor();
+    }
+
+    @Override
     public LatticeAnnotatedTypeFactory getTypeFactory() {
         return (LatticeAnnotatedTypeFactory) super.getTypeFactory();
     }

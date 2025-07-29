@@ -1080,8 +1080,12 @@ public class JavaJMLPrinter extends PrettyPrinter {
     public void visitAssign(JCAssign tree) {
         printInferredPackingStatements(tree);
 
-        // Only assignments to local variables need an assertion; fields are checked at the next packing statement.
-        if (tree.getVariable() instanceof MemberSelectTree) {
+        String tempVar = tempVarName();
+        List<Condition> conditions = getConditions(tree, tempVar, ConditionLocation.ASSERTION);
+
+        // For readability, skip field assignments if they are not ill-typed (which can only happen with assignments
+        // to committed fields).
+        if (tree.getVariable() instanceof MemberSelectTree && !conditions.stream().anyMatch(cond -> cond.conditionType.equals(ConditionType.ASSERTION))) {
             super.visitAssign(tree);
             return;
         }
@@ -1093,7 +1097,6 @@ public class JavaJMLPrinter extends PrettyPrinter {
             return;
         }
 
-        String tempVar = tempVarName();
 
         visitAssignOrDef(
                 tree.getVariable().toString(),

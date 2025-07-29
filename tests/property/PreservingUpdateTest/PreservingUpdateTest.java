@@ -11,19 +11,20 @@ public final class PreservingUpdateTest {
     @NonNull Object objField = new Object();
 
     void preservingAliased(@MaybeAliased PreservingUpdateTest this) {
-       this.intField = 2;
-       this.objField = new Object();
+        // :: error: interval.assignment.type.incompatible
+        this.intField = 2;
+        this.objField = new Object();
     }
 
     @NonMonotonic
     void nonPreservingAliased0(@MaybeAliased PreservingUpdateTest this) {
-        // :: error: initialization.write.committed.field :: error: interval.assignment.type.incompatible
+        // :: error: interval.assignment.type.incompatible
         this.intField = 0;
     }
 
     @NonMonotonic
     void nonPreservingAliased1(@MaybeAliased PreservingUpdateTest this) {
-        // :: error: initialization.write.committed.field :: error: nullness.assignment.type.incompatible
+        // :: error: nullness.assignment.type.incompatible
         this.objField = null;
     }
 }
