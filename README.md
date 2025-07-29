@@ -11,7 +11,7 @@ If the Property Checker is not able to completely prove a program's correctness,
 
 # Tests
 
-See the folder `tests` for short examples. For a longer example project using the Property Checker, see https://github.com/flo2702/property-checker-example.
+See the folder `tests` for short examples.
 
 To run a specific test case, use `./gradlew clean test --tests <name of test case>`, e.g., `./gradlew clean test --tests NullnessTest` to run `tests.property.NullnessTest`.
 
