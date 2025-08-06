@@ -233,7 +233,7 @@ public abstract class PackingClientTransfer<
                 List<AnnotatedTypeMirror> exclParamTypes = exclMethod.executableType.getParameterTypes();
                 for (AnnotatedTypeMirror paramType : method.executableType.getParameterTypes()) {
                     boolean paramReadOnly = exclParamTypes.get(i).hasAnnotation(ReadOnly.class);
-                    if (!paramReadOnly && ! paramType.getKind().isPrimitive()) {
+                    if (!paramReadOnly && !paramType.getKind().isPrimitive()) {
                         V paramDefaultValue = analysis.createAbstractValue(
                                 paramType.getAnnotations(),
                                 paramType.getUnderlyingType());

@@ -26,7 +26,7 @@ public final class IntInitTest {
 
     @NonMonotonic
     public @Remainder(remainder="0", modulus="2") int helper(@Unique @UnderInitialization IntInitTest this) {
-    	// :: error: remainder.return.type.incompatible :: error: packing.return.type.incompatible
+    	// :: error: remainder.return.type.incompatible
         return this.even;
     }
 

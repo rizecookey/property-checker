@@ -16,25 +16,23 @@
  */
 package edu.kit.kastel.property.subchecker.lattice;
 
-import javax.lang.model.element.ElementKind;
-import javax.lang.model.element.VariableElement;
-import javax.lang.model.type.TypeMirror;
-
 import edu.kit.kastel.property.lattice.PropertyAnnotation;
 import edu.kit.kastel.property.packing.PackingClientValue;
 import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.framework.util.JavaExpressionParseUtil;
 import org.checkerframework.javacutil.AnnotationMirrorSet;
-import org.checkerframework.javacutil.TreeUtils;
 
+import javax.lang.model.type.TypeMirror;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import static org.checkerframework.dataflow.expression.ViewpointAdaptJavaExpression.viewpointAdapt;
 
 public final class LatticeValue extends PackingClientValue<LatticeValue> {
 
 	private final JavaExpression refinement;
+	private final List<JavaExpression> refinementParams;
 
 	// TODO: verify that there are no ambiguities when parsing
 	//  e.g.: are there situations where LatticeValues originally parsed at field declarations are recreated in a local context?
@@ -44,20 +42,24 @@ public final class LatticeValue extends PackingClientValue<LatticeValue> {
 			TypeMirror underlyingType) {
 		super(analysis, annotations, underlyingType);
 
-		JavaExpression parsed = null;
+		JavaExpression parsedRefinement = null;
+		List<JavaExpression> parsedParams = List.of();
 		PropertyAnnotation property = toPropertyAnnotation();
 		try {
 			if (analysis.getLocalTree() != null) {
 				// if we have a location where the refinement should be parsed, we parse it
 				var localPath = analysis.getTypeFactory().getPath(analysis.getLocalTree());
-				parsed = property.parseRefinement(localPath, analysis.getTypeFactory().getChecker());
+				parsedRefinement = property.parseRefinement(localPath, analysis.getTypeFactory().getChecker());
+				parsedParams = property.parseRefinementParams(localPath, analysis.getTypeFactory().getChecker());
 			} else if (analysis.getField() != null) {
-				parsed = property.parseRefinement(analysis.getField(), analysis.getTypeFactory().getChecker());
+				parsedRefinement = property.parseRefinement(analysis.getField(), analysis.getTypeFactory().getChecker());
+				parsedParams = property.parseRefinementParams(analysis.getField(), analysis.getTypeFactory().getChecker());
 			}
 		} catch (JavaExpressionParseUtil.JavaExpressionParseException e) {
 			// ignored
 		}
-		this.refinement = parsed;
+		this.refinement = parsedRefinement;
+		this.refinementParams = parsedParams;
     }
 
 	public PropertyAnnotation toPropertyAnnotation() {
@@ -67,7 +69,7 @@ public final class LatticeValue extends PackingClientValue<LatticeValue> {
 	}
 
 	/**
-	 * Returns the parsed behind this value with the {@code §subject§} variable substituted for the given expression.
+	 * Returns the parsed refinement behind this value with the {@code §subject§} variable substituted for the given expression.
 	 *
 	 * @param subject the subject to insert into the refinement.
 	 * @return An empty optional if the refinement couldn't be parsed, otherwise an optional containing the
@@ -75,6 +77,16 @@ public final class LatticeValue extends PackingClientValue<LatticeValue> {
 	 */
 	public Optional<JavaExpression> getRefinement(JavaExpression subject) {
 		return Optional.ofNullable(refinement).map(prop -> viewpointAdapt(prop, List.of(subject)));
+	}
+
+	/**
+	 * Returns the parsed parameters of the refinement qualifier behind this value with the {@code §subject§} variable substituted for the given expression.
+	 *
+	 * @param subject the subject to insert into the refinement.
+	 * @return the parameters of the refinement qualifier applied to the subject
+	 */
+	public Stream<JavaExpression> getRefinementParams(JavaExpression subject) {
+		return refinementParams.stream().map(p -> viewpointAdapt(p, List.of(subject)));
 	}
 
 	public boolean isParsed() {

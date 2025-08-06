@@ -19,7 +19,7 @@ annotation UnknownLength() any :<==> "true" for "true";
 annotation BottomLength() any :<==> "false" for "true";
 
 annotation Length(int len) java.util.List
-    :<==> "(§subject§ == null && §len§ == 0) || (§subject§ != null && §subject§.size() == §len§)"
+    :<==> "(§subject§ == null && §len§ == 0) || (§subject§ != null && §subject§.size == §len§)"
     for "§len§ >= 0";
 
 relation Length(a) <: Length(b) :<==> "§a§ == §b§";

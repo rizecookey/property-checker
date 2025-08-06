@@ -131,6 +131,28 @@ public class PropertyAnnotation {
                     checker.getPathToCompilationUnit(), checker.getProcessingEnvironment());
     }
 
+    public List<JavaExpression> parseRefinementParams(TreePath localVarPath, SourceChecker checker)
+            throws JavaExpressionParseUtil.JavaExpressionParseException {
+        // for the subject, we use the checker framework's special parameter # syntax.
+        var subjectParam = subject(checker.getProcessingEnvironment());
+
+        TypeMirror enclosingType = TreeUtils.elementFromDeclaration(TreePathUtil.enclosingClass(localVarPath)).asType();
+        ThisReference thisReference = TreePathUtil.isTreeInStaticScope(localVarPath)
+                ? null
+                : new ThisReference(enclosingType);
+        return actualParameters.stream().map(param -> {
+            try {
+                return JavaExpressionParseUtil.parse(
+                        param, enclosingType, thisReference,
+                        List.of(subjectParam), localVarPath,
+                        checker.getPathToCompilationUnit(), checker.getProcessingEnvironment());
+            } catch (JavaExpressionParseUtil.JavaExpressionParseException e) {
+                //TODO
+                throw new RuntimeException(e);
+            }
+        }).toList();
+    }
+
     public JavaExpression parseRefinement(VariableElement field, SourceChecker checker)
             throws JavaExpressionParseUtil.JavaExpressionParseException {
         String refinement = combinedRefinement("#1");
@@ -139,6 +161,23 @@ public class PropertyAnnotation {
         return JavaExpressionParseUtil.parse(refinement, enclosingType, thisReference,
                 List.of(subject(checker.getProcessingEnvironment())), null,
                 checker.getPathToCompilationUnit(), checker.getProcessingEnvironment());
+    }
+
+    public List<JavaExpression> parseRefinementParams(VariableElement field, SourceChecker checker)
+            throws JavaExpressionParseUtil.JavaExpressionParseException {
+        TypeMirror enclosingType = field.getEnclosingElement().asType();
+        ThisReference thisReference = ElementUtils.isStatic(field) ? null : new ThisReference(enclosingType);
+
+        return actualParameters.stream().map(param -> {
+            try {
+                return JavaExpressionParseUtil.parse(param, enclosingType, thisReference,
+                        List.of(subject(checker.getProcessingEnvironment())), null,
+                        checker.getPathToCompilationUnit(), checker.getProcessingEnvironment());
+            } catch (JavaExpressionParseUtil.JavaExpressionParseException e) {
+                //TODO
+                throw new RuntimeException(e);
+            }
+        }).toList();
     }
 
     private FormalParameter subject(ProcessingEnvironment env) {

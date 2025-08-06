@@ -101,7 +101,7 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 		// it will always return true if the refinement information is missing.
 		Predicate<Map.Entry<? extends JavaExpression, LatticeValue>> isDependent =
 				entry -> !entry.getKey().equals(dependency) // dependents don't include the value itself
-						&& entry.getValue().getRefinement(entry.getKey()).map(exprAnalyzer::test).orElse(true);
+						&& entry.getValue().getRefinementParams(entry.getKey()).map(exprAnalyzer::test).anyMatch(Boolean::booleanValue);
 
 		// We set local variable types to top if they're invalidated. If we removed them from the store,
 		// the framework would incorrectly fall back to their declared type
