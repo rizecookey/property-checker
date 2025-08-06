@@ -121,7 +121,10 @@ public final class PropertyChecker extends PackingChecker {
         if (subcheckers == null) {
             subcheckers = new ArrayList<>();
             subcheckers.add(getFieldAccessChecker());
-            subcheckers.add(getExclusivityChecker());
+
+            if (!hasOptionNoSubcheckers("noExclusivity")) {
+                subcheckers.add(getExclusivityChecker());
+            }
 
             if (shouldResolveReflection()) {
                 subcheckers.add(new MethodValChecker());
