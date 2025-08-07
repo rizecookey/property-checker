@@ -47,6 +47,7 @@ import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.type.TypeMirror;
 import java.util.*;
 import java.util.function.Predicate;
+import java.util.function.ToDoubleBiFunction;
 import java.util.stream.Stream;
 
 public final class LatticeStore extends PackingClientStore<LatticeValue, LatticeStore> {
@@ -76,6 +77,8 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
         clearDependents(var);
 	}
 
+	// TODO investigate performance issue in code below
+
 	private void clearDependents(JavaExpression dependency) {
 		Predicate<JavaExpression> exprAnalyzer;
 		Tree currentTree = ((LatticeAnalysis) analysis).getLocalTree();
@@ -97,11 +100,13 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 			exprAnalyzer = expr -> expr.containsSyntacticEqualJavaExpression(dependency);
 		}
 
+		LatticeAnnotatedTypeFactory factory = (LatticeAnnotatedTypeFactory) analysis.getTypeFactory();
 		// this predicate is a conservative _approximation_ for "does a given type depend on `dependency`"?
 		// it will always return true if the refinement information is missing.
 		Predicate<Map.Entry<? extends JavaExpression, LatticeValue>> isDependent =
 				entry -> !entry.getKey().equals(dependency) // dependents don't include the value itself
-						&& entry.getValue().getRefinementParams(entry.getKey()).map(exprAnalyzer::test).anyMatch(Boolean::booleanValue);
+						&& factory.getLattice().getEvaluatedPropertyAnnotation(entry.getValue().getAnnotations().first()) == null
+						&& entry.getValue().getRefinementParams(entry.getKey()).parallel().map(exprAnalyzer::test).anyMatch(Boolean::booleanValue);
 
 		// We set local variable types to top if they're invalidated. If we removed them from the store,
 		// the framework would incorrectly fall back to their declared type
@@ -112,7 +117,7 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 		methodValues.entrySet().removeIf(isDependent);
 		Optional.ofNullable(thisValue)
 				// special case for non null annotations on `this` - they can never be invalidated
-				.filter(val -> !val.toPropertyAnnotation().getAnnotationType().isNonNull())
+				.filter(val -> !val.getPropertyAnnotation().getAnnotationType().isNonNull())
 				.filter(val -> isDependent.test(Map.entry(new ThisReference(val.getUnderlyingType()), val)))
 				.ifPresent(val -> thisValue = createTopValue(val.getUnderlyingType()));
 
@@ -301,6 +306,12 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 				continue;
 			}
 
+			var fieldOwnerType = TypesUtils.getTypeElement(fieldOwner.getType());
+			if (fieldOwnerType == null) {
+				// type variables have no fields
+				continue;
+			}
+
 			var exclAnno = exclFactory.deriveExclusivityValue(inputExclType, fieldOwner);
 			if (!exclHierarchy.isSubtypeQualifiersOnly(exclAnno, exclFactory.MAYBE_ALIASED)) {
 				// context is @ReadOnly, so none of its fields could have been modified
@@ -311,7 +322,7 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 			// based on the uniqueness and packing information
 
 			var modifiedFields = ElementUtils.getAllFieldsIn(
-							TypesUtils.getTypeElement(fieldOwner.getType()), atypeFactory.getElementUtils())
+							fieldOwnerType, atypeFactory.getElementUtils())
 					.stream();
 
 			if (AnnotationUtils.areSame(exclFactory.MAYBE_ALIASED, exclAnno)) {

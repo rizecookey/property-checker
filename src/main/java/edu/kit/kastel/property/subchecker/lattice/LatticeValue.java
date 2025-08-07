@@ -31,6 +31,7 @@ import static org.checkerframework.dataflow.expression.ViewpointAdaptJavaExpress
 
 public final class LatticeValue extends PackingClientValue<LatticeValue> {
 
+	private final PropertyAnnotation propertyAnnotation;
 	private final JavaExpression refinement;
 	private final List<JavaExpression> refinementParams;
 
@@ -42,18 +43,20 @@ public final class LatticeValue extends PackingClientValue<LatticeValue> {
 			TypeMirror underlyingType) {
 		super(analysis, annotations, underlyingType);
 
+		var factory = (LatticeAnnotatedTypeFactory) analysis.getTypeFactory();
+		var anno = factory.getQualifierHierarchy().findAnnotationInHierarchy(annotations, factory.getTop());
+		propertyAnnotation = factory.getLattice().getPropertyAnnotation(anno == null ? factory.getTop() : anno);
 		JavaExpression parsedRefinement = null;
 		List<JavaExpression> parsedParams = List.of();
-		PropertyAnnotation property = toPropertyAnnotation();
 		try {
 			if (analysis.getLocalTree() != null) {
 				// if we have a location where the refinement should be parsed, we parse it
 				var localPath = analysis.getTypeFactory().getPath(analysis.getLocalTree());
-				parsedRefinement = property.parseRefinement(localPath, analysis.getTypeFactory().getChecker());
-				parsedParams = property.parseRefinementParams(localPath, analysis.getTypeFactory().getChecker());
+				parsedRefinement = propertyAnnotation.parseRefinement(localPath, analysis.getTypeFactory().getChecker());
+				parsedParams = propertyAnnotation.parseRefinementParams(localPath, analysis.getTypeFactory().getChecker());
 			} else if (analysis.getField() != null) {
-				parsedRefinement = property.parseRefinement(analysis.getField(), analysis.getTypeFactory().getChecker());
-				parsedParams = property.parseRefinementParams(analysis.getField(), analysis.getTypeFactory().getChecker());
+				parsedRefinement = propertyAnnotation.parseRefinement(analysis.getField(), analysis.getTypeFactory().getChecker());
+				parsedParams = propertyAnnotation.parseRefinementParams(analysis.getField(), analysis.getTypeFactory().getChecker());
 			}
 		} catch (JavaExpressionParseUtil.JavaExpressionParseException e) {
 			// ignored
@@ -62,10 +65,8 @@ public final class LatticeValue extends PackingClientValue<LatticeValue> {
 		this.refinementParams = parsedParams;
     }
 
-	public PropertyAnnotation toPropertyAnnotation() {
-		var factory = (LatticeAnnotatedTypeFactory) analysis.getTypeFactory();
-		var anno = factory.getQualifierHierarchy().findAnnotationInHierarchy(annotations, factory.getTop());
-		return factory.getLattice().getPropertyAnnotation(anno == null ? factory.getTop() : anno);
+	public PropertyAnnotation getPropertyAnnotation() {
+		return propertyAnnotation;
 	}
 
 	/**
