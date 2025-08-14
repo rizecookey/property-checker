@@ -11,7 +11,7 @@ If the Property Checker is not able to completely prove a program's correctness,
 
 # Tests
 
-See the folder `tests` for short examples. For a longer example project using the Property Checker, see https://github.com/flo2702/property-checker-example.
+See the folder `tests` for examples.
 
 To run a specific test case, use `./gradlew clean test --tests <name of test case>`, e.g., `./gradlew clean test --tests NullnessTest` to run `tests.property.NullnessTest`.
 
@@ -19,6 +19,8 @@ To create your own test cases, you must create a class extending `PropertyChecke
 See the existing test cases for examples.
 
 # Building and running
+
+After the first clone, the Checker Framework submodule must be initialized via `git submodule init && git submodule update`, then compiled via `cd checker-framework ; ./gradlew assemble`.
 
 To build the Property Checker, run `./gradlew assemble`. The file `property-checker.jar` will be generated in the main directory. To be able to run the Property Checker, the files `property-checker.jar`, `checker-qual.jar`, and `javac` (not the regular Java compiler, but the one included here!) must be kept in the same directory.
 

@@ -15,14 +15,14 @@ public final class PreservingUpdateDependentTest {
 
     @NonMonotonic
     void nonPreservingAliased0(@MaybeAliased PreservingUpdateDependentTest this) {
-        // :: error: initialization.write.committed.field :: error: interval.assignment.type.incompatible
+        // :: error: initialization.write.committed.dependable.field
         this.intField0 = 0;
     }
 
     @NonMonotonic
     void nonPreservingAliased1(@MaybeAliased PreservingUpdateDependentTest this, @MaybeAliased PreservingUpdateDependentTest other) {
         other.objField = new Object();
-        // :: error: initialization.write.committed.field :: error: interval.assignment.type.incompatible
+        // :: error: initialization.write.committed.dependable.field
         this.intField1 = 0;
     }
 }

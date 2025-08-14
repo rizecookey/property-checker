@@ -18,6 +18,7 @@ package edu.kit.kastel.property.subchecker.lattice;
 
 import javax.lang.model.type.TypeMirror;
 
+import com.sun.source.tree.Tree;
 import edu.kit.kastel.property.packing.PackingClientAnalysis;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
@@ -36,7 +37,7 @@ public final class LatticeAnalysis extends PackingClientAnalysis<LatticeValue, L
     public LatticeStore createEmptyStore(boolean sequentialSemantics) {
         return new LatticeStore(this, sequentialSemantics);
     }
-    
+
     @Override
     public @Nullable LatticeValue createAbstractValue(
             AnnotationMirrorSet annotations,
@@ -56,4 +57,5 @@ public final class LatticeAnalysis extends PackingClientAnalysis<LatticeValue, L
     public LatticeAnnotatedTypeFactory getTypeFactory() {
         return (LatticeAnnotatedTypeFactory) super.getTypeFactory();
     }
+
 }

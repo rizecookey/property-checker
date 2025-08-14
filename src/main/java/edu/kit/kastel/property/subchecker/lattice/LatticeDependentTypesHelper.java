@@ -18,6 +18,10 @@ package edu.kit.kastel.property.subchecker.lattice;
 
 import org.checkerframework.framework.util.dependenttypes.DependentTypesHelper;
 
+// Dependent types helper for lattice type systems that automatically viewpoint-adapts dependent types based
+// on where they appear. The basis for this is a customised implementation of DependentTypesHelper that considers all
+// string fields on annotations possible Java Expressions (the checker framework upstream default: only String array
+// fields annotated with @JavaExpression are considered for viewpoint adaptation)
 public final class LatticeDependentTypesHelper extends DependentTypesHelper {
 
     public LatticeDependentTypesHelper(LatticeAnnotatedTypeFactory factory) {

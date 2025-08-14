@@ -17,11 +17,9 @@
 package edu.kit.kastel.property.subchecker.lattice;
 
 import com.sun.source.tree.Tree;
-import com.sun.tools.javac.code.Type;
 import edu.kit.kastel.property.lattice.EvaluatedPropertyAnnotation;
 import edu.kit.kastel.property.lattice.PropertyAnnotation;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
-import edu.kit.kastel.property.util.ClassUtils;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.common.basetype.BaseTypeValidator;
 import org.checkerframework.common.basetype.BaseTypeVisitor;
@@ -32,6 +30,8 @@ import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.TypesUtils;
 
 import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.TypeMirror;
 
 public final class LatticeTypeValidator extends BaseTypeValidator {
 
@@ -73,21 +73,21 @@ public final class LatticeTypeValidator extends BaseTypeValidator {
             return true;
         }
 
-        Class<?> expectedSubjectType = epa.getAnnotationType().getSubjectType();
+        TypeMirror expectedSubjectType = epa.getAnnotationType().getSubjectType();
+        TypeMirror actualSubjectType = type.getUnderlyingType();
 
         if (expectedSubjectType == null) {
             // any
             return true;
         }
 
-        if (expectedSubjectType.getName().equals("java.lang.Object") && !TypesUtils.isPrimitive(type.getUnderlyingType())) {
+        if (expectedSubjectType instanceof DeclaredType decl && TypesUtils.getQualifiedName(decl).equals("java.lang.Object")
+                && !TypesUtils.isPrimitive(type.getUnderlyingType())) {
             return true;
         }
 
-        Class<?> actualSubjectType = ClassUtils.classOrPrimitiveForName(
-                ((Type) type.getUnderlyingType()).asElement().toString(), getLatticeSubchecker());
-
-        if (actualSubjectType != null && !expectedSubjectType.isAssignableFrom(actualSubjectType)) {
+        if (actualSubjectType != null && expectedSubjectType != null
+                && !checker.getTypeUtils().isAssignable(actualSubjectType, expectedSubjectType)) {
             reportInvalidType(type, tree);
             return false;
         }

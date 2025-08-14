@@ -18,7 +18,7 @@ public class ExceptionTest {
     public void foo(@Unique @B ExceptionTest this) {}
 
     public static void main() {
-        @B ExceptionTest obj = new ExceptionTest();
+        @Unique @B ExceptionTest obj = new ExceptionTest();
         try {
             obj.foo();
         } catch (Exception e) {

@@ -12,4 +12,9 @@ public interface CooperativeChecker {
     void setErrorCount(int errorCount);
     CooperativeAnnotatedTypeFactory getTypeFactory();
     Lattice getLattice();
+    CooperativeVisitor getVisitor();
+
+    default CooperativeVisitor.Result getResult() {
+        return getVisitor().getResult();
+    }
 }

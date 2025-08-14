@@ -34,6 +34,9 @@ public class PackingFieldAccessTreeAnnotator extends InitializationFieldAccessTr
 
     @Override
     public Void visitMemberSelect(MemberSelectTree tree, AnnotatedTypeMirror p) {
+        if (!uncommitPrimitiveFields && p.getPrimitiveKind() != null) {
+            return null;
+        }
         super.visitMemberSelect(tree, p);
         computeFieldAccessType(tree, p);
         return null;
@@ -49,10 +52,6 @@ public class PackingFieldAccessTreeAnnotator extends InitializationFieldAccessTr
     private void computeFieldAccessType(ExpressionTree tree, AnnotatedTypeMirror type) {
         GenericAnnotatedTypeFactory<?, ?, ?, ?> factory =
                 (GenericAnnotatedTypeFactory<?, ?, ?, ?>) atypeFactory;
-
-        if (!uncommitPrimitiveFields && type.getPrimitiveKind() != null) {
-            return;
-        }
 
         // Don't adapt anything if initialization checking is turned off.
         if (assumeInitialized || ((PackingFieldAccessAnnotatedTypeFactory) fieldAccessFactory).isComputingUninitializedFields()) {

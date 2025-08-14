@@ -25,10 +25,7 @@ import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TypesUtils;
 
 import javax.lang.model.element.AnnotationMirror;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class Lattice {
 
@@ -135,7 +132,14 @@ public class Lattice {
         return getEvaluatedPropertyAnnotation(mirror.getAnnotationInHierarchy(getTop()));
     }
 
+    private Map<AnnotationMirror, EvaluatedPropertyAnnotation> epaCache = new HashMap<>();
+
     public EvaluatedPropertyAnnotation getEvaluatedPropertyAnnotation(AnnotationMirror mirror) {
+        if (epaCache.containsKey(mirror)) {
+            return epaCache.get(mirror);
+        }
+
+        EvaluatedPropertyAnnotation result;
         PropertyAnnotationType type = annotationTypes.get(
                 mirror.getAnnotationType().asElement().getSimpleName().toString());
 
@@ -146,12 +150,15 @@ public class Lattice {
                 actualParams.add(param.getType().fromString(paramStr));
             }
 
-            return new EvaluatedPropertyAnnotation(type, actualParams);
+            result = new EvaluatedPropertyAnnotation(type, actualParams);
         } catch(IllegalArgumentException e) {
             // If fromString throws an IllegalArgumentException, the parameter is not a literal, but
             // a composite expression.
             // The Checker type system always delegates expression of such types to KeY.
-            return null;
+            result = null;
         }
+
+        epaCache.put(mirror, result);
+        return result;
     }
 }

@@ -104,6 +104,11 @@ public class NullnessLatticeSubchecker extends NullnessNoInitSubchecker implemen
     }
 
     @Override
+    public NullnessLatticeVisitor getVisitor() {
+        return (NullnessLatticeVisitor) super.getVisitor();
+    }
+
+    @Override
     public Lattice getLattice() {
         return getTypeFactory().getLattice();
     }

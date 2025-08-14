@@ -13,9 +13,9 @@ class MutateOtherObjects {
     void mutate(@Unique MutateOtherObjects this, @Unique MutateOtherObjects other) {
         this.foo = new Foo();
 
-        // :: error: initialization.assignment.invalid-lhs
+        // :: error: initialization.write.unowned.dependable.field
         this.foo.i = 42;
-        // :: error: initialization.assignment.invalid-lhs
+        // :: error: initialization.write.unowned.dependable.field
         other.foo = new Foo();
     }
 }

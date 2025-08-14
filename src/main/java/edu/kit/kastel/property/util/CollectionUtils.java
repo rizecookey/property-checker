@@ -16,19 +16,17 @@
  */
 package edu.kit.kastel.property.util;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
 public final class CollectionUtils {
 
     private CollectionUtils() { }
+
+    public static <K1, K2, V> void deepPut(Map<K1, Map<K2, V>> map, K1 key1, K2 key2, V value) {
+        map.computeIfAbsent(key1, k -> new HashMap<>()).put(key2, value);
+    }
 
     public static <K,E> void addToListMap(Map<K, List<E>> map, K key, E elem) {
         addToCollectionMap(map, key, elem, ArrayList<E>::new);
@@ -44,6 +42,12 @@ public final class CollectionUtils {
         }
 
         map.get(key).add(elem);
+    }
+
+    public static <K, E, C extends Collection<E>> void removeFromCollectionMap(Map<K, C> map, K key, E elem) {
+        if (map.containsKey(key)) {
+            map.get(key).remove(elem);
+        }
     }
 
     public static <K,E> List<E> getUnmodifiableList(Map<K, List<E>> map, K key) {
