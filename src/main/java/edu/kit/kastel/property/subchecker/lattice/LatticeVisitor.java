@@ -396,7 +396,9 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
 
         commonAssignmentCheckEndDiagnostic(success, null, varType, valueType, valueTree);
 
-        amendSmtResultForValue(varType, valueType, valueTree, success);
+        if (!(valueType instanceof AnnotatedTypeMirror.AnnotatedTypeVariable)) { // generic types are not supported here
+            amendSmtResultForValue(varType, valueType, valueTree, success);
+        }
 
         if (!success) {
             return super.commonAssignmentCheck(varType, valueType, valueTree, errorKey, extraArgs);
@@ -623,6 +625,10 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
     }
 
     private void computeSmtContext(LatticeStore store, Tree tree) {
+        if (store == null) {
+            return;
+        }
+
         store.allRefinements()
                 .flatMap(expr -> tryConvertToSmt(expr).stream())
                 .forEach(smtResult -> result.addContext(tree, smtResult.smt()));
@@ -671,7 +677,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             }
             FieldAccess fieldAccess = new FieldAccess(new ThisReference(field.getEnclosingElement().asType()), field);
             var fieldType = atypeFactory.getAnnotatedType(field);
-            if (!qualHierarchy.isSubtypeQualifiersOnly(top, fieldType.getAnnotationInHierarchy(top))) {
+            if (!qualHierarchy.isSubtypeQualifiersOnly(top, fieldType.getEffectiveAnnotationInHierarchy(top))) {
                 // only include refinement if field type is not a top type
                 var property = atypeFactory.getLattice().getPropertyAnnotation(fieldType);
                 JavaExpression expr =

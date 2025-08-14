@@ -68,7 +68,7 @@ public final class LatticeTransfer extends PackingClientTransfer<LatticeValue, L
         if (inferredValue != null) {
             inferredType.addAnnotations(inferredValue.getAnnotations());
         }
-        var newVal = inferredValue != null && factory.getTypeHierarchy().isSubtype(inferredType, declaredType)
+        var newVal = inferredValue != null && factory.getTypeHierarchy().isSubtypeShallowEffective(inferredType, declaredType)
                 ? inferredValue
                 : analysis.createAbstractValue(declaredType);
 
