@@ -19,7 +19,7 @@ public class InvNode extends Node<@Nullable @MaybeAliased Invariant, @NonNullNod
    * @param inv2 an invariant
    */
   @Pure
-  // :: error: nullnessnode.inconsistent.constructor.type
+  // :: error: nullnessnode.inconsistent.constructor.type :: error: nullnessnode.contracts.postcondition.not.satisfied
   public @NonNullNode InvNode(@NonNullIfNull("inv2") @Nullable Invariant inv1, @NonNullIfNull("inv1") @Nullable Invariant inv2) {
     // :: error: nullnessnode.argument.type.incompatible
     super(inv1, inv2);

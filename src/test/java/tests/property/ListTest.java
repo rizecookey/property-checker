@@ -21,6 +21,9 @@ import org.junit.runners.Parameterized.Parameters;
 import java.io.File;
 import java.util.List;
 
+// This test currently fails because type errors mended by SMT are nevertheless reported as errors
+// TODO change this
+
 @SuppressWarnings("nls")
 public class ListTest extends PropertyCheckerTest {
     public ListTest(List<File> testFiles) {

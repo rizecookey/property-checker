@@ -19,7 +19,7 @@ public class PptNode extends Node<@Nullable @MaybeAliased PptTopLevel, @NonNullN
    * @param ppt2 a program point
    */
   @Pure
-  // :: error: nullnessnode.inconsistent.constructor.type
+  // :: error: nullnessnode.inconsistent.constructor.type :: error: nullnessnode.contracts.postcondition.not.satisfied
   public @NonNullNode PptNode(@NonNullIfNull("ppt2") @Nullable PptTopLevel ppt1, @NonNullIfNull("ppt1") @Nullable PptTopLevel ppt2) {
     // :: error: nullnessnode.argument.type.incompatible
     super(ppt1, ppt2);
