@@ -610,11 +610,6 @@ public class PackingVisitor
                     return false;
                 }
 
-                if (enclMethod != null && atypeFactory.isMonotonicMethod(enclMethod)) {
-                    checker.reportError(varTree, "initialization.write.nonmonotonic");
-                    return false;
-                }
-
                 if (xType == null || atypeFactory.isUnknownInitialization(xType) || atypeFactory.isInitializedForFrame(xType, TreeInfo.symbol((JCTree) varTree).owner.type)) {
                     checker.reportError(varTree, "initialization.write.committed.dependable.field", varTree);
                     return false;
